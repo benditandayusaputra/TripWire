@@ -8,7 +8,7 @@ function csrfHeader(cookies: { get: (name: string) => string | undefined }) {
 }
 
 export const load: PageServerLoad = async ({ request }) => {
-	const { payload } = await panggilApi('/account/me', {}, request.headers.get('cookie') ?? '');
+	const { payload } = await panggilApi('/account/profile', {}, request.headers.get('cookie') ?? '');
 	return { profil: payload?.user ?? null };
 };
 
@@ -44,6 +44,37 @@ export const actions: Actions = {
 		}
 
 		return { aksi: 'unggah', sukses: true };
+	},
+
+	simpan: async ({ request, cookies }) => {
+		const form = await request.formData();
+
+		const { response, payload } = await panggilApi(
+			'/account/profile',
+			{
+				method: 'PATCH',
+				headers: csrfHeader(cookies),
+				body: JSON.stringify({
+					full_name: String(form.get('full_name') ?? ''),
+					phone_number: String(form.get('phone_number') ?? ''),
+					bio: String(form.get('bio') ?? ''),
+					locale: String(form.get('locale') ?? 'id'),
+					theme_preference: String(form.get('theme_preference') ?? 'dark'),
+					timezone: String(form.get('timezone') ?? 'Asia/Jakarta')
+				})
+			},
+			request.headers.get('cookie') ?? ''
+		);
+
+		if (!response.ok) {
+			return fail(response.status, {
+				aksi: 'simpan',
+				error: pesanGalat(payload, 'Gagal menyimpan profil'),
+				fields: (payload?.fields ?? {}) as Record<string, string>
+			});
+		}
+
+		return { aksi: 'simpan', sukses: true };
 	},
 
 	hapus: async ({ request, cookies }) => {

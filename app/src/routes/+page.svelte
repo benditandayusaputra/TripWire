@@ -40,6 +40,9 @@
 	<header class="flex items-center justify-between">
 		<Wordmark />
 		<nav class="flex items-center gap-2">
+			<a href="/verify-insight" data-testid="nav-verifikasi" class="tw-ghost text-[14px]">
+				Verifikasi insight
+			</a>
 			<a href="/login" class="tw-ghost text-[14px]">Masuk</a>
 			<a href="/register" class="tw-primary text-[14px]">Daftar</a>
 		</nav>
