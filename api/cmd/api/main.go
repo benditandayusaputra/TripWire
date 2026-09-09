@@ -64,6 +64,13 @@ func main() {
 		Timeout:         cfg.SectorsTimeout,
 	})
 
+	insightSigner, err := crypto.NewInsightSigner(cfg.InsightSigningKey)
+	if err != nil {
+		log.Fatalf("insight signer: %v", err)
+	}
+
+	integrity := service.NewIntegrityService(repository.NewInsightRepository(store), insightSigner)
+
 	market := service.NewMarketService(sectors, tickers)
 	if total, err := market.RefreshTickerUniverse(ctx); err == nil {
 		log.Printf("ticker universe disegarkan dari Sectors, %d emiten", total)
@@ -84,7 +91,8 @@ func main() {
 		),
 		Watchlist: service.NewWatchlistService(repository.NewWatchlistRepository(store), tickers),
 		Market:    market,
-		Insight:   service.NewInsightService(sectors, tickers),
+		Integrity: integrity,
+		Insight:   service.NewInsightService(sectors, tickers, integrity),
 	})
 
 	shutdown := make(chan os.Signal, 1)

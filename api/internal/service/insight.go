@@ -25,22 +25,44 @@ const (
 var subSektorTambang = []string{"coal", "metal", "mineral", "mining", "oil, gas", "oil & gas", "tambang"}
 
 type Insight struct {
+	ID          string     `json:"id,omitempty"`
 	Ticker      string     `json:"ticker"`
 	CompanyName string     `json:"company_name"`
 	InsightType string     `json:"insight_type"`
 	Subtype     string     `json:"subtype"`
 	Score       *float64   `json:"score"`
 	Payload     any        `json:"payload"`
+	Signature   string     `json:"signature,omitempty"`
+	PrevHash    *string    `json:"prev_hash,omitempty"`
+	CurrentHash string     `json:"current_hash,omitempty"`
+	GeneratedAt *time.Time `json:"generated_at,omitempty"`
 	Meta        MarketMeta `json:"meta"`
 }
 
 type InsightService struct {
-	client  *sectorsclient.Client
-	tickers *TickerService
+	client    *sectorsclient.Client
+	tickers   *TickerService
+	integrity *IntegrityService
 }
 
-func NewInsightService(client *sectorsclient.Client, tickers *TickerService) *InsightService {
-	return &InsightService{client: client, tickers: tickers}
+func NewInsightService(client *sectorsclient.Client, tickers *TickerService, integrity *IntegrityService) *InsightService {
+	return &InsightService{client: client, tickers: tickers, integrity: integrity}
+}
+
+func (s *InsightService) simpan(ctx context.Context, insight *Insight) (*Insight, error) {
+	event, err := s.integrity.Record(ctx, insight)
+	if err != nil {
+		return nil, err
+	}
+
+	generatedAt := event.GeneratedAt
+	insight.ID = event.ID
+	insight.Signature = event.Signature
+	insight.PrevHash = event.PrevHash
+	insight.CurrentHash = event.CurrentHash
+	insight.GeneratedAt = &generatedAt
+
+	return insight, nil
 }
 
 func (s *InsightService) RedFlag(ctx context.Context, rawTicker string) (*Insight, error) {
@@ -66,7 +88,7 @@ func (s *InsightService) RedFlag(ctx context.Context, rawTicker string) (*Insigh
 	payload := HitungRedFlag(sinyal, time.Now())
 	skor := payload.GovernanceRiskScore
 
-	return &Insight{
+	return s.simpan(ctx, &Insight{
 		Ticker:      ticker.Code,
 		CompanyName: namaEmiten(ticker, laporan.CompanyName),
 		InsightType: InsightRedFlag,
@@ -74,7 +96,7 @@ func (s *InsightService) RedFlag(ctx context.Context, rawTicker string) (*Insigh
 		Score:       &skor,
 		Payload:     payload,
 		Meta:        s.meta(ctx, jejak),
-	}, nil
+	})
 }
 
 func (s *InsightService) MarketIntelligence(ctx context.Context, rawTicker string) (*Insight, error) {
@@ -121,7 +143,7 @@ func (s *InsightService) MarketIntelligence(ctx context.Context, rawTicker strin
 	insight.Payload = payload
 	insight.Meta = s.meta(ctx, jejak)
 
-	return insight, nil
+	return s.simpan(ctx, insight)
 }
 
 func (s *InsightService) lookup(rawTicker string) (Ticker, error) {
