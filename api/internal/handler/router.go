@@ -11,11 +11,12 @@ import (
 )
 
 type Dependencies struct {
-	Config *config.Config
-	Redis  *redis.Client
-	Signer *crypto.TokenSigner
-	Health *service.HealthService
-	Auth   *service.AuthService
+	Config    *config.Config
+	Redis     *redis.Client
+	Signer    *crypto.TokenSigner
+	Health    *service.HealthService
+	Auth      *service.AuthService
+	Watchlist *service.WatchlistService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -51,4 +52,19 @@ func Register(app *fiber.App, deps Dependencies) {
 
 	account := app.Group("/account", requireAuth)
 	account.Get("/me", auth.Me)
+
+	watchlist := NewWatchlistHandler(deps.Watchlist)
+	app.Get("/tickers", requireAuth, watchlist.SearchTickers)
+
+	group := app.Group("/watchlist", requireAuth, csrf, middleware.XSSSanitize())
+	group.Get("/", watchlist.List)
+	group.Post("/",
+		middleware.RateLimit(deps.Redis, "watchlist_add", cfg.WatchlistRateLimit, cfg.RateLimitWindow, middleware.ClientIP),
+		watchlist.Add)
+	group.Patch("/:id", watchlist.Update)
+	group.Delete("/:id", watchlist.Remove)
+	group.Get("/:id/conditions", watchlist.ListConditions)
+	group.Post("/:id/conditions", watchlist.AddCondition)
+	group.Patch("/:id/conditions/:cid", watchlist.UpdateCondition)
+	group.Delete("/:id/conditions/:cid", watchlist.RemoveCondition)
 }

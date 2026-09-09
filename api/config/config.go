@@ -23,16 +23,17 @@ type Config struct {
 	AccessTTL        time.Duration
 	RefreshTTL       time.Duration
 
-	BcryptCost        int
-	MaxFailedLogins   int
-	LockoutDuration   time.Duration
-	EmailTokenTTL     time.Duration
-	PasswordResetTTL  time.Duration
-	LoginRateLimit    int
-	RegisterRateLimit int
-	RateLimitWindow   time.Duration
-	CookieSecure      bool
-	CookieDomain      string
+	BcryptCost         int
+	MaxFailedLogins    int
+	LockoutDuration    time.Duration
+	EmailTokenTTL      time.Duration
+	PasswordResetTTL   time.Duration
+	LoginRateLimit     int
+	RegisterRateLimit  int
+	WatchlistRateLimit int
+	RateLimitWindow    time.Duration
+	CookieSecure       bool
+	CookieDomain       string
 
 	EnableWebAuthn bool
 }
@@ -68,16 +69,17 @@ func Load() (*Config, error) {
 		AccessTTL:        envDuration("JWT_ACCESS_TTL", 15*time.Minute),
 		RefreshTTL:       envDuration("JWT_REFRESH_TTL", 720*time.Hour),
 
-		BcryptCost:        envInt("BCRYPT_COST", bcryptCostDefault(appEnv)),
-		MaxFailedLogins:   envInt("MAX_FAILED_LOGINS", 5),
-		LockoutDuration:   envDuration("LOCKOUT_DURATION", 15*time.Minute),
-		EmailTokenTTL:     envDuration("EMAIL_TOKEN_TTL", 24*time.Hour),
-		PasswordResetTTL:  envDuration("PASSWORD_RESET_TTL", time.Hour),
-		LoginRateLimit:    envInt("LOGIN_RATE_LIMIT", 20),
-		RegisterRateLimit: envInt("REGISTER_RATE_LIMIT", 10),
-		RateLimitWindow:   envDuration("RATE_LIMIT_WINDOW", time.Minute),
-		CookieSecure:      envBool("COOKIE_SECURE", true),
-		CookieDomain:      os.Getenv("COOKIE_DOMAIN"),
+		BcryptCost:         envInt("BCRYPT_COST", bcryptCostDefault(appEnv)),
+		MaxFailedLogins:    envInt("MAX_FAILED_LOGINS", 5),
+		LockoutDuration:    envDuration("LOCKOUT_DURATION", 15*time.Minute),
+		EmailTokenTTL:      envDuration("EMAIL_TOKEN_TTL", 24*time.Hour),
+		PasswordResetTTL:   envDuration("PASSWORD_RESET_TTL", time.Hour),
+		LoginRateLimit:     envInt("LOGIN_RATE_LIMIT", 20),
+		RegisterRateLimit:  envInt("REGISTER_RATE_LIMIT", 10),
+		WatchlistRateLimit: envInt("WATCHLIST_RATE_LIMIT", 30),
+		RateLimitWindow:    envDuration("RATE_LIMIT_WINDOW", time.Minute),
+		CookieSecure:       envBool("COOKIE_SECURE", true),
+		CookieDomain:       os.Getenv("COOKIE_DOMAIN"),
 
 		EnableWebAuthn: envBool("FEATURE_WEBAUTHN", false),
 	}
