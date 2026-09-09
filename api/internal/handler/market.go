@@ -20,7 +20,7 @@ func NewMarketHandler(market *service.MarketService) *MarketHandler {
 func (h *MarketHandler) CompanyReport(c *fiber.Ctx) error {
 	report, err := h.market.CompanyReport(c.Context(), c.Params("ticker"))
 	if err != nil {
-		return h.error(c, err)
+		return sectorsError(c, err)
 	}
 	return c.JSON(report)
 }
@@ -29,7 +29,7 @@ func (h *MarketHandler) Credits(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"meta": h.market.Credits(c.Context())})
 }
 
-func (h *MarketHandler) error(c *fiber.Ctx, err error) error {
+func sectorsError(c *fiber.Ctx, err error) error {
 	var validationErr *service.ValidationError
 	if errors.As(err, &validationErr) {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
