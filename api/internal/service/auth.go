@@ -18,6 +18,7 @@ var (
 	ErrEmailTaken         = errors.New("service: email sudah terdaftar")
 	ErrAccountInactive    = errors.New("service: akun tidak aktif")
 	ErrInvalidToken       = errors.New("service: token tidak valid atau sudah kedaluwarsa")
+	ErrTOTPDiperlukan     = errors.New("service: kode verifikasi dua faktor diperlukan")
 )
 
 type AccountLockedError struct {
@@ -52,12 +53,13 @@ type RegisterInput struct {
 }
 
 type AuthService struct {
-	cfg    *config.Config
-	users  *repository.UserRepository
-	tokens *repository.TokenRepository
-	audit  *repository.AuditRepository
-	signer *crypto.TokenSigner
-	mailer *Mailer
+	cfg       *config.Config
+	twoFactor *TwoFactorService
+	users     *repository.UserRepository
+	tokens    *repository.TokenRepository
+	audit     *repository.AuditRepository
+	signer    *crypto.TokenSigner
+	mailer    *Mailer
 }
 
 func NewAuthService(
@@ -114,7 +116,11 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput, rc Requ
 	return user, verificationToken, nil
 }
 
-func (s *AuthService) Login(ctx context.Context, email, password string, rc RequestContext) (*AuthResult, error) {
+func (s *AuthService) PakaiTwoFactor(twoFactor *TwoFactorService) {
+	s.twoFactor = twoFactor
+}
+
+func (s *AuthService) Login(ctx context.Context, email, password, kodeTOTP string, rc RequestContext) (*AuthResult, error) {
 	email = normalizeEmail(email)
 
 	user, err := s.users.ByEmail(ctx, email)
@@ -158,6 +164,32 @@ func (s *AuthService) Login(ctx context.Context, email, password string, rc Requ
 			return nil, &AccountLockedError{Until: *lockedUntil}
 		}
 		return nil, ErrInvalidCredentials
+	}
+
+	if user.TOTPEnabled && s.twoFactor != nil {
+		if strings.TrimSpace(kodeTOTP) == "" {
+			return nil, ErrTOTPDiperlukan
+		}
+
+		if err := s.twoFactor.PeriksaSaatLogin(ctx, user, kodeTOTP, rc); err != nil {
+			attempts, lockedUntil, updateErr := s.users.RegisterFailedLogin(ctx, user.ID, s.cfg.MaxFailedLogins, s.cfg.LockoutDuration)
+			if updateErr != nil {
+				return nil, updateErr
+			}
+
+			s.record(ctx, model.AuditEvent{
+				UserID:    &user.ID,
+				EventType: model.AuditLoginFailed,
+				IPAddress: rc.IPAddress,
+				UserAgent: rc.UserAgent,
+				Metadata:  map[string]any{"failed_attempts": attempts, "reason": "totp_salah"},
+			})
+
+			if lockedUntil != nil && lockedUntil.After(time.Now()) {
+				return nil, &AccountLockedError{Until: *lockedUntil}
+			}
+			return nil, ErrKodeTOTPSalah
+		}
 	}
 
 	if err := s.users.RegisterSuccessfulLogin(ctx, user.ID); err != nil {
