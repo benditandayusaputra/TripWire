@@ -106,3 +106,32 @@ func (r *UserRepository) UpdatePassword(ctx context.Context, userID, passwordHas
 	_, err := r.store.DB.ExecContext(ctx, query, userID, passwordHash, passwordSalt)
 	return err
 }
+
+func (r *UserRepository) UpdateProfile(ctx context.Context, userID string, input ProfileInput) (*model.User, error) {
+	query := `UPDATE users
+	          SET full_name = coalesce($2, full_name),
+	              phone_number = coalesce($3, phone_number),
+	              bio = coalesce($4, bio),
+	              locale = coalesce($5, locale),
+	              theme_preference = coalesce($6, theme_preference),
+	              timezone = coalesce($7, timezone)
+	          WHERE id = $1`
+	hasil, err := r.store.DB.ExecContext(ctx, query, userID,
+		input.FullName, input.PhoneNumber, input.Bio, input.Locale, input.ThemePreference, input.Timezone)
+	if err != nil {
+		return nil, err
+	}
+	if terpengaruh, _ := hasil.RowsAffected(); terpengaruh == 0 {
+		return nil, ErrNotFound
+	}
+	return r.ByID(ctx, userID)
+}
+
+type ProfileInput struct {
+	FullName        *string
+	PhoneNumber     *string
+	Bio             *string
+	Locale          *string
+	ThemePreference *string
+	Timezone        *string
+}
