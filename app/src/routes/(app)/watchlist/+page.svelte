@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Plus, Trash2 } from 'lucide-svelte';
+	import { CalendarClock, Plus, Trash2, TriangleAlert } from 'lucide-svelte';
+	import Field from '$lib/components/Field.svelte';
 	import KondisiLabel from '$lib/components/KondisiLabel.svelte';
+	import Mark from '$lib/components/Mark.svelte';
 
 	let { data, form } = $props();
 
@@ -17,29 +19,59 @@
 			.filter((t) => t.code.startsWith(needle) || t.name.toUpperCase().includes(needle))
 			.slice(0, 6);
 	});
+
+	const totalKondisi = $derived(
+		data.items.reduce((jumlah, item) => jumlah + item.conditions.length, 0)
+	);
+
+	const kondisiAktif = $derived(
+		data.items.reduce(
+			(jumlah, item) => jumlah + item.conditions.filter((kondisi) => kondisi.is_active).length,
+			0
+		)
+	);
 </script>
 
 <svelte:head>
 	<title>Watchlist TripWire</title>
 </svelte:head>
 
-<section class="space-y-8">
-	<header class="space-y-1">
-		<h1 class="font-display text-ink-100 text-2xl font-semibold">Watchlist</h1>
-		<p class="text-ink-400 text-sm">
-			{data.items.length} emiten dipantau. Tiap emiten bisa punya kondisi pemicu sendiri.
-		</p>
+<section class="space-y-7">
+	<header class="flex flex-wrap items-end justify-between gap-4">
+		<div class="space-y-1.5">
+			<p class="tw-overline">Watchlist</p>
+			<h1 class="tw-title text-ink">Emiten yang kamu pantau</h1>
+		</div>
+
+		<dl class="flex gap-2.5">
+			<div class="tw-glass px-3.5 py-2 text-center">
+				<dt class="tw-overline">Saham</dt>
+				<dd class="tw-data text-ink mt-0.5 text-[17px] font-semibold">{data.items.length}</dd>
+			</div>
+			<div class="tw-glass px-3.5 py-2 text-center">
+				<dt class="tw-overline">Kondisi</dt>
+				<dd class="tw-data text-ink mt-0.5 text-[17px] font-semibold">{totalKondisi}</dd>
+			</div>
+			<div class="tw-glass px-3.5 py-2 text-center">
+				<dt class="tw-overline">Aktif</dt>
+				<dd class="tw-data text-tier-low mt-0.5 text-[17px] font-semibold">{kondisiAktif}</dd>
+			</div>
+		</dl>
 	</header>
 
-	<div class="border-abyss-400 bg-abyss-700 rounded-xl border p-5">
-		<h2 class="font-display text-ink-100 text-sm font-semibold">Tambah emiten</h2>
+	<div class="tw-card p-5">
+		<h2 class="tw-heading text-ink flex items-center gap-2">
+			<Plus class="text-diamond-300 size-4" aria-hidden="true" />
+			Tambah emiten
+		</h2>
 
 		{#if form?.aksi === 'tambah' && form?.error}
 			<p
 				data-testid="watchlist-error"
 				role="alert"
-				class="border-flag-critical/40 bg-flag-critical/10 text-flag-critical mt-3 rounded-lg border px-3 py-2 text-sm"
+				class="rounded-glass border-tier-critical/35 bg-tier-critical/10 text-tier-critical mt-4 flex items-start gap-2.5 border px-3.5 py-2.5 text-[13.5px]"
 			>
+				<TriangleAlert class="mt-0.5 size-4 flex-none" aria-hidden="true" />
 				{form.error}
 			</p>
 		{/if}
@@ -54,17 +86,15 @@
 					ticker = '';
 				}}
 		>
-			<div class="min-w-[12rem] flex-1 space-y-1.5">
-				<label for="ticker" class="text-ink-200 block text-sm font-medium">Kode emiten</label>
-				<input
+			<div class="min-w-[11rem] flex-1">
+				<Field
 					id="ticker"
-					name="ticker"
-					list="daftar-ticker"
+					label="Kode emiten"
 					bind:value={ticker}
 					placeholder="ANTM"
 					autocomplete="off"
-					required
-					class="border-abyss-400 bg-abyss-600 text-ink-100 focus:border-diamond-500 w-full rounded-lg border px-3 py-2.5 font-mono text-sm tracking-wider uppercase outline-none"
+					list="daftar-ticker"
+					mono
 				/>
 				<datalist id="daftar-ticker">
 					{#each cocok as emiten (emiten.code)}
@@ -74,24 +104,16 @@
 			</div>
 
 			<div class="space-y-1.5">
-				<label for="data_display_pref" class="text-ink-200 block text-sm font-medium">
+				<label for="data_display_pref" class="text-secondary block text-[13.5px] font-medium">
 					Tampilan data
 				</label>
-				<select
-					id="data_display_pref"
-					name="data_display_pref"
-					class="border-abyss-400 bg-abyss-600 text-ink-100 focus:border-diamond-500 rounded-lg border px-3 py-2.5 text-sm outline-none"
-				>
+				<select id="data_display_pref" name="data_display_pref" class="tw-field">
 					<option value="insight_only">Insight saja</option>
 					<option value="insight_plus_data">Insight plus data</option>
 				</select>
 			</div>
 
-			<button
-				type="submit"
-				data-testid="tambah-ticker"
-				class="bg-diamond-500 text-abyss-900 hover:bg-diamond-400 flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition"
-			>
+			<button type="submit" data-testid="tambah-ticker" class="tw-primary">
 				<Plus class="size-4" aria-hidden="true" />
 				Tambah
 			</button>
@@ -99,24 +121,23 @@
 	</div>
 
 	{#if data.items.length === 0}
-		<p data-testid="watchlist-kosong" class="text-ink-400 text-sm">
-			Belum ada emiten yang dipantau.
-		</p>
+		<div class="tw-glass flex items-center gap-3 px-4 py-4">
+			<Mark size={7} color="var(--color-muted)" />
+			<p data-testid="watchlist-kosong" class="tw-caption">
+				Belum ada emiten yang dipantau. Tambahkan satu kode emiten untuk mulai.
+			</p>
+		</div>
 	{:else}
 		<ul data-testid="watchlist-items" class="space-y-4">
 			{#each data.items as item (item.id)}
-				<li
-					data-testid="watchlist-item"
-					data-ticker={item.ticker}
-					class="border-abyss-400 bg-abyss-700 rounded-xl border"
-				>
-					<div class="border-abyss-400 flex items-start justify-between gap-4 border-b p-5">
-						<div>
-							<p class="text-diamond-300 font-mono text-lg font-semibold tracking-wider">
+				<li data-testid="watchlist-item" data-ticker={item.ticker} class="tw-card overflow-hidden">
+					<div class="border-line/70 flex items-start justify-between gap-4 border-b p-5">
+						<div class="min-w-0">
+							<p class="tw-data text-diamond-300 text-[19px] font-semibold tracking-wider">
 								{item.ticker}
 							</p>
-							<p class="text-ink-400 mt-0.5 text-sm">{item.company_name}</p>
-							<p class="text-ink-500 mt-2 font-mono text-xs">
+							<p class="text-secondary mt-0.5 text-[14px]">{item.company_name}</p>
+							<p class="tw-overline mt-2.5">
 								{item.data_display_pref === 'insight_only' ? 'Insight saja' : 'Insight plus data'}
 							</p>
 						</div>
@@ -127,7 +148,7 @@
 								type="submit"
 								data-testid="hapus-ticker"
 								aria-label="Hapus {item.ticker} dari watchlist"
-								class="border-abyss-400 text-ink-400 hover:border-flag-critical/50 hover:text-flag-critical rounded-lg border p-2 transition"
+								class="rounded-glass border-line text-muted hover:border-tier-critical/50 hover:text-tier-critical border p-2 transition"
 							>
 								<Trash2 class="size-4" aria-hidden="true" />
 							</button>
@@ -135,25 +156,30 @@
 					</div>
 
 					<div class="space-y-4 p-5">
-						<h3 class="text-ink-500 font-mono text-xs tracking-wider uppercase">Kondisi pemicu</h3>
+						<h3 class="tw-overline flex items-center gap-2">
+							<CalendarClock class="size-3.5" aria-hidden="true" />
+							Kondisi pemicu
+						</h3>
 
 						{#if item.conditions.length === 0}
-							<p class="text-ink-500 text-sm">Belum ada kondisi.</p>
+							<p class="text-muted text-[13.5px]">Belum ada kondisi.</p>
 						{:else}
 							<ul data-testid="daftar-kondisi" class="space-y-2">
 								{#each item.conditions as kondisi (kondisi.id)}
 									<li
 										data-testid="kondisi"
 										data-condition-type={kondisi.condition_type}
-										class="border-abyss-400 bg-abyss-600 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-sm"
+										class="tw-glass flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 text-[13.5px]"
 									>
-										<span class="flex items-center gap-2">
+										<span class="flex items-center gap-2.5">
+											<Mark
+												size={7}
+												color={kondisi.is_active ? 'var(--color-tier-low)' : 'var(--color-muted)'}
+											/>
 											<KondisiLabel type={kondisi.condition_type} config={kondisi.config} />
 											<span
 												data-testid="status-kondisi"
-												class="rounded px-1.5 py-0.5 font-mono text-[0.65rem] tracking-wider uppercase {kondisi.is_active
-													? 'bg-flag-clear/15 text-flag-clear'
-													: 'bg-abyss-400 text-ink-500'}"
+												class="tw-overline {kondisi.is_active ? 'text-tier-low' : 'text-muted'}"
 											>
 												{kondisi.is_active ? 'Aktif' : 'Nonaktif'}
 											</span>
@@ -167,7 +193,7 @@
 												<button
 													type="submit"
 													data-testid="toggle-kondisi"
-													class="border-abyss-400 text-ink-300 hover:border-diamond-700 hover:text-ink-100 rounded border px-2 py-1 text-xs transition"
+													class="tw-ghost px-2.5 py-1 text-[12.5px]"
 												>
 													{kondisi.is_active ? 'Nonaktifkan' : 'Aktifkan'}
 												</button>
@@ -179,7 +205,7 @@
 												<button
 													type="submit"
 													data-testid="hapus-kondisi"
-													class="border-abyss-400 text-ink-400 hover:border-flag-critical/50 hover:text-flag-critical rounded border px-2 py-1 text-xs transition"
+													class="rounded-glass border-line text-muted hover:border-tier-critical/50 hover:text-tier-critical border px-2.5 py-1 text-[12.5px] transition"
 												>
 													Hapus
 												</button>
@@ -201,7 +227,7 @@
 							<div class="space-y-1.5">
 								<label
 									for="condition_type-{item.id}"
-									class="text-ink-300 block text-xs font-medium"
+									class="text-secondary block text-[12.5px] font-medium"
 								>
 									Jenis kondisi
 								</label>
@@ -209,7 +235,7 @@
 									id="condition_type-{item.id}"
 									name="condition_type"
 									bind:value={conditionType}
-									class="border-abyss-400 bg-abyss-600 text-ink-100 focus:border-diamond-500 rounded-lg border px-3 py-2 text-sm outline-none"
+									class="tw-field py-2 text-[13.5px]"
 								>
 									<option value="daily">Harian</option>
 									<option value="weekly">Mingguan</option>
@@ -221,7 +247,10 @@
 
 							{#if conditionType === 'periodic_custom'}
 								<div class="space-y-1.5">
-									<label for="interval-{item.id}" class="text-ink-300 block text-xs font-medium">
+									<label
+										for="interval-{item.id}"
+										class="text-secondary block text-[12.5px] font-medium"
+									>
 										Interval jam
 									</label>
 									<input
@@ -231,21 +260,24 @@
 										min="1"
 										max="720"
 										bind:value={intervalHours}
-										class="border-abyss-400 bg-abyss-600 text-ink-100 focus:border-diamond-500 w-24 rounded-lg border px-3 py-2 text-sm outline-none"
+										class="tw-field tw-data w-24 py-2 text-[13.5px]"
 									/>
 								</div>
 							{/if}
 
 							{#if conditionType === 'weekly'}
 								<div class="space-y-1.5">
-									<label for="weekday-{item.id}" class="text-ink-300 block text-xs font-medium">
+									<label
+										for="weekday-{item.id}"
+										class="text-secondary block text-[12.5px] font-medium"
+									>
 										Hari
 									</label>
 									<select
 										id="weekday-{item.id}"
 										name="weekday"
 										bind:value={weekday}
-										class="border-abyss-400 bg-abyss-600 text-ink-100 focus:border-diamond-500 rounded-lg border px-3 py-2 text-sm outline-none"
+										class="tw-field py-2 text-[13.5px]"
 									>
 										<option value={1}>Senin</option>
 										<option value={2}>Selasa</option>
@@ -256,11 +288,8 @@
 								</div>
 							{/if}
 
-							<button
-								type="submit"
-								data-testid="tambah-kondisi"
-								class="border-diamond-700 text-diamond-300 hover:bg-diamond-900/40 rounded-lg border px-4 py-2 text-sm font-medium transition"
-							>
+							<button type="submit" data-testid="tambah-kondisi" class="tw-ghost">
+								<Plus class="size-4" aria-hidden="true" />
 								Tambah kondisi
 							</button>
 						</form>
