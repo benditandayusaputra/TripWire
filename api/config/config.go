@@ -46,6 +46,12 @@ type Config struct {
 	SectorsCircuitCooldown time.Duration
 	SectorsTimeout         time.Duration
 
+	VAPIDPublicKey  string
+	VAPIDPrivateKey string
+	VAPIDSubject    string
+	PushTTL         int
+	PushTimeout     time.Duration
+
 	EnableWebAuthn bool
 }
 
@@ -102,6 +108,12 @@ func Load() (*Config, error) {
 		SectorsFailureLimit:    int64(envInt("SECTORS_FAILURE_LIMIT", 5)),
 		SectorsCircuitCooldown: envDuration("SECTORS_CIRCUIT_COOLDOWN", time.Minute),
 		SectorsTimeout:         envDuration("SECTORS_TIMEOUT", 10*time.Second),
+
+		VAPIDPublicKey:  os.Getenv("VAPID_PUBLIC_KEY"),
+		VAPIDPrivateKey: os.Getenv("VAPID_PRIVATE_KEY"),
+		VAPIDSubject:    env("VAPID_SUBJECT", "mailto:admin@tripwire.local"),
+		PushTTL:         envInt("PUSH_TTL", 86400),
+		PushTimeout:     envDuration("PUSH_TIMEOUT", 10*time.Second),
 
 		EnableWebAuthn: envBool("FEATURE_WEBAUTHN", false),
 	}

@@ -173,6 +173,29 @@ const laporan = {
 	}
 };
 
+let revisiBbri = 0;
+
+function laporanBbri() {
+	revisiBbri += 1;
+	return {
+		symbol: 'BBRI.JK',
+		company_name: 'Bank Rakyat Indonesia (Persero) Tbk',
+		sub_sector: 'Banks',
+		overview: { market_cap: 680_000_000_000_000, listing_board: 'Utama' },
+		financials: { revenue: 180_000_000_000_000, net_income: 60_000_000_000_000 },
+		valuation: { pe: 11.2, pb: 2.2, roe: 0.19, net_profit_margin: 0.33 },
+		ownership: { free_float_pct: 47, shareholders_history: [] },
+		filings: [
+			{
+				date: hariLalu(4),
+				holder_name: `Pemegang Saham Uji ${revisiBbri} ${Date.now()}`,
+				transaction_type: 'sell',
+				transaction_value: 1_000_000_000
+			}
+		]
+	};
+}
+
 const suspensi = {
 	antm: [
 		{ date: hariLalu(10), reason: 'Dugaan pelanggaran keterbukaan informasi' },
@@ -280,6 +303,7 @@ const emiten = [
 ];
 
 let panggilanUpstream = 0;
+let pushDiterima = [];
 
 function balas(res, status, body) {
 	const payload = JSON.stringify(body);
@@ -300,6 +324,45 @@ createServer((req, res) => {
 		return balas(res, 200, { ok: true });
 	}
 
+	if (path === '/__stub/push') {
+		return balas(res, 200, { deliveries: pushDiterima });
+	}
+
+	if (path === '/__stub/push/reset') {
+		pushDiterima = [];
+		return balas(res, 200, { ok: true });
+	}
+
+	if (path.startsWith('/__push/')) {
+		const potongan = [];
+		req.on('data', (bagian) => potongan.push(bagian));
+		req.on('end', () => {
+			const isi = Buffer.concat(potongan);
+			const hilang = path.startsWith('/__push/hilang/');
+
+			pushDiterima.push({
+				path,
+				gone: hilang,
+				method: req.method,
+				authorization: req.headers.authorization ?? '',
+				content_encoding: req.headers['content-encoding'] ?? '',
+				content_type: req.headers['content-type'] ?? '',
+				ttl: req.headers.ttl ?? '',
+				urgency: req.headers.urgency ?? '',
+				body_bytes: isi.length,
+				body_base64: isi.toString('base64'),
+				body_text: isi.toString('utf8'),
+				received_at: new Date().toISOString()
+			});
+
+			if (hilang) {
+				return balas(res, 410, { error: 'langganan sudah tidak berlaku' });
+			}
+			return balas(res, 201, { ok: true });
+		});
+		return;
+	}
+
 	if (!req.headers.authorization) {
 		return balas(res, 401, { error: 'kunci api tidak dikirim' });
 	}
@@ -316,6 +379,10 @@ createServer((req, res) => {
 
 		if (kode === 'brms') {
 			return balas(res, 500, { error: 'upstream sengaja gagal untuk uji circuit breaker' });
+		}
+
+		if (kode === 'bbri') {
+			return balas(res, 200, laporanBbri());
 		}
 
 		const data = laporan[kode];
