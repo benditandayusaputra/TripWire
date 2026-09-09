@@ -1,17 +1,22 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { ArrowRight, CheckCheck, Inbox, MailOpen, Radio } from 'lucide-svelte';
+	import { ArrowRight, BellRing, CheckCheck, Inbox, MailOpen, Radio } from 'lucide-svelte';
 	import DisclaimerBar from '$lib/components/DisclaimerBar.svelte';
 	import SignatureBadge from '$lib/components/SignatureBadge.svelte';
 	import SkorBadge from '$lib/components/SkorBadge.svelte';
 	import { tierDariSkor } from '$lib/skor';
 	import { presenceStore } from '$lib/stores/presenceStore.svelte';
+	import { pushStore } from '$lib/pwa.svelte';
 	import type { Notifikasi } from '$lib/api/notifications';
 	import { tandaiDibaca } from '$lib/api/notifications';
 
 	let { data } = $props();
 
 	let menandai = $state(false);
+
+	$effect(() => {
+		pushStore.periksa();
+	});
 
 	const belumDibaca = $derived(data.notifications.filter((item) => item.read_at === null));
 	const sudahDibaca = $derived(data.notifications.filter((item) => item.read_at !== null));
@@ -107,6 +112,41 @@
 			</button>
 		{/if}
 	</header>
+
+	<div class="tw-card flex flex-wrap items-center gap-4 p-5">
+		<BellRing class="text-diamond-300 size-5 flex-none" aria-hidden="true" />
+
+		<div class="min-w-[12rem] flex-1">
+			<p class="text-ink text-[14px]">Notifikasi push di perangkat ini</p>
+			<p data-testid="status-push" class="tw-caption mt-0.5">
+				{#if !pushStore.didukung}
+					Browser ini tidak mendukung Web Push.
+				{:else if pushStore.berlangganan}
+					Aktif, insight baru akan dikirim meski aplikasi sedang tertutup.
+				{:else if pushStore.izin === 'denied'}
+					Izin diblokir di pengaturan browser.
+				{:else}
+					Belum aktif, insight baru hanya tampil saat halaman ini terbuka.
+				{/if}
+			</p>
+			{#if pushStore.pesan}
+				<p data-testid="pesan-push" class="text-muted mt-1 text-[12.5px]">{pushStore.pesan}</p>
+			{/if}
+		</div>
+
+		{#if pushStore.didukung && !pushStore.berlangganan}
+			<button
+				type="button"
+				data-testid="aktifkan-push"
+				class="tw-ghost text-[13px]"
+				disabled={pushStore.sibuk}
+				onclick={() => pushStore.aktifkan()}
+			>
+				<BellRing class="size-3.5" aria-hidden="true" />
+				{pushStore.sibuk ? 'Memproses' : 'Aktifkan'}
+			</button>
+		{/if}
+	</div>
 
 	<DisclaimerBar />
 
