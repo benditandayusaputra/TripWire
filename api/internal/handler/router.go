@@ -22,6 +22,8 @@ type Dependencies struct {
 	Insight    *service.InsightService
 	Stream     *service.StreamHub
 	Notifikasi *service.NotificationService
+	TwoFactor  *service.TwoFactorService
+	WebAuthn   *service.WebAuthnService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -52,8 +54,24 @@ func Register(app *fiber.App, deps Dependencies) {
 	authGroup.Post("/password/reset", auth.ResetPassword)
 	authGroup.Get("/verify-email/:token", auth.VerifyEmail)
 
+	twoFactor := NewTwoFactorHandler(deps.TwoFactor, deps.WebAuthn)
+	authGroup.Post("/webauthn/login/options", twoFactor.LoginOptions)
+
 	authGroup.Post("/logout", requireAuth, csrf, auth.Logout)
 	authGroup.Post("/verify-email/resend", requireAuth, csrf, auth.ResendVerification)
+
+	totpGroup := authGroup.Group("/totp", requireAuth, csrf)
+	totpGroup.Get("/status", twoFactor.Status)
+	totpGroup.Post("/setup", twoFactor.Setup)
+	totpGroup.Post("/verify", twoFactor.Verify)
+	totpGroup.Post("/disable", twoFactor.Disable)
+	totpGroup.Get("/backup-codes", twoFactor.BackupCodes)
+
+	webauthnGroup := authGroup.Group("/webauthn", requireAuth, csrf)
+	webauthnGroup.Post("/register/options", twoFactor.RegisterOptions)
+	webauthnGroup.Post("/register/verify", twoFactor.RegisterVerify)
+	webauthnGroup.Get("/credentials", twoFactor.Credentials)
+	webauthnGroup.Delete("/credentials/:id", twoFactor.HapusCredential)
 
 	account := app.Group("/account", requireAuth)
 	account.Get("/me", auth.Me)

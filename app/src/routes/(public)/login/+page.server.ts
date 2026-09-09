@@ -7,10 +7,11 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const email = String(form.get('email') ?? '');
 		const password = String(form.get('password') ?? '');
+		const totpCode = String(form.get('totp_code') ?? '');
 
 		const { response, payload } = await panggilApi('/auth/login', {
 			method: 'POST',
-			body: JSON.stringify({ email, password })
+			body: JSON.stringify({ email, password, totp_code: totpCode })
 		});
 
 		if (!response.ok) {
@@ -18,6 +19,7 @@ export const actions: Actions = {
 				email,
 				error: pesanGalat(payload, 'Tidak bisa masuk sekarang'),
 				lockedUntil: typeof payload?.locked_until === 'string' ? payload.locked_until : '',
+				totpRequired: payload?.totp_required === true,
 				fields: (payload?.fields ?? {}) as Record<string, string>
 			});
 		}

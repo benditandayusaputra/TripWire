@@ -43,6 +43,7 @@ export default defineConfig({
 			cwd: 'api',
 			env: {
 				REGISTER_RATE_LIMIT: '500',
+				FEATURE_WEBAUTHN: 'true',
 				REDIS_URL: 'redis://127.0.0.1:6379/1',
 				FRONTEND_URL: appURL,
 				VAPID_PUBLIC_KEY: 'BHTH3XzDfL5F1qhhbCPAqg5Gv0Mr4uDkdABX8WazGh7kk7Fn6An_6aGyV3CZ8ooPuoZjOpnttQdK6mmCAdxzHkI',

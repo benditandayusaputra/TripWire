@@ -14,7 +14,7 @@
 		{ href: '/dashboard', label: 'Beranda', icon: LayoutGrid },
 		{ href: '/watchlist', label: 'Watchlist', icon: ListChecks },
 		{ href: '/notifications', label: 'Notifikasi', icon: Bell },
-		{ href: '/account', label: 'Akun', icon: UserRound }
+		{ href: '/account/security', label: 'Akun', icon: UserRound }
 	];
 
 	const inisial = $derived(
