@@ -2,6 +2,8 @@ module github.com/benditandayusaputra/tripwire/api
 
 go 1.26.0
 
+toolchain go1.27.0
+
 require (
 	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/go-webauthn/webauthn v0.18.0
