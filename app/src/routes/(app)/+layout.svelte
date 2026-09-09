@@ -12,10 +12,20 @@
 <div class="min-h-dvh">
 	<header class="border-abyss-400 bg-abyss-800 border-b">
 		<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-			<a href="/dashboard" class="flex items-center gap-2">
-				<Diamond class="text-diamond-500 size-5" aria-hidden="true" />
-				<span class="font-display text-base font-semibold tracking-tight">TripWire</span>
-			</a>
+			<nav class="flex items-center gap-6">
+				<a href="/dashboard" class="flex items-center gap-2">
+					<Diamond class="text-diamond-500 size-5" aria-hidden="true" />
+					<span class="font-display text-base font-semibold tracking-tight">TripWire</span>
+				</a>
+
+				<a
+					href="/watchlist"
+					data-testid="nav-watchlist"
+					class="text-ink-300 hover:text-ink-100 text-sm font-medium transition"
+				>
+					Watchlist
+				</a>
+			</nav>
 
 			<div class="flex items-center gap-4">
 				<span data-testid="current-user" class="text-ink-400 font-mono text-xs">

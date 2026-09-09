@@ -44,6 +44,14 @@ func main() {
 	signer := crypto.NewTokenSigner(cfg.JWTAccessSecret, "tripwire")
 	mailer := service.NewMailer(cfg.FrontendURL, "http://localhost:"+cfg.AppPort)
 
+	tickers, err := service.NewTickerService(store.Redis)
+	if err != nil {
+		log.Fatalf("ticker: %v", err)
+	}
+	if err := tickers.LoadFromCache(ctx); err == nil {
+		log.Printf("ticker universe dimuat dari cache, %d emiten", tickers.Total())
+	}
+
 	handler.Register(app, handler.Dependencies{
 		Config: cfg,
 		Redis:  store.Redis,
@@ -57,6 +65,7 @@ func main() {
 			signer,
 			mailer,
 		),
+		Watchlist: service.NewWatchlistService(repository.NewWatchlistRepository(store), tickers),
 	})
 
 	shutdown := make(chan os.Signal, 1)
