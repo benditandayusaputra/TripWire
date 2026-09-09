@@ -190,3 +190,24 @@ func (r *WatchlistRepository) DeleteCondition(ctx context.Context, userID, itemI
 	}
 	return nil
 }
+
+type KondisiTerjadwal struct {
+	ConditionID   string          `db:"condition_id"`
+	ConditionType string          `db:"condition_type"`
+	Config        json.RawMessage `db:"config"`
+	Ticker        string          `db:"ticker"`
+	UserID        string          `db:"user_id"`
+}
+
+func (r *WatchlistRepository) KondisiAktif(ctx context.Context) ([]KondisiTerjadwal, error) {
+	baris := []KondisiTerjadwal{}
+	query := `SELECT c.id AS condition_id, c.condition_type, c.config, w.ticker, w.user_id
+	          FROM watch_conditions c
+	          JOIN watchlist_items w ON w.id = c.watchlist_item_id
+	          WHERE c.is_active
+	          ORDER BY w.ticker, c.created_at`
+	if err := r.store.DB.SelectContext(ctx, &baris, query); err != nil {
+		return nil, err
+	}
+	return baris, nil
+}

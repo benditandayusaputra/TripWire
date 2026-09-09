@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Bell, LayoutGrid, ListChecks, LogOut, UserRound } from 'lucide-svelte';
+	import { Bell, LayoutGrid, ListChecks, LogOut, ShieldCheck, UserRound } from 'lucide-svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
 
@@ -55,6 +55,17 @@
 			</nav>
 
 			<div class="flex items-center gap-3">
+				{#if data.user?.role === 'admin'}
+					<a
+						href="/admin"
+						data-testid="nav-admin"
+						class="tw-ghost hidden px-3 py-1.5 text-[13px] sm:inline-flex"
+					>
+						<ShieldCheck class="size-3.5" aria-hidden="true" />
+						Admin
+					</a>
+				{/if}
+
 				{#if data.user?.avatar_url}
 					<img
 						src={data.user.avatar_url}
