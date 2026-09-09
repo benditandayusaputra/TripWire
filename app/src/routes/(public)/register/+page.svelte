@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { AtSign, KeyRound, User, UserPlus } from 'lucide-svelte';
 	import AuthShell from '$lib/components/AuthShell.svelte';
 	import Field from '$lib/components/Field.svelte';
 
@@ -39,7 +40,7 @@
 				<p
 					data-testid="register-error"
 					role="alert"
-					class="border-flag-critical/40 bg-flag-critical/10 text-flag-critical rounded-lg border px-3 py-2.5 text-sm"
+					class="rounded-glass border-tier-critical/35 bg-tier-critical/10 text-tier-critical border px-3.5 py-2.5 text-[13.5px]"
 				>
 					{form.error}
 				</p>
@@ -52,6 +53,7 @@
 				error={fieldErrors.full_name}
 				autocomplete="name"
 				placeholder="Nama kamu"
+				icon={User}
 			/>
 
 			<Field
@@ -62,6 +64,7 @@
 				error={fieldErrors.email}
 				autocomplete="email"
 				placeholder="nama@email.com"
+				icon={AtSign}
 			/>
 
 			<Field
@@ -72,13 +75,12 @@
 				error={fieldErrors.password}
 				autocomplete="new-password"
 				placeholder="Minimal 10 karakter"
+				icon={KeyRound}
+				hint="Minimal 10 karakter, memuat huruf dan angka."
 			/>
 
-			<button
-				type="submit"
-				disabled={submitting}
-				class="bg-diamond-500 text-abyss-900 hover:bg-diamond-400 focus:ring-diamond-900 w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition focus:ring-2 focus:outline-none disabled:opacity-60"
-			>
+			<button type="submit" disabled={submitting} class="tw-primary w-full">
+				<UserPlus class="size-4" aria-hidden="true" />
 				{submitting ? 'Memproses' : 'Daftar'}
 			</button>
 		</form>
@@ -86,6 +88,6 @@
 
 	{#snippet footer()}
 		Sudah punya akun?
-		<a href="/login" class="text-diamond-400 hover:text-diamond-300 font-medium">Masuk</a>
+		<a href="/login" class="text-diamond-300 hover:text-diamond-100 font-medium transition">Masuk</a>
 	{/snippet}
 </AuthShell>

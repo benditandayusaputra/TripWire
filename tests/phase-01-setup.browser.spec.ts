@@ -8,6 +8,7 @@ test('Fase 1: halaman depan frontend termuat tanpa error console', async ({ page
 
 	await page.goto('/');
 
-	await expect(page.getByRole('heading', { name: 'TripWire', level: 1 })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'TripWire' }).first()).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1 })).toContainText('Red flag');
 	expect(consoleErrors).toEqual([]);
 });
