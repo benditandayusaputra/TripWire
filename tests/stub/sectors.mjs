@@ -188,7 +188,7 @@ function laporanBbri() {
 		filings: [
 			{
 				date: hariLalu(4),
-				holder_name: `Pemegang Saham Uji ${revisiBbri}`,
+				holder_name: `Pemegang Saham Uji ${revisiBbri} ${Date.now()}`,
 				transaction_type: 'sell',
 				transaction_value: 1_000_000_000
 			}
