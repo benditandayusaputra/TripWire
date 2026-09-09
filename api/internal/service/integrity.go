@@ -24,31 +24,31 @@ func NewIntegrityService(repo *repository.InsightRepository, signer *crypto.Insi
 	return &IntegrityService{repo: repo, signer: signer}
 }
 
-func (s *IntegrityService) Record(ctx context.Context, insight *Insight) (*model.InsightEvent, error) {
+func (s *IntegrityService) Record(ctx context.Context, insight *Insight) (*model.InsightEvent, bool, error) {
 	payload, err := json.Marshal(insight.Payload)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	kontenBaru, err := crypto.ContentHash(insight.Ticker, insight.InsightType, insight.Subtype, insight.Score, payload)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	terakhir, err := s.repo.Latest(ctx, insight.Ticker, insight.InsightType)
 	if err != nil && !errors.Is(err, repository.ErrNotFound) {
-		return nil, err
+		return nil, false, err
 	}
 	if terakhir != nil {
 		kontenLama, err := crypto.ContentHash(terakhir.Ticker, terakhir.InsightType, terakhir.Subtype, terakhir.Score, terakhir.Payload)
 		if err == nil && kontenLama == kontenBaru {
-			return terakhir, nil
+			return terakhir, false, nil
 		}
 	}
 
 	id, err := uuid.NewV7()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	generatedAt := time.Now().UTC().Truncate(time.Microsecond)
 
@@ -79,15 +79,15 @@ func (s *IntegrityService) Record(ctx context.Context, insight *Insight) (*model
 
 	event, err := s.repo.Append(ctx, id.String(), generatedAt, pending, tandaTangan)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	hasil := s.periksa(event, nil)
 	if !hasil.SignatureValid || !hasil.HashValid {
-		return nil, ErrIntegritasGagal
+		return nil, false, ErrIntegritasGagal
 	}
 
-	return event, nil
+	return event, true, nil
 }
 
 func (s *IntegrityService) Verify(ctx context.Context, id string) (*model.InsightVerification, error) {

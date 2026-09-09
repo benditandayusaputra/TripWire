@@ -11,15 +11,17 @@ import (
 )
 
 type Dependencies struct {
-	Config    *config.Config
-	Redis     *redis.Client
-	Signer    *crypto.TokenSigner
-	Health    *service.HealthService
-	Auth      *service.AuthService
-	Watchlist *service.WatchlistService
-	Market    *service.MarketService
-	Integrity *service.IntegrityService
-	Insight   *service.InsightService
+	Config     *config.Config
+	Redis      *redis.Client
+	Signer     *crypto.TokenSigner
+	Health     *service.HealthService
+	Auth       *service.AuthService
+	Watchlist  *service.WatchlistService
+	Market     *service.MarketService
+	Integrity  *service.IntegrityService
+	Insight    *service.InsightService
+	Stream     *service.StreamHub
+	Notifikasi *service.NotificationService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -82,4 +84,17 @@ func Register(app *fiber.App, deps Dependencies) {
 	insights := app.Group("/insights", requireAuth)
 	insights.Get("/red-flag/:ticker", insight.RedFlag)
 	insights.Get("/market-intelligence/:ticker", insight.MarketIntelligence)
+
+	stream := NewStreamHandler(deps.Stream)
+	app.Get("/stream", requireAuth, stream.Stream)
+
+	notifikasi := NewNotificationHandler(deps.Notifikasi)
+	notifications := app.Group("/notifications", requireAuth)
+	notifications.Get("/", notifikasi.List)
+	notifications.Patch("/:id/read", csrf, notifikasi.MarkRead)
+
+	push := app.Group("/push", requireAuth)
+	push.Get("/public-key", notifikasi.VapidPublicKey)
+	push.Post("/subscribe", csrf, middleware.XSSSanitize(), notifikasi.Subscribe)
+	push.Delete("/subscribe/:endpoint", csrf, notifikasi.Unsubscribe)
 }
