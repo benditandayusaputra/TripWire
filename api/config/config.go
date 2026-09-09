@@ -41,6 +41,12 @@ type Config struct {
 	TOTPEncryptionKey string
 	TOTPIssuer        string
 	WebAuthnRPID      string
+	APIPublicURL      string
+	SignedURLSecret   string
+	SignedURLTTL      time.Duration
+	StorageDir        string
+	MaxUploadBytes    int64
+	MaxAvatarBytes    int64
 
 	SectorsBaseURL         string
 	SectorsAPIKey          string
@@ -107,6 +113,12 @@ func Load() (*Config, error) {
 		TOTPEncryptionKey: os.Getenv("TOTP_ENCRYPTION_KEY"),
 		TOTPIssuer:        env("TOTP_ISSUER", "TripWire"),
 		WebAuthnRPID:      os.Getenv("WEBAUTHN_RP_ID"),
+		APIPublicURL:      env("API_PUBLIC_URL", ""),
+		SignedURLSecret:   os.Getenv("SIGNED_URL_SECRET"),
+		SignedURLTTL:      envDuration("SIGNED_URL_TTL", 10*time.Minute),
+		StorageDir:        env("STORAGE_DIR", "storage"),
+		MaxUploadBytes:    int64(envInt("MAX_UPLOAD_BYTES", 10<<20)),
+		MaxAvatarBytes:    int64(envInt("MAX_AVATAR_BYTES", 2<<20)),
 
 		SectorsBaseURL:         env("SECTORS_API_BASE_URL", "https://api.sectors.app/v1"),
 		SectorsAPIKey:          os.Getenv("SECTORS_API_KEY"),
@@ -136,6 +148,15 @@ func Load() (*Config, error) {
 
 	if cfg.TOTPEncryptionKey == "" {
 		return nil, fmt.Errorf("config: TOTP_ENCRYPTION_KEY wajib diisi, 32 byte base64")
+	}
+
+	if cfg.APIPublicURL == "" {
+		cfg.APIPublicURL = "http://localhost:" + cfg.AppPort
+	}
+	cfg.APIPublicURL = strings.TrimSuffix(cfg.APIPublicURL, "/")
+
+	if len(cfg.SignedURLSecret) < 32 {
+		return nil, fmt.Errorf("config: SIGNED_URL_SECRET wajib diisi minimal 32 karakter")
 	}
 
 	if cfg.WebAuthnRPID == "" {

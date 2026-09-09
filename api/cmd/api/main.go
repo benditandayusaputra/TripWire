@@ -39,6 +39,7 @@ func main() {
 	app := fiber.New(fiber.Config{
 		AppName:               "TripWire API",
 		DisableStartupMessage: true,
+		BodyLimit:             int(cfg.MaxUploadBytes) + (1 << 20),
 		ReadTimeout:           15 * time.Second,
 		WriteTimeout:          30 * time.Second,
 	})
@@ -83,6 +84,13 @@ func main() {
 
 	twoFactor := service.NewTwoFactorService(cfg, twoFactorRepo, userRepo, auditRepo, totpCipher)
 
+	urlSigner, err := crypto.NewURLSigner(cfg.SignedURLSecret)
+	if err != nil {
+		log.Fatalf("signed url: %v", err)
+	}
+
+	fileService := service.NewFileService(cfg, repository.NewFileRepository(store), auditRepo, urlSigner)
+
 	webauthnService, err := service.NewWebAuthnService(cfg, twoFactorRepo, userRepo, auditRepo, store.Redis)
 	if err != nil {
 		log.Fatalf("webauthn: %v", err)
@@ -125,6 +133,7 @@ func main() {
 		mailer,
 	)
 	authService.PakaiTwoFactor(twoFactor)
+	authService.PakaiFile(fileService)
 
 	handler.Register(app, handler.Dependencies{
 		Config:     cfg,
@@ -140,6 +149,7 @@ func main() {
 		Notifikasi: notifikasi,
 		TwoFactor:  twoFactor,
 		WebAuthn:   webauthnService,
+		Files:      fileService,
 	})
 
 	shutdown := make(chan os.Signal, 1)
