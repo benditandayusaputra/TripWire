@@ -4,6 +4,8 @@ import 'dotenv/config';
 const apiPort = process.env.APP_PORT ?? '8080';
 const apiURL = `http://127.0.0.1:${apiPort}`;
 const appURL = 'http://127.0.0.1:5173';
+const stubPort = process.env.SECTORS_STUB_PORT ?? '8899';
+const stubURL = `http://127.0.0.1:${stubPort}`;
 
 export default defineConfig({
 	testDir: './tests',
@@ -31,9 +33,23 @@ export default defineConfig({
 	],
 	webServer: [
 		{
+			command: 'node tests/stub/sectors.mjs',
+			url: `${stubURL}/__stub/stats`,
+			reuseExistingServer: !process.env.CI,
+			timeout: 30_000
+		},
+		{
 			command: 'go run ./cmd/api',
 			cwd: 'api',
-			env: { REGISTER_RATE_LIMIT: '500' },
+			env: {
+				REGISTER_RATE_LIMIT: '500',
+				REDIS_URL: 'redis://127.0.0.1:6379/1',
+				SECTORS_API_BASE_URL: stubURL,
+				SECTORS_API_KEY: 'kunci-stub-untuk-test',
+				SECTORS_CACHE_TTL: '2s',
+				SECTORS_FAILURE_LIMIT: '3',
+				SECTORS_CIRCUIT_COOLDOWN: '5s'
+			},
 			url: `${apiURL}/health`,
 			reuseExistingServer: !process.env.CI,
 			timeout: 120_000

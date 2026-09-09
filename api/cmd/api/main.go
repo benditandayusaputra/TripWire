@@ -15,6 +15,7 @@ import (
 	"github.com/benditandayusaputra/tripwire/api/internal/handler"
 	"github.com/benditandayusaputra/tripwire/api/internal/repository"
 	"github.com/benditandayusaputra/tripwire/api/internal/service"
+	"github.com/benditandayusaputra/tripwire/api/pkg/sectorsclient"
 )
 
 const version = "0.1.0"
@@ -52,6 +53,22 @@ func main() {
 		log.Printf("ticker universe dimuat dari cache, %d emiten", tickers.Total())
 	}
 
+	sectors := sectorsclient.New(store.Redis, sectorsclient.Options{
+		BaseURL:         cfg.SectorsBaseURL,
+		APIKey:          cfg.SectorsAPIKey,
+		CreditBudget:    cfg.SectorsCreditBudget,
+		CreditThreshold: cfg.SectorsCreditThreshold,
+		CacheTTL:        cfg.SectorsCacheTTL,
+		FailureLimit:    cfg.SectorsFailureLimit,
+		CircuitCooldown: cfg.SectorsCircuitCooldown,
+		Timeout:         cfg.SectorsTimeout,
+	})
+
+	market := service.NewMarketService(sectors, tickers)
+	if total, err := market.RefreshTickerUniverse(ctx); err == nil {
+		log.Printf("ticker universe disegarkan dari Sectors, %d emiten", total)
+	}
+
 	handler.Register(app, handler.Dependencies{
 		Config: cfg,
 		Redis:  store.Redis,
@@ -66,6 +83,7 @@ func main() {
 			mailer,
 		),
 		Watchlist: service.NewWatchlistService(repository.NewWatchlistRepository(store), tickers),
+		Market:    market,
 	})
 
 	shutdown := make(chan os.Signal, 1)
