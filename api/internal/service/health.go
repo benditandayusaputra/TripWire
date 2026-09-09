@@ -47,3 +47,7 @@ func probe(ctx context.Context, ping func(context.Context) error) model.Dependen
 	}
 	return model.DependencyStatus{Connected: true, LatencyMS: elapsed}
 }
+
+func (s *HealthService) ColumnNames(ctx context.Context, table string) ([]string, error) {
+	return s.store.ListColumnNames(ctx, table)
+}
