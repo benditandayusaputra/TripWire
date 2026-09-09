@@ -32,6 +32,14 @@ cd app && npm install && npm run dev
 
 Backend jalan di `http://localhost:8080`, frontend di `http://localhost:5173`.
 
+## Akun Demo
+
+```bash
+cd api && go run ./cmd/seed
+```
+
+Daftar akun, password, dan cara mengisi feed insight ada di `docs/akun-demo.md`.
+
 ## Test
 
 ```bash
