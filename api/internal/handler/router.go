@@ -17,6 +17,7 @@ type Dependencies struct {
 	Health    *service.HealthService
 	Auth      *service.AuthService
 	Watchlist *service.WatchlistService
+	Market    *service.MarketService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -67,4 +68,8 @@ func Register(app *fiber.App, deps Dependencies) {
 	group.Post("/:id/conditions", watchlist.AddCondition)
 	group.Patch("/:id/conditions/:cid", watchlist.UpdateCondition)
 	group.Delete("/:id/conditions/:cid", watchlist.RemoveCondition)
+
+	market := NewMarketHandler(deps.Market)
+	app.Get("/market/credits", requireAuth, market.Credits)
+	app.Get("/market/:ticker", requireAuth, market.CompanyReport)
 }
