@@ -55,6 +55,7 @@ type RegisterInput struct {
 type AuthService struct {
 	cfg       *config.Config
 	twoFactor *TwoFactorService
+	files     *FileService
 	users     *repository.UserRepository
 	tokens    *repository.TokenRepository
 	audit     *repository.AuditRepository
@@ -118,6 +119,17 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput, rc Requ
 
 func (s *AuthService) PakaiTwoFactor(twoFactor *TwoFactorService) {
 	s.twoFactor = twoFactor
+}
+
+func (s *AuthService) PakaiFile(files *FileService) {
+	s.files = files
+}
+
+func (s *AuthService) lengkapiAvatar(user *model.User) *model.User {
+	if user != nil && s.files != nil && user.AvatarFileID != nil {
+		user.AvatarURL = s.files.SignedURL(*user.AvatarFileID)
+	}
+	return user
 }
 
 func (s *AuthService) Login(ctx context.Context, email, password, kodeTOTP string, rc RequestContext) (*AuthResult, error) {
@@ -355,7 +367,11 @@ func (s *AuthService) ResendEmailVerification(ctx context.Context, userID string
 }
 
 func (s *AuthService) CurrentUser(ctx context.Context, userID string) (*model.User, error) {
-	return s.users.ByID(ctx, userID)
+	user, err := s.users.ByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return s.lengkapiAvatar(user), nil
 }
 
 func (s *AuthService) issueEmailVerification(ctx context.Context, user *model.User) (string, error) {
