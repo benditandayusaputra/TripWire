@@ -1,0 +1,31 @@
+{
+  "name": "tripwire",
+  "version": "0.1.0",
+  "description": "Red flag detector dan market intelligence untuk saham IDX",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:browser": "playwright test --project=browser",
+    "api": "cd api && go run ./cmd/api",
+    "app": "cd app && npm run dev",
+    "migrate": "cd api && go run ./cmd/migrate up"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benditandayusaputra/TripWire.git"
+  },
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/benditandayusaputra/TripWire/issues"
+  },
+  "homepage": "https://github.com/benditandayusaputra/TripWire#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "dotenv": "^17.4.2"
+  },
+  "private": true
+}
