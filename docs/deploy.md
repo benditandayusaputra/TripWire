@@ -81,16 +81,24 @@ tripwire-app.duckdns.org {
 }
 ```
 
-File itu di-mount ke container Caddy sebagai satu file, jadi ubah isinya di tempat (misalnya dengan
-`tee -a`), jangan diganti file baru, lalu muat ulang tanpa restart:
+File itu di-mount ke container Caddy sebagai satu file. File di server pernah diganti setelah
+container menyala, jadi `/etc/caddy/Caddyfile` di dalam container masih salinan lama dan
+`caddy reload` dari path itu tidak membawa blok TripWire. Muat ulang dari salinan terbaru tanpa
+restart, supaya sidestream tidak terputus:
 
 ```bash
-sudo docker exec deploy-caddy-1 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-sudo docker exec deploy-caddy-1 caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+F=/opt/sidestream/deploy/Caddyfile
+sudo docker run --rm -v $F:/etc/caddy/Caddyfile:ro caddy:2 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+sudo docker cp $F deploy-caddy-1:/tmp/Caddyfile
+sudo docker exec deploy-caddy-1 caddy reload --config /tmp/Caddyfile --adapter caddyfile
 ```
 
+Saat container Caddy di-restart, ia membaca file di server yang sudah berisi blok TripWire, jadi
+hasilnya tetap sama. Cadangan Caddyfile sebelum blok ditambahkan ada di
+`/home/ubuntu/backups/Caddyfile.sebelum-tripwire`.
+
 Kalau deploy sidestream menimpa Caddyfile, blok ini hilang dan API tidak bisa diakses dari luar.
-Tambahkan lagi blok di atas.
+Tambahkan lagi blok di atas lalu ulangi langkah muat ulang.
 
 ## Batasan
 
