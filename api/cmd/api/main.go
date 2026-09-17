@@ -42,6 +42,11 @@ func main() {
 		BodyLimit:             int(cfg.MaxUploadBytes) + (1 << 20),
 		ReadTimeout:           15 * time.Second,
 		WriteTimeout:          30 * time.Second,
+
+		ProxyHeader:             cfg.ProxyHeader,
+		EnableIPValidation:      true,
+		EnableTrustedProxyCheck: cfg.ProxyHeader != "",
+		TrustedProxies:          cfg.TrustedProxies,
 	})
 
 	signer := crypto.NewTokenSigner(cfg.JWTAccessSecret, "tripwire")

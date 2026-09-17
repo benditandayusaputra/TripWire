@@ -21,7 +21,8 @@ Red flag detector dan market intelligence untuk saham IDX. Submission Sectors Ha
 ## Menjalankan
 
 ```bash
-cp .env.example .env
+cp api/.env.example api/.env
+cp app/.env.example app/.env
 createdb tripwire
 
 cd api && go run ./cmd/migrate up
@@ -30,7 +31,9 @@ cd api && go run ./cmd/api
 cd app && npm install && npm run dev
 ```
 
-Backend jalan di `http://localhost:8080`, frontend di `http://localhost:5173`.
+Backend jalan di `http://localhost:8080`, frontend di `http://localhost:5173`. Env backend ada di
+`api/.env`, env frontend di `app/.env`, karena keduanya di-deploy ke server berbeda. Panduan deploy
+ada di `docs/deploy.md`.
 
 ## Akun Demo
 
