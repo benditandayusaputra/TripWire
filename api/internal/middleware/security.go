@@ -6,14 +6,23 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 )
 
-func SecurityHeaders() fiber.Handler {
-	return helmet.New(helmet.Config{
+func SecurityHeaders(produksi bool) fiber.Handler {
+	config := helmet.Config{
 		XSSProtection:         "0",
 		ContentTypeNosniff:    "nosniff",
 		XFrameOptions:         "DENY",
 		ReferrerPolicy:        "strict-origin-when-cross-origin",
-		ContentSecurityPolicy: "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'",
-	})
+		ContentSecurityPolicy: "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'",
+		PermissionPolicy:      "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+	}
+
+	if produksi {
+		config.HSTSMaxAge = 31536000
+		config.HSTSPreloadEnabled = true
+		config.HSTSExcludeSubdomains = false
+	}
+
+	return helmet.New(config)
 }
 
 func CORS(frontendURL string) fiber.Handler {

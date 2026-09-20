@@ -33,7 +33,7 @@ type Dependencies struct {
 func Register(app *fiber.App, deps Dependencies) {
 	cfg := deps.Config
 
-	app.Use(middleware.SecurityHeaders())
+	app.Use(middleware.SecurityHeaders(cfg.IsProduction()))
 	app.Use(middleware.CORS(cfg.FrontendURL))
 
 	requireAuth := middleware.RequireAuth(deps.Signer)
@@ -87,7 +87,7 @@ func Register(app *fiber.App, deps Dependencies) {
 
 	akun := NewAccountHandler(deps.Account, deps.Feed)
 	account.Get("/profile", akun.Profile)
-	account.Patch("/profile", csrf, akun.UpdateProfile)
+	account.Patch("/profile", csrf, middleware.XSSSanitize(), akun.UpdateProfile)
 	account.Get("/sessions", akun.Sessions)
 	account.Delete("/sessions/:id", csrf, akun.RevokeSession)
 	account.Delete("/sessions", csrf, akun.RevokeOtherSessions)
