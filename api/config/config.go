@@ -5,18 +5,40 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	AppEnv         string
-	AppPort        string
-	FrontendURL    string
-	PostgresDSN    string
-	RedisURL       string
-	MigrationDir   string
+	AppEnv       string
+	AppPort      string
+	FrontendURL  string
+	PostgresDSN  string
+	RedisURL     string
+	MigrationDir string
+
+	JWTAccessSecret  string
+	JWTRefreshSecret string
+	AccessTTL        time.Duration
+	RefreshTTL       time.Duration
+
+	BcryptCost        int
+	MaxFailedLogins   int
+	LockoutDuration   time.Duration
+	EmailTokenTTL     time.Duration
+	PasswordResetTTL  time.Duration
+	LoginRateLimit    int
+	RegisterRateLimit int
+	RateLimitWindow   time.Duration
+	CookieSecure      bool
+	CookieDomain      string
+
 	EnableWebAuthn bool
+}
+
+func (c *Config) IsProduction() bool {
+	return c.AppEnv == "production"
 }
 
 func Load() (*Config, error) {
@@ -31,15 +53,47 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	return &Config{
-		AppEnv:         env("APP_ENV", "development"),
-		AppPort:        env("APP_PORT", "8080"),
-		FrontendURL:    env("FRONTEND_URL", "http://localhost:5173"),
-		PostgresDSN:    dsn,
-		RedisURL:       env("REDIS_URL", "redis://127.0.0.1:6379"),
-		MigrationDir:   env("MIGRATION_DIR", "migrations"),
+	appEnv := env("APP_ENV", "development")
+
+	cfg := &Config{
+		AppEnv:       appEnv,
+		AppPort:      env("APP_PORT", "8080"),
+		FrontendURL:  env("FRONTEND_URL", "http://localhost:5173"),
+		PostgresDSN:  dsn,
+		RedisURL:     env("REDIS_URL", "redis://127.0.0.1:6379"),
+		MigrationDir: env("MIGRATION_DIR", "migrations"),
+
+		JWTAccessSecret:  os.Getenv("JWT_ACCESS_SECRET"),
+		JWTRefreshSecret: os.Getenv("JWT_REFRESH_SECRET"),
+		AccessTTL:        envDuration("JWT_ACCESS_TTL", 15*time.Minute),
+		RefreshTTL:       envDuration("JWT_REFRESH_TTL", 720*time.Hour),
+
+		BcryptCost:        envInt("BCRYPT_COST", bcryptCostDefault(appEnv)),
+		MaxFailedLogins:   envInt("MAX_FAILED_LOGINS", 5),
+		LockoutDuration:   envDuration("LOCKOUT_DURATION", 15*time.Minute),
+		EmailTokenTTL:     envDuration("EMAIL_TOKEN_TTL", 24*time.Hour),
+		PasswordResetTTL:  envDuration("PASSWORD_RESET_TTL", time.Hour),
+		LoginRateLimit:    envInt("LOGIN_RATE_LIMIT", 20),
+		RegisterRateLimit: envInt("REGISTER_RATE_LIMIT", 10),
+		RateLimitWindow:   envDuration("RATE_LIMIT_WINDOW", time.Minute),
+		CookieSecure:      envBool("COOKIE_SECURE", true),
+		CookieDomain:      os.Getenv("COOKIE_DOMAIN"),
+
 		EnableWebAuthn: envBool("FEATURE_WEBAUTHN", false),
-	}, nil
+	}
+
+	if len(cfg.JWTAccessSecret) < 32 || len(cfg.JWTRefreshSecret) < 32 {
+		return nil, fmt.Errorf("config: JWT_ACCESS_SECRET dan JWT_REFRESH_SECRET wajib diisi minimal 32 karakter")
+	}
+
+	return cfg, nil
+}
+
+func bcryptCostDefault(appEnv string) int {
+	if appEnv == "production" {
+		return 12
+	}
+	return 10
 }
 
 func postgresDSN() (string, error) {
@@ -74,6 +128,22 @@ func env(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func envInt(key string, fallback int) int {
+	value, err := strconv.Atoi(os.Getenv(key))
+	if err != nil {
+		return fallback
+	}
+	return value
+}
+
+func envDuration(key string, fallback time.Duration) time.Duration {
+	value, err := time.ParseDuration(os.Getenv(key))
+	if err != nil {
+		return fallback
+	}
+	return value
 }
 
 func envBool(key string, fallback bool) bool {

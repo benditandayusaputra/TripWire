@@ -7,6 +7,7 @@ const appURL = 'http://127.0.0.1:5173';
 
 export default defineConfig({
 	testDir: './tests',
+	testIgnore: '**/helpers/**',
 	fullyParallel: false,
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 2 : 0,
@@ -32,6 +33,7 @@ export default defineConfig({
 		{
 			command: 'go run ./cmd/api',
 			cwd: 'api',
+			env: { REGISTER_RATE_LIMIT: '500' },
 			url: `${apiURL}/health`,
 			reuseExistingServer: !process.env.CI,
 			timeout: 120_000
