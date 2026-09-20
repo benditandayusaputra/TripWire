@@ -35,6 +35,15 @@ type Config struct {
 	CookieSecure       bool
 	CookieDomain       string
 
+	SectorsBaseURL         string
+	SectorsAPIKey          string
+	SectorsCreditBudget    int64
+	SectorsCreditThreshold int64
+	SectorsCacheTTL        time.Duration
+	SectorsFailureLimit    int64
+	SectorsCircuitCooldown time.Duration
+	SectorsTimeout         time.Duration
+
 	EnableWebAuthn bool
 }
 
@@ -80,6 +89,15 @@ func Load() (*Config, error) {
 		RateLimitWindow:    envDuration("RATE_LIMIT_WINDOW", time.Minute),
 		CookieSecure:       envBool("COOKIE_SECURE", true),
 		CookieDomain:       os.Getenv("COOKIE_DOMAIN"),
+
+		SectorsBaseURL:         env("SECTORS_API_BASE_URL", "https://api.sectors.app/v1"),
+		SectorsAPIKey:          os.Getenv("SECTORS_API_KEY"),
+		SectorsCreditBudget:    int64(envInt("SECTORS_CREDIT_BUDGET", 1000)),
+		SectorsCreditThreshold: int64(envInt("SECTORS_CREDIT_THRESHOLD", 100)),
+		SectorsCacheTTL:        envDuration("SECTORS_CACHE_TTL", 6*time.Hour),
+		SectorsFailureLimit:    int64(envInt("SECTORS_FAILURE_LIMIT", 5)),
+		SectorsCircuitCooldown: envDuration("SECTORS_CIRCUIT_COOLDOWN", time.Minute),
+		SectorsTimeout:         envDuration("SECTORS_TIMEOUT", 10*time.Second),
 
 		EnableWebAuthn: envBool("FEATURE_WEBAUTHN", false),
 	}
