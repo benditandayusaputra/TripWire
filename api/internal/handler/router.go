@@ -18,6 +18,7 @@ type Dependencies struct {
 	Auth      *service.AuthService
 	Watchlist *service.WatchlistService
 	Market    *service.MarketService
+	Insight   *service.InsightService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -72,4 +73,9 @@ func Register(app *fiber.App, deps Dependencies) {
 	market := NewMarketHandler(deps.Market)
 	app.Get("/market/credits", requireAuth, market.Credits)
 	app.Get("/market/:ticker", requireAuth, market.CompanyReport)
+
+	insight := NewInsightHandler(deps.Insight)
+	insights := app.Group("/insights", requireAuth)
+	insights.Get("/red-flag/:ticker", insight.RedFlag)
+	insights.Get("/market-intelligence/:ticker", insight.MarketIntelligence)
 }

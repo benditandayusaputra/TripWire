@@ -84,6 +84,7 @@ func main() {
 		),
 		Watchlist: service.NewWatchlistService(repository.NewWatchlistRepository(store), tickers),
 		Market:    market,
+		Insight:   service.NewInsightService(sectors, tickers),
 	})
 
 	shutdown := make(chan os.Signal, 1)
