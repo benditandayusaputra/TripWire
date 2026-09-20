@@ -1,0 +1,49 @@
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource-variable/sora';
+@import 'tailwindcss';
+
+@theme {
+	--font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+	--font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+	--font-display: 'Sora Variable', 'Sora', system-ui, sans-serif;
+
+	--color-abyss-900: #04101f;
+	--color-abyss-800: #080b12;
+	--color-abyss-700: #0b1120;
+	--color-abyss-600: #0d1220;
+	--color-abyss-500: #141c2e;
+	--color-abyss-400: #1e2a42;
+
+	--color-diamond-500: #4a9eff;
+	--color-diamond-400: #8fc2ff;
+	--color-diamond-300: #8fd0ff;
+	--color-diamond-200: #d6ecff;
+	--color-diamond-700: #2a72d6;
+	--color-diamond-900: #1b4a8c;
+
+	--color-ink-100: #eaf0fa;
+	--color-ink-200: #b7c6de;
+	--color-ink-300: #9aa9c4;
+	--color-ink-400: #8493ae;
+	--color-ink-500: #7b8ca8;
+
+	--color-flag-critical: #ff4d6a;
+	--color-flag-high: #ff8a3d;
+	--color-flag-moderate: #f5c544;
+	--color-flag-clear: #3ee0b8;
+}
+
+:root {
+	color-scheme: dark;
+}
+
+body {
+	background-color: var(--color-abyss-900);
+	color: var(--color-ink-100);
+	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+}
