@@ -35,6 +35,8 @@ type Config struct {
 	CookieSecure       bool
 	CookieDomain       string
 
+	InsightSigningKey string
+
 	SectorsBaseURL         string
 	SectorsAPIKey          string
 	SectorsCreditBudget    int64
@@ -90,6 +92,8 @@ func Load() (*Config, error) {
 		CookieSecure:       envBool("COOKIE_SECURE", true),
 		CookieDomain:       os.Getenv("COOKIE_DOMAIN"),
 
+		InsightSigningKey: os.Getenv("INSIGHT_SIGNING_PRIVATE_KEY"),
+
 		SectorsBaseURL:         env("SECTORS_API_BASE_URL", "https://api.sectors.app/v1"),
 		SectorsAPIKey:          os.Getenv("SECTORS_API_KEY"),
 		SectorsCreditBudget:    int64(envInt("SECTORS_CREDIT_BUDGET", 1000)),
@@ -104,6 +108,10 @@ func Load() (*Config, error) {
 
 	if len(cfg.JWTAccessSecret) < 32 || len(cfg.JWTRefreshSecret) < 32 {
 		return nil, fmt.Errorf("config: JWT_ACCESS_SECRET dan JWT_REFRESH_SECRET wajib diisi minimal 32 karakter")
+	}
+
+	if cfg.InsightSigningKey == "" {
+		return nil, fmt.Errorf("config: INSIGHT_SIGNING_PRIVATE_KEY wajib diisi, kunci Ed25519 base64")
 	}
 
 	return cfg, nil
