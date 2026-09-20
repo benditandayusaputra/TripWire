@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/benditandayusaputra/tripwire/api/config"
+	"github.com/benditandayusaputra/tripwire/api/internal/crypto"
 	"github.com/benditandayusaputra/tripwire/api/internal/handler"
 	"github.com/benditandayusaputra/tripwire/api/internal/repository"
 	"github.com/benditandayusaputra/tripwire/api/internal/service"
@@ -40,7 +41,23 @@ func main() {
 		WriteTimeout:          30 * time.Second,
 	})
 
-	handler.Register(app, cfg, service.NewHealthService(store, version))
+	signer := crypto.NewTokenSigner(cfg.JWTAccessSecret, "tripwire")
+	mailer := service.NewMailer(cfg.FrontendURL, "http://localhost:"+cfg.AppPort)
+
+	handler.Register(app, handler.Dependencies{
+		Config: cfg,
+		Redis:  store.Redis,
+		Signer: signer,
+		Health: service.NewHealthService(store, version),
+		Auth: service.NewAuthService(
+			cfg,
+			repository.NewUserRepository(store),
+			repository.NewTokenRepository(store),
+			repository.NewAuditRepository(store),
+			signer,
+			mailer,
+		),
+	})
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
