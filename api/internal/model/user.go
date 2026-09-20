@@ -23,6 +23,7 @@ type User struct {
 	ThemePreference     string     `db:"theme_preference" json:"theme_preference"`
 	Timezone            string     `db:"timezone" json:"timezone"`
 	AvatarFileID        *string    `db:"avatar_file_id" json:"avatar_file_id"`
+	AvatarURL           string     `db:"-" json:"avatar_url,omitempty"`
 	LastLoginAt         *time.Time `db:"last_login_at" json:"last_login_at"`
 	CreatedAt           time.Time  `db:"created_at" json:"created_at"`
 	UpdatedAt           time.Time  `db:"updated_at" json:"updated_at"`

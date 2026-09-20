@@ -10,5 +10,6 @@ export type User = {
 	locale: string;
 	theme_preference: string;
 	timezone: string;
+	avatar_url?: string;
 	last_login_at: string | null;
 };
