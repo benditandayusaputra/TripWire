@@ -44,12 +44,13 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var input struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
+		TOTPCode string `json:"totp_code"`
 	}
 	if err := c.BodyParser(&input); err != nil {
 		return badRequest(c, "Format permintaan tidak valid")
 	}
 
-	result, err := h.auth.Login(c.Context(), input.Email, input.Password, requestContext(c))
+	result, err := h.auth.Login(c.Context(), input.Email, input.Password, input.TOTPCode, requestContext(c))
 	if err != nil {
 		return h.authError(c, err)
 	}
@@ -229,6 +230,16 @@ func (h *AuthHandler) authError(c *fiber.Ctx, err error) error {
 	}
 
 	switch {
+	case errors.Is(err, service.ErrTOTPDiperlukan):
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":         "Masukkan kode verifikasi dua faktor",
+			"totp_required": true,
+		})
+	case errors.Is(err, service.ErrKodeTOTPSalah):
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":         "Kode verifikasi salah",
+			"totp_required": true,
+		})
 	case errors.Is(err, service.ErrEmailTaken):
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Email sudah terdaftar"})
 	case errors.Is(err, service.ErrInvalidCredentials):

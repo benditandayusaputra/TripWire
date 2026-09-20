@@ -72,6 +72,25 @@ func main() {
 
 	integrity := service.NewIntegrityService(repository.NewInsightRepository(store), insightSigner)
 
+	totpCipher, err := crypto.NewCipher(cfg.TOTPEncryptionKey)
+	if err != nil {
+		log.Fatalf("kunci enkripsi TOTP: %v", err)
+	}
+
+	twoFactorRepo := repository.NewTwoFactorRepository(store)
+	userRepo := repository.NewUserRepository(store)
+	auditRepo := repository.NewAuditRepository(store)
+
+	twoFactor := service.NewTwoFactorService(cfg, twoFactorRepo, userRepo, auditRepo, totpCipher)
+
+	webauthnService, err := service.NewWebAuthnService(cfg, twoFactorRepo, userRepo, auditRepo, store.Redis)
+	if err != nil {
+		log.Fatalf("webauthn: %v", err)
+	}
+	if cfg.EnableWebAuthn {
+		log.Printf("WebAuthn aktif lewat feature flag")
+	}
+
 	pengirimPush := webpush.New(webpush.Options{
 		PublicKey:  cfg.VAPIDPublicKey,
 		PrivateKey: cfg.VAPIDPrivateKey,
@@ -97,25 +116,30 @@ func main() {
 		log.Printf("ticker universe disegarkan dari Sectors, %d emiten", total)
 	}
 
+	authService := service.NewAuthService(
+		cfg,
+		userRepo,
+		repository.NewTokenRepository(store),
+		auditRepo,
+		signer,
+		mailer,
+	)
+	authService.PakaiTwoFactor(twoFactor)
+
 	handler.Register(app, handler.Dependencies{
-		Config: cfg,
-		Redis:  store.Redis,
-		Signer: signer,
-		Health: service.NewHealthService(store, version),
-		Auth: service.NewAuthService(
-			cfg,
-			repository.NewUserRepository(store),
-			repository.NewTokenRepository(store),
-			repository.NewAuditRepository(store),
-			signer,
-			mailer,
-		),
+		Config:     cfg,
+		Redis:      store.Redis,
+		Signer:     signer,
+		Health:     service.NewHealthService(store, version),
+		Auth:       authService,
 		Watchlist:  service.NewWatchlistService(repository.NewWatchlistRepository(store), tickers),
 		Market:     market,
 		Integrity:  integrity,
 		Insight:    service.NewInsightService(sectors, tickers, integrity, notifikasi),
 		Stream:     streamHub,
 		Notifikasi: notifikasi,
+		TwoFactor:  twoFactor,
+		WebAuthn:   webauthnService,
 	})
 
 	shutdown := make(chan os.Signal, 1)
