@@ -11,39 +11,187 @@
 	--font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 	--font-display: 'Sora Variable', 'Sora', system-ui, sans-serif;
 
-	--color-abyss-900: #04101f;
-	--color-abyss-800: #080b12;
-	--color-abyss-700: #0b1120;
-	--color-abyss-600: #0d1220;
-	--color-abyss-500: #141c2e;
-	--color-abyss-400: #1e2a42;
+	--color-void: #080b12;
+	--color-base: #0d1220;
+	--color-raised: #141c2e;
+	--color-line: #1e2a42;
+	--color-muted: #8493ae;
+	--color-secondary: #9aa9c4;
+	--color-ink: #eaf0fa;
 
+	--color-diamond-900: #0f2540;
+	--color-diamond-700: #1b4a8c;
 	--color-diamond-500: #4a9eff;
-	--color-diamond-400: #8fc2ff;
 	--color-diamond-300: #8fd0ff;
-	--color-diamond-200: #d6ecff;
-	--color-diamond-700: #2a72d6;
-	--color-diamond-900: #1b4a8c;
+	--color-diamond-100: #d6ecff;
 
-	--color-ink-100: #eaf0fa;
-	--color-ink-200: #b7c6de;
-	--color-ink-300: #9aa9c4;
-	--color-ink-400: #8493ae;
-	--color-ink-500: #7b8ca8;
+	--color-tier-low: #3ee0b8;
+	--color-tier-moderate: #f5c544;
+	--color-tier-high: #ff8a3d;
+	--color-tier-critical: #ff4d6a;
 
-	--color-flag-critical: #ff4d6a;
-	--color-flag-high: #ff8a3d;
-	--color-flag-moderate: #f5c544;
-	--color-flag-clear: #3ee0b8;
+	--radius-glass-sm: 8px;
+	--radius-glass: 14px;
+	--radius-glass-lg: 20px;
+	--radius-glass-xl: 28px;
 }
 
 :root {
+	--edge: rgba(180, 205, 255, 0.13);
+	--edge-soft: rgba(180, 205, 255, 0.1);
+	--edge-strong: rgba(180, 205, 255, 0.2);
 	color-scheme: dark;
 }
 
 body {
-	background-color: var(--color-abyss-900);
-	color: var(--color-ink-100);
+	background:
+		radial-gradient(1200px 600px at 50% -10%, rgba(74, 158, 255, 0.08), transparent 70%),
+		var(--color-void);
+	color: var(--color-ink);
 	font-family: var(--font-sans);
+	font-size: 15px;
+	line-height: 1.6;
 	-webkit-font-smoothing: antialiased;
+}
+
+@utility tw-display {
+	font-family: var(--font-display);
+	font-size: 40px;
+	font-weight: 600;
+	line-height: 1.15;
+	letter-spacing: -0.03em;
+	text-wrap: pretty;
+}
+
+@utility tw-title {
+	font-family: var(--font-display);
+	font-size: 28px;
+	font-weight: 600;
+	line-height: 1.2;
+	letter-spacing: -0.02em;
+	text-wrap: pretty;
+}
+
+@utility tw-heading {
+	font-family: var(--font-display);
+	font-size: 19px;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: -0.01em;
+	text-wrap: pretty;
+}
+
+@utility tw-caption {
+	font-size: 13px;
+	line-height: 1.55;
+	color: var(--color-secondary);
+}
+
+@utility tw-overline {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	font-weight: 500;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: #7b8ca8;
+}
+
+@utility tw-data {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+@utility tw-glass {
+	border: 1px solid var(--edge-soft);
+	border-radius: var(--radius-glass);
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+	backdrop-filter: blur(18px);
+	-webkit-backdrop-filter: blur(18px);
+}
+
+@utility tw-card {
+	border: 1px solid var(--edge);
+	border-radius: var(--radius-glass-lg);
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
+	backdrop-filter: blur(24px);
+	-webkit-backdrop-filter: blur(24px);
+}
+
+@utility tw-sheet {
+	border: 1px solid var(--edge-strong);
+	border-radius: var(--radius-glass-xl);
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04));
+	backdrop-filter: blur(34px);
+	-webkit-backdrop-filter: blur(34px);
+}
+
+@utility tw-field {
+	width: 100%;
+	border: 1px solid var(--edge);
+	border-radius: var(--radius-glass);
+	background: rgba(8, 11, 18, 0.55);
+	padding: 11px 14px;
+	font-size: 15px;
+	color: var(--color-ink);
+	outline: none;
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease;
+}
+
+@utility tw-primary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	border-radius: var(--radius-glass);
+	background: var(--color-diamond-500);
+	padding: 11px 20px;
+	font-weight: 600;
+	font-size: 15px;
+	color: #04101f;
+	transition: background 0.15s ease;
+}
+
+@utility tw-ghost {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	border: 1px solid var(--edge);
+	border-radius: var(--radius-glass);
+	padding: 10px 18px;
+	font-weight: 500;
+	font-size: 15px;
+	color: var(--color-secondary);
+	transition:
+		border-color 0.15s ease,
+		color 0.15s ease;
+}
+
+.tw-field:focus {
+	border-color: var(--color-diamond-500);
+	box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.18);
+}
+
+.tw-field::placeholder {
+	color: #7b8ca8;
+}
+
+.tw-field[aria-invalid='true'] {
+	border-color: var(--color-tier-critical);
+}
+
+.tw-primary:hover {
+	background: var(--color-diamond-300);
+}
+
+.tw-ghost:hover {
+	border-color: var(--color-diamond-700);
+	color: var(--color-ink);
+}
+
+button:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
 }

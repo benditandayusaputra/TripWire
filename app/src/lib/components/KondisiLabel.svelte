@@ -27,5 +27,5 @@
 
 <span class="text-ink-100 font-medium">{nama[type] ?? type}</span>
 {#if detail}
-	<span class="text-ink-500">{detail}</span>
+	<span class="text-muted">{detail}</span>
 {/if}
