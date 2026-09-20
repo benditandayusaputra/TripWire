@@ -27,6 +27,7 @@ type Dependencies struct {
 	Files      *service.FileService
 	Account    *service.AccountService
 	Feed       *service.FeedService
+	Admin      *service.AdminService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -132,6 +133,14 @@ func Register(app *fiber.App, deps Dependencies) {
 	notifications := app.Group("/notifications", requireAuth)
 	notifications.Get("/", notifikasi.List)
 	notifications.Patch("/:id/read", csrf, notifikasi.MarkRead)
+
+	adminHandler := NewAdminHandler(deps.Admin)
+	admin := app.Group("/admin", requireAuth, middleware.RequireAdmin())
+	admin.Get("/stats", adminHandler.Statistik)
+	admin.Get("/system/credits", adminHandler.Credits)
+	admin.Get("/system/scheduler-status", adminHandler.SchedulerStatus)
+	admin.Post("/system/trigger-scan", csrf, adminHandler.TriggerScan)
+	admin.Get("/users", adminHandler.Users)
 
 	push := app.Group("/push", requireAuth)
 	push.Get("/public-key", notifikasi.VapidPublicKey)

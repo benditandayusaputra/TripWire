@@ -141,6 +141,10 @@ func main() {
 	authService.PakaiTwoFactor(twoFactor)
 	authService.PakaiFile(fileService)
 
+	insightService := service.NewInsightService(sectors, tickers, integrity, notifikasi)
+	scanService := service.NewScanService(watchlistRepo, insightService, store.Redis)
+	adminService := service.NewAdminService(repository.NewAdminRepository(store), market, scanService)
+
 	handler.Register(app, handler.Dependencies{
 		Config:     cfg,
 		Redis:      store.Redis,
@@ -150,7 +154,7 @@ func main() {
 		Watchlist:  service.NewWatchlistService(watchlistRepo, tickers),
 		Market:     market,
 		Integrity:  integrity,
-		Insight:    service.NewInsightService(sectors, tickers, integrity, notifikasi),
+		Insight:    insightService,
 		Stream:     streamHub,
 		Notifikasi: notifikasi,
 		TwoFactor:  twoFactor,
@@ -158,6 +162,7 @@ func main() {
 		Files:      fileService,
 		Account:    accountService,
 		Feed:       feedService,
+		Admin:      adminService,
 	})
 
 	shutdown := make(chan os.Signal, 1)
