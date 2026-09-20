@@ -25,7 +25,7 @@
 	});
 </script>
 
-<span class="text-ink-100 font-medium">{nama[type] ?? type}</span>
+<span class="text-ink font-medium">{nama[type] ?? type}</span>
 {#if detail}
 	<span class="text-muted">{detail}</span>
 {/if}
