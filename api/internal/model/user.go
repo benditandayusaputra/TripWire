@@ -54,14 +54,17 @@ type AuditEvent struct {
 }
 
 const (
-	AuditRegister         = "auth.register"
-	AuditLoginSuccess     = "auth.login.success"
-	AuditLoginFailed      = "auth.login.failed"
-	AuditLoginLocked      = "auth.login.locked"
-	AuditLogout           = "auth.logout"
-	AuditTokenRefreshed   = "auth.token.refreshed"
-	AuditPasswordForgot   = "auth.password.forgot"
-	AuditPasswordReset    = "auth.password.reset"
-	AuditEmailVerified    = "auth.email.verified"
-	AuditEmailResendToken = "auth.email.resend"
+	AuditRegister          = "auth.register"
+	AuditLoginSuccess      = "auth.login.success"
+	AuditLoginFailed       = "auth.login.failed"
+	AuditLoginLocked       = "auth.login.locked"
+	AuditLogout            = "auth.logout"
+	AuditTokenRefreshed    = "auth.token.refreshed"
+	AuditPasswordForgot    = "auth.password.forgot"
+	AuditPasswordReset     = "auth.password.reset"
+	AuditEmailVerified     = "auth.email.verified"
+	AuditEmailResendToken  = "auth.email.resend"
+	AuditSessionRevoked    = "auth.session.revoked"
+	AuditSessionRevokedAll = "auth.session.revoked_all"
+	AuditProfileUpdated    = "account.profile.updated"
 )

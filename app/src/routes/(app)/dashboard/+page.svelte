@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { ArrowRight, BadgeCheck, ListChecks, MailWarning, Sparkles } from 'lucide-svelte';
+	import { ArrowRight, ListChecks, MailWarning, Radar } from 'lucide-svelte';
 	import DisclaimerBar from '$lib/components/DisclaimerBar.svelte';
-	import Mark from '$lib/components/Mark.svelte';
+	import InsightCard from '$lib/components/InsightCard.svelte';
 
 	let { data } = $props();
 
@@ -15,15 +15,18 @@
 		return 'Selamat malam';
 	});
 
-	const panelAkun = $derived([
-		{ label: 'Email', nilai: data.user?.email ?? '', gaya: 'tw-data break-all' },
-		{
-			label: 'Status email',
-			nilai: emailTerverifikasi ? 'Terverifikasi' : 'Belum verifikasi',
-			gaya: ''
-		},
-		{ label: 'Paket', nilai: data.user?.tier ?? 'free', gaya: 'capitalize' }
+	const ringkasan = $derived([
+		{ label: 'Saham dipantau', nilai: data.summary.saham_dipantau },
+		{ label: 'Insight terkumpul', nilai: data.summary.insight_total },
+		{ label: 'Berstatus kritis', nilai: data.summary.insight_kritis, kritis: true },
+		{ label: 'Kondisi aktif', nilai: data.summary.kondisi_aktif }
 	]);
+
+	const saringan = [
+		{ nilai: '', label: 'Semua' },
+		{ nilai: 'red_flag', label: 'Red flag' },
+		{ nilai: 'market_intelligence', label: 'Market intel' }
+	];
 </script>
 
 <svelte:head>
@@ -36,7 +39,6 @@
 		<h1 data-testid="dashboard-heading" class="tw-title text-ink">
 			{data.user?.full_name}
 		</h1>
-		<p class="tw-caption">Sesi kamu aktif. Feed insight menyusul setelah watchlist terisi.</p>
 	</header>
 
 	<DisclaimerBar />
@@ -53,48 +55,65 @@
 		</div>
 	{/if}
 
-	<div class="grid gap-4 sm:grid-cols-3">
-		{#each panelAkun as item (item.label)}
-			<div class="tw-card space-y-2 p-5">
-				<p class="tw-overline">{item.label}</p>
-				<p class="text-ink text-[15px] {item.gaya}">
+	<dl data-testid="ringkasan" class="grid gap-3 sm:grid-cols-4">
+		{#each ringkasan as item (item.label)}
+			<div class="tw-card p-5">
+				<dt class="tw-overline">{item.label}</dt>
+				<dd
+					class="font-display mt-2 text-2xl font-semibold {item.kritis && item.nilai > 0
+						? 'text-tier-critical'
+						: 'text-ink'}"
+				>
 					{item.nilai}
-				</p>
+				</dd>
 			</div>
 		{/each}
-	</div>
+	</dl>
 
-	<div class="grid gap-4 sm:grid-cols-2">
-		<a href="/watchlist" class="tw-card group hover:border-diamond-700 space-y-3 p-6 transition">
-			<ListChecks class="text-diamond-300 size-5" aria-hidden="true" />
-			<h2 class="tw-heading text-ink flex items-center gap-2">
-				Atur watchlist
-				<ArrowRight class="size-4 transition group-hover:translate-x-0.5" aria-hidden="true" />
-			</h2>
-			<p class="tw-caption">
-				Tambah emiten yang mau dipantau dan tentukan kondisi pemicunya, harian, mingguan, atau
-				periodik custom.
-			</p>
-		</a>
+	<div class="space-y-4">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<h2 class="tw-heading text-ink">Insight terbaru</h2>
 
-		<div class="tw-card space-y-3 p-6">
-			<BadgeCheck class="text-tier-low size-5" aria-hidden="true" />
-			<h2 class="tw-heading text-ink">Insight yang bisa dibuktikan</h2>
-			<p class="tw-caption">
-				Tiap insight ditandatangani Ed25519 dan diikat hash chain. Halaman verifikasi terbuka untuk
-				publik, jadi klaimnya bisa dicek tanpa akun.
-			</p>
-			<p class="text-muted flex items-center gap-2 text-[12px]">
-				<Mark size={6} color="var(--color-tier-low)" />
-				Ed25519 dan SHA-256
-			</p>
+			<nav class="flex gap-1.5">
+				{#each saringan as item (item.nilai)}
+					<a
+						href={item.nilai ? `/dashboard?type=${item.nilai}` : '/dashboard'}
+						data-testid="saring-{item.nilai || 'semua'}"
+						aria-current={data.jenis === item.nilai ? 'page' : undefined}
+						class="rounded-glass px-3 py-1.5 text-[13px] font-medium transition {data.jenis ===
+						item.nilai
+							? 'bg-diamond-500/12 text-diamond-100'
+							: 'text-secondary hover:text-ink'}"
+					>
+						{item.label}
+					</a>
+				{/each}
+			</nav>
 		</div>
-	</div>
 
-	<div class="tw-glass flex items-center gap-3 px-4 py-3.5">
-		<Sparkles class="text-diamond-300 size-4 flex-none" aria-hidden="true" />
-		<p class="tw-caption">
-			Feed insight, notifikasi realtime, dan detail skor menyusul di fase berikutnya.
-		</p>
+		{#if data.insights.length === 0}
+			<div class="tw-glass flex items-start gap-3 px-4 py-5">
+				<Radar class="text-muted mt-0.5 size-4 flex-none" aria-hidden="true" />
+				<div class="space-y-2">
+					<p data-testid="feed-kosong" class="tw-caption">
+						Belum ada insight. Tambahkan emiten ke watchlist dulu, lalu kondisi pemicunya.
+					</p>
+					<a
+						href="/watchlist"
+						class="text-diamond-300 hover:text-diamond-100 inline-flex items-center gap-1.5 text-[13.5px] font-medium transition"
+					>
+						<ListChecks class="size-3.5" aria-hidden="true" />
+						Buka watchlist
+						<ArrowRight class="size-3.5" aria-hidden="true" />
+					</a>
+				</div>
+			</div>
+		{:else}
+			<ul data-testid="feed-insight" class="space-y-3">
+				{#each data.insights as insight (insight.id)}
+					<li><InsightCard {insight} /></li>
+				{/each}
+			</ul>
+		{/if}
 	</div>
 </section>
