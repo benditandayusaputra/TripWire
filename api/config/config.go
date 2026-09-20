@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -36,6 +38,9 @@ type Config struct {
 	CookieDomain       string
 
 	InsightSigningKey string
+	TOTPEncryptionKey string
+	TOTPIssuer        string
+	WebAuthnRPID      string
 
 	SectorsBaseURL         string
 	SectorsAPIKey          string
@@ -99,6 +104,9 @@ func Load() (*Config, error) {
 		CookieDomain:       os.Getenv("COOKIE_DOMAIN"),
 
 		InsightSigningKey: os.Getenv("INSIGHT_SIGNING_PRIVATE_KEY"),
+		TOTPEncryptionKey: os.Getenv("TOTP_ENCRYPTION_KEY"),
+		TOTPIssuer:        env("TOTP_ISSUER", "TripWire"),
+		WebAuthnRPID:      os.Getenv("WEBAUTHN_RP_ID"),
 
 		SectorsBaseURL:         env("SECTORS_API_BASE_URL", "https://api.sectors.app/v1"),
 		SectorsAPIKey:          os.Getenv("SECTORS_API_KEY"),
@@ -126,7 +134,29 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("config: INSIGHT_SIGNING_PRIVATE_KEY wajib diisi, kunci Ed25519 base64")
 	}
 
+	if cfg.TOTPEncryptionKey == "" {
+		return nil, fmt.Errorf("config: TOTP_ENCRYPTION_KEY wajib diisi, 32 byte base64")
+	}
+
+	if cfg.WebAuthnRPID == "" {
+		cfg.WebAuthnRPID = rpIDDariURL(cfg.FrontendURL)
+	}
+
 	return cfg, nil
+}
+
+func rpIDDariURL(frontendURL string) string {
+	alamat, err := url.Parse(frontendURL)
+	if err != nil {
+		return "localhost"
+	}
+
+	host := alamat.Hostname()
+	if host == "" || net.ParseIP(host) != nil {
+		return "localhost"
+	}
+
+	return host
 }
 
 func bcryptCostDefault(appEnv string) int {

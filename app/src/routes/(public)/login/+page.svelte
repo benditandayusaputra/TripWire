@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { AtSign, KeyRound, LogIn } from 'lucide-svelte';
+	import { AtSign, KeyRound, LogIn, ShieldCheck } from 'lucide-svelte';
 	import AuthShell from '$lib/components/AuthShell.svelte';
 	import Field from '$lib/components/Field.svelte';
 	import Mark from '$lib/components/Mark.svelte';
@@ -10,11 +10,13 @@
 
 	let email = $state('');
 	let password = $state('');
+	let totpCode = $state('');
 	let submitting = $state(false);
 
 	const verified = $derived(page.url.searchParams.get('verified'));
 	const registered = $derived(page.url.searchParams.get('registered'));
 	const fieldErrors = $derived(form?.fields ?? {});
+	const butuhTOTP = $derived(form?.totpRequired === true);
 
 	$effect(() => {
 		if (form?.email) email = form.email;
@@ -98,6 +100,28 @@
 				placeholder="Password kamu"
 				icon={KeyRound}
 			/>
+
+			{#if butuhTOTP}
+				<div data-testid="totp-diperlukan" class="space-y-3">
+					<p
+						class="rounded-glass border-diamond-700 bg-diamond-900/40 text-diamond-100 flex items-start gap-2.5 border px-3.5 py-2.5 text-[13.5px]"
+					>
+						<ShieldCheck class="text-diamond-300 mt-0.5 size-4 flex-none" aria-hidden="true" />
+						Akun ini dilindungi dua faktor. Masukkan kode dari aplikasi authenticator, atau salah satu
+						kode cadangan kamu.
+					</p>
+
+					<Field
+						id="totp_code"
+						label="Kode verifikasi"
+						bind:value={totpCode}
+						error={fieldErrors.totp_code}
+						autocomplete="one-time-code"
+						placeholder="123456"
+						mono
+					/>
+				</div>
+			{/if}
 
 			<button type="submit" disabled={submitting} class="tw-primary w-full">
 				<LogIn class="size-4" aria-hidden="true" />
