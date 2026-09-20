@@ -99,3 +99,40 @@ func (r *TokenRepository) ConsumePasswordResetToken(ctx context.Context, tokenHa
 	}
 	return userID, nil
 }
+
+func (r *TokenRepository) ActiveSessions(ctx context.Context, userID string) ([]model.RefreshToken, error) {
+	sesi := []model.RefreshToken{}
+	query := `SELECT id, user_id, token_hash, device_label, host(ip_address) AS ip_address,
+	                 issued_at, expires_at, revoked_at, last_used_at
+	          FROM refresh_tokens
+	          WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
+	          ORDER BY coalesce(last_used_at, issued_at) DESC`
+	if err := r.store.DB.SelectContext(ctx, &sesi, query, userID); err != nil {
+		return nil, err
+	}
+	return sesi, nil
+}
+
+func (r *TokenRepository) RevokeSessionByID(ctx context.Context, userID, id string) error {
+	query := `UPDATE refresh_tokens SET revoked_at = now()
+	          WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL`
+	hasil, err := r.store.DB.ExecContext(ctx, query, id, userID)
+	if err != nil {
+		return err
+	}
+	if terpengaruh, _ := hasil.RowsAffected(); terpengaruh == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *TokenRepository) RevokeOtherSessions(ctx context.Context, userID, tokenHash string) (int64, error) {
+	query := `UPDATE refresh_tokens SET revoked_at = now()
+	          WHERE user_id = $1 AND revoked_at IS NULL AND token_hash <> $2`
+	hasil, err := r.store.DB.ExecContext(ctx, query, userID, tokenHash)
+	if err != nil {
+		return 0, err
+	}
+	terpengaruh, _ := hasil.RowsAffected()
+	return terpengaruh, nil
+}

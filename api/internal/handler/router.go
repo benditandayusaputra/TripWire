@@ -25,6 +25,8 @@ type Dependencies struct {
 	TwoFactor  *service.TwoFactorService
 	WebAuthn   *service.WebAuthnService
 	Files      *service.FileService
+	Account    *service.AccountService
+	Feed       *service.FeedService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -82,6 +84,14 @@ func Register(app *fiber.App, deps Dependencies) {
 	account.Post("/avatar", csrf, berkas.UploadAvatar)
 	account.Delete("/avatar", csrf, berkas.HapusAvatar)
 
+	akun := NewAccountHandler(deps.Account, deps.Feed)
+	account.Get("/profile", akun.Profile)
+	account.Patch("/profile", csrf, akun.UpdateProfile)
+	account.Get("/sessions", akun.Sessions)
+	account.Delete("/sessions/:id", csrf, akun.RevokeSession)
+	account.Delete("/sessions", csrf, akun.RevokeOtherSessions)
+	account.Get("/summary", akun.Ringkasan)
+
 	files := app.Group("/files", requireAuth, csrf)
 	files.Post("/", berkas.Upload)
 	files.Delete("/:id", berkas.Hapus)
@@ -110,8 +120,10 @@ func Register(app *fiber.App, deps Dependencies) {
 
 	insight := NewInsightHandler(deps.Insight)
 	insights := app.Group("/insights", requireAuth)
+	insights.Get("/", akun.Feed)
 	insights.Get("/red-flag/:ticker", insight.RedFlag)
 	insights.Get("/market-intelligence/:ticker", insight.MarketIntelligence)
+	insights.Get("/:id", akun.InsightDetail)
 
 	stream := NewStreamHandler(deps.Stream)
 	app.Get("/stream", requireAuth, stream.Stream)

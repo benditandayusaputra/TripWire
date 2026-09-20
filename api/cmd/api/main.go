@@ -91,6 +91,12 @@ func main() {
 
 	fileService := service.NewFileService(cfg, repository.NewFileRepository(store), auditRepo, urlSigner)
 
+	tokenRepo := repository.NewTokenRepository(store)
+	watchlistRepo := repository.NewWatchlistRepository(store)
+	insightRepo := repository.NewInsightRepository(store)
+	accountService := service.NewAccountService(userRepo, tokenRepo, auditRepo, fileService)
+	feedService := service.NewFeedService(insightRepo, watchlistRepo, tickers, integrity)
+
 	webauthnService, err := service.NewWebAuthnService(cfg, twoFactorRepo, userRepo, auditRepo, store.Redis)
 	if err != nil {
 		log.Fatalf("webauthn: %v", err)
@@ -141,7 +147,7 @@ func main() {
 		Signer:     signer,
 		Health:     service.NewHealthService(store, version),
 		Auth:       authService,
-		Watchlist:  service.NewWatchlistService(repository.NewWatchlistRepository(store), tickers),
+		Watchlist:  service.NewWatchlistService(watchlistRepo, tickers),
 		Market:     market,
 		Integrity:  integrity,
 		Insight:    service.NewInsightService(sectors, tickers, integrity, notifikasi),
@@ -150,6 +156,8 @@ func main() {
 		TwoFactor:  twoFactor,
 		WebAuthn:   webauthnService,
 		Files:      fileService,
+		Account:    accountService,
+		Feed:       feedService,
 	})
 
 	shutdown := make(chan os.Signal, 1)
