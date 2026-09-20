@@ -44,6 +44,10 @@ export default defineConfig({
 			env: {
 				REGISTER_RATE_LIMIT: '500',
 				REDIS_URL: 'redis://127.0.0.1:6379/1',
+				FRONTEND_URL: appURL,
+				VAPID_PUBLIC_KEY: 'BHTH3XzDfL5F1qhhbCPAqg5Gv0Mr4uDkdABX8WazGh7kk7Fn6An_6aGyV3CZ8ooPuoZjOpnttQdK6mmCAdxzHkI',
+				VAPID_PRIVATE_KEY: 'GU6biirYrs9JG_k5Ls3lSywrO9hwFy4UXIQSaL4gpdE',
+				VAPID_SUBJECT: 'mailto:test@tripwire.local',
 				SECTORS_API_BASE_URL: stubURL,
 				SECTORS_API_KEY: 'kunci-stub-untuk-test',
 				SECTORS_CACHE_TTL: '2s',
@@ -57,6 +61,9 @@ export default defineConfig({
 		{
 			command: 'npm run dev',
 			cwd: 'app',
+			env: {
+				PUBLIC_API_URL: apiURL
+			},
 			url: appURL,
 			reuseExistingServer: !process.env.CI,
 			timeout: 120_000

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -40,17 +41,23 @@ type Insight struct {
 }
 
 type InsightService struct {
-	client    *sectorsclient.Client
-	tickers   *TickerService
-	integrity *IntegrityService
+	client     *sectorsclient.Client
+	tickers    *TickerService
+	integrity  *IntegrityService
+	notifikasi *NotificationService
 }
 
-func NewInsightService(client *sectorsclient.Client, tickers *TickerService, integrity *IntegrityService) *InsightService {
-	return &InsightService{client: client, tickers: tickers, integrity: integrity}
+func NewInsightService(
+	client *sectorsclient.Client,
+	tickers *TickerService,
+	integrity *IntegrityService,
+	notifikasi *NotificationService,
+) *InsightService {
+	return &InsightService{client: client, tickers: tickers, integrity: integrity, notifikasi: notifikasi}
 }
 
 func (s *InsightService) simpan(ctx context.Context, insight *Insight) (*Insight, error) {
-	event, err := s.integrity.Record(ctx, insight)
+	event, baru, err := s.integrity.Record(ctx, insight)
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +68,12 @@ func (s *InsightService) simpan(ctx context.Context, insight *Insight) (*Insight
 	insight.PrevHash = event.PrevHash
 	insight.CurrentHash = event.CurrentHash
 	insight.GeneratedAt = &generatedAt
+
+	if baru && s.notifikasi != nil {
+		if _, err := s.notifikasi.Dispatch(ctx, insight); err != nil {
+			log.Printf("insight: dispatch notifikasi %s gagal: %v", insight.ID, err)
+		}
+	}
 
 	return insight, nil
 }
