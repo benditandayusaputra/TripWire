@@ -14,7 +14,7 @@
 		{ href: '/dashboard', label: 'Beranda', icon: LayoutGrid },
 		{ href: '/watchlist', label: 'Watchlist', icon: ListChecks },
 		{ href: '/notifications', label: 'Notifikasi', icon: Bell },
-		{ href: '/account/security', label: 'Akun', icon: UserRound }
+		{ href: '/account', label: 'Akun', icon: UserRound }
 	];
 
 	const inisial = $derived(
@@ -55,12 +55,21 @@
 			</nav>
 
 			<div class="flex items-center gap-3">
-				<span
-					aria-hidden="true"
-					class="border-line bg-raised text-diamond-100 hidden size-8 place-items-center rounded-full border text-[12px] font-semibold sm:grid"
-				>
-					{inisial}
-				</span>
+				{#if data.user?.avatar_url}
+					<img
+						src={data.user.avatar_url}
+						alt=""
+						data-testid="avatar-header"
+						class="border-line hidden size-8 rounded-full border object-cover sm:block"
+					/>
+				{:else}
+					<span
+						aria-hidden="true"
+						class="border-line bg-raised text-diamond-100 hidden size-8 place-items-center rounded-full border text-[12px] font-semibold sm:grid"
+					>
+						{inisial}
+					</span>
+				{/if}
 				<span data-testid="current-user" class="tw-data text-muted hidden text-[12px] md:inline">
 					{data.user?.email}
 				</span>

@@ -10,3 +10,4 @@ app/build/
 app/.vercel/
 api/bin/
 api/tmp/
+api/storage/

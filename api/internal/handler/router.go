@@ -24,6 +24,7 @@ type Dependencies struct {
 	Notifikasi *service.NotificationService
 	TwoFactor  *service.TwoFactorService
 	WebAuthn   *service.WebAuthnService
+	Files      *service.FileService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -73,8 +74,17 @@ func Register(app *fiber.App, deps Dependencies) {
 	webauthnGroup.Get("/credentials", twoFactor.Credentials)
 	webauthnGroup.Delete("/credentials/:id", twoFactor.HapusCredential)
 
+	berkas := NewFileHandler(deps.Files)
+	app.Get("/files/:id", berkas.Ambil)
+
 	account := app.Group("/account", requireAuth)
 	account.Get("/me", auth.Me)
+	account.Post("/avatar", csrf, berkas.UploadAvatar)
+	account.Delete("/avatar", csrf, berkas.HapusAvatar)
+
+	files := app.Group("/files", requireAuth, csrf)
+	files.Post("/", berkas.Upload)
+	files.Delete("/:id", berkas.Hapus)
 
 	watchlist := NewWatchlistHandler(deps.Watchlist)
 	app.Get("/tickers", requireAuth, watchlist.SearchTickers)
