@@ -74,9 +74,23 @@ func (s *Store) ListTableNames(ctx context.Context) ([]string, error) {
 	var names []string
 	query := `SELECT table_name
 	          FROM information_schema.tables
-	          WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+	          WHERE table_schema = 'public'
+	            AND table_type = 'BASE TABLE'
+	            AND table_name <> 'schema_migrations'
 	          ORDER BY table_name`
 	if err := s.DB.SelectContext(ctx, &names, query); err != nil {
+		return nil, err
+	}
+	return names, nil
+}
+
+func (s *Store) ListColumnNames(ctx context.Context, table string) ([]string, error) {
+	var names []string
+	query := `SELECT column_name
+	          FROM information_schema.columns
+	          WHERE table_schema = 'public' AND table_name = $1
+	          ORDER BY ordinal_position`
+	if err := s.DB.SelectContext(ctx, &names, query, table); err != nil {
 		return nil, err
 	}
 	return names, nil
