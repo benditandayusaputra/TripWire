@@ -16,6 +16,7 @@ import (
 	"github.com/benditandayusaputra/tripwire/api/internal/repository"
 	"github.com/benditandayusaputra/tripwire/api/internal/service"
 	"github.com/benditandayusaputra/tripwire/api/pkg/sectorsclient"
+	"github.com/benditandayusaputra/tripwire/api/pkg/webpush"
 )
 
 const version = "0.1.0"
@@ -71,6 +72,26 @@ func main() {
 
 	integrity := service.NewIntegrityService(repository.NewInsightRepository(store), insightSigner)
 
+	pengirimPush := webpush.New(webpush.Options{
+		PublicKey:  cfg.VAPIDPublicKey,
+		PrivateKey: cfg.VAPIDPrivateKey,
+		Subject:    cfg.VAPIDSubject,
+		TTL:        cfg.PushTTL,
+		Timeout:    cfg.PushTimeout,
+	})
+	if !pengirimPush.Aktif() {
+		log.Printf("web push nonaktif, VAPID_PUBLIC_KEY dan VAPID_PRIVATE_KEY belum diisi")
+	}
+
+	streamHub := service.NewStreamHub(store.Redis)
+	notifikasi := service.NewNotificationService(
+		repository.NewNotificationRepository(store),
+		repository.NewPushRepository(store),
+		streamHub,
+		pengirimPush,
+		!cfg.IsProduction(),
+	)
+
 	market := service.NewMarketService(sectors, tickers)
 	if total, err := market.RefreshTickerUniverse(ctx); err == nil {
 		log.Printf("ticker universe disegarkan dari Sectors, %d emiten", total)
@@ -89,10 +110,12 @@ func main() {
 			signer,
 			mailer,
 		),
-		Watchlist: service.NewWatchlistService(repository.NewWatchlistRepository(store), tickers),
-		Market:    market,
-		Integrity: integrity,
-		Insight:   service.NewInsightService(sectors, tickers, integrity),
+		Watchlist:  service.NewWatchlistService(repository.NewWatchlistRepository(store), tickers),
+		Market:     market,
+		Integrity:  integrity,
+		Insight:    service.NewInsightService(sectors, tickers, integrity, notifikasi),
+		Stream:     streamHub,
+		Notifikasi: notifikasi,
 	})
 
 	shutdown := make(chan os.Signal, 1)
