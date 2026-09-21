@@ -36,17 +36,21 @@ type Config struct {
 	RateLimitWindow    time.Duration
 	CookieSecure       bool
 	CookieDomain       string
+	ProxyHeader        string
+	TrustedProxies     []string
 
-	InsightSigningKey string
-	TOTPEncryptionKey string
-	TOTPIssuer        string
-	WebAuthnRPID      string
-	APIPublicURL      string
-	SignedURLSecret   string
-	SignedURLTTL      time.Duration
-	StorageDir        string
-	MaxUploadBytes    int64
-	MaxAvatarBytes    int64
+	InsightSigningKey   string
+	TOTPEncryptionKey   string
+	TOTPIssuer          string
+	WebAuthnRPID        string
+	SchedulerCron       string
+	SchedulerRunOnStart bool
+	APIPublicURL        string
+	SignedURLSecret     string
+	SignedURLTTL        time.Duration
+	StorageDir          string
+	MaxUploadBytes      int64
+	MaxAvatarBytes      int64
 
 	SectorsBaseURL         string
 	SectorsAPIKey          string
@@ -71,11 +75,7 @@ func (c *Config) IsProduction() bool {
 }
 
 func Load() (*Config, error) {
-	for _, path := range []string{".env", "../.env", "../../.env"} {
-		if err := godotenv.Load(path); err == nil {
-			break
-		}
-	}
+	_ = godotenv.Load()
 
 	dsn, err := postgresDSN()
 	if err != nil {
@@ -108,17 +108,21 @@ func Load() (*Config, error) {
 		RateLimitWindow:    envDuration("RATE_LIMIT_WINDOW", time.Minute),
 		CookieSecure:       envBool("COOKIE_SECURE", true),
 		CookieDomain:       os.Getenv("COOKIE_DOMAIN"),
+		ProxyHeader:        os.Getenv("PROXY_HEADER"),
+		TrustedProxies:     strings.Split(env("TRUSTED_PROXIES", "127.0.0.1,::1"), ","),
 
-		InsightSigningKey: os.Getenv("INSIGHT_SIGNING_PRIVATE_KEY"),
-		TOTPEncryptionKey: os.Getenv("TOTP_ENCRYPTION_KEY"),
-		TOTPIssuer:        env("TOTP_ISSUER", "TripWire"),
-		WebAuthnRPID:      os.Getenv("WEBAUTHN_RP_ID"),
-		APIPublicURL:      env("API_PUBLIC_URL", ""),
-		SignedURLSecret:   os.Getenv("SIGNED_URL_SECRET"),
-		SignedURLTTL:      envDuration("SIGNED_URL_TTL", 10*time.Minute),
-		StorageDir:        env("STORAGE_DIR", "storage"),
-		MaxUploadBytes:    int64(envInt("MAX_UPLOAD_BYTES", 10<<20)),
-		MaxAvatarBytes:    int64(envInt("MAX_AVATAR_BYTES", 2<<20)),
+		InsightSigningKey:   os.Getenv("INSIGHT_SIGNING_PRIVATE_KEY"),
+		TOTPEncryptionKey:   os.Getenv("TOTP_ENCRYPTION_KEY"),
+		TOTPIssuer:          env("TOTP_ISSUER", "TripWire"),
+		WebAuthnRPID:        os.Getenv("WEBAUTHN_RP_ID"),
+		SchedulerCron:       env("SCHEDULER_CRON", "0 */6 * * *"),
+		SchedulerRunOnStart: envBool("SCHEDULER_RUN_ON_START", false),
+		APIPublicURL:        env("API_PUBLIC_URL", ""),
+		SignedURLSecret:     os.Getenv("SIGNED_URL_SECRET"),
+		SignedURLTTL:        envDuration("SIGNED_URL_TTL", 10*time.Minute),
+		StorageDir:          env("STORAGE_DIR", "storage"),
+		MaxUploadBytes:      int64(envInt("MAX_UPLOAD_BYTES", 10<<20)),
+		MaxAvatarBytes:      int64(envInt("MAX_AVATAR_BYTES", 2<<20)),
 
 		SectorsBaseURL:         env("SECTORS_API_BASE_URL", "https://api.sectors.app/v1"),
 		SectorsAPIKey:          os.Getenv("SECTORS_API_KEY"),

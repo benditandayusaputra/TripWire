@@ -20,6 +20,6 @@ test.describe('Fase 1: setup proyek', () => {
 
 		expect(headers['x-content-type-options']).toBe('nosniff');
 		expect(headers['x-frame-options']).toBe('DENY');
-		expect(headers['content-security-policy']).toContain("default-src 'self'");
+		expect(headers['content-security-policy']).toContain("default-src 'none'");
 	});
 });

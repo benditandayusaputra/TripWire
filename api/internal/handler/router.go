@@ -27,12 +27,13 @@ type Dependencies struct {
 	Files      *service.FileService
 	Account    *service.AccountService
 	Feed       *service.FeedService
+	Admin      *service.AdminService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
 	cfg := deps.Config
 
-	app.Use(middleware.SecurityHeaders())
+	app.Use(middleware.SecurityHeaders(cfg.IsProduction()))
 	app.Use(middleware.CORS(cfg.FrontendURL))
 
 	requireAuth := middleware.RequireAuth(deps.Signer)
@@ -86,7 +87,7 @@ func Register(app *fiber.App, deps Dependencies) {
 
 	akun := NewAccountHandler(deps.Account, deps.Feed)
 	account.Get("/profile", akun.Profile)
-	account.Patch("/profile", csrf, akun.UpdateProfile)
+	account.Patch("/profile", csrf, middleware.XSSSanitize(), akun.UpdateProfile)
 	account.Get("/sessions", akun.Sessions)
 	account.Delete("/sessions/:id", csrf, akun.RevokeSession)
 	account.Delete("/sessions", csrf, akun.RevokeOtherSessions)
@@ -132,6 +133,14 @@ func Register(app *fiber.App, deps Dependencies) {
 	notifications := app.Group("/notifications", requireAuth)
 	notifications.Get("/", notifikasi.List)
 	notifications.Patch("/:id/read", csrf, notifikasi.MarkRead)
+
+	adminHandler := NewAdminHandler(deps.Admin)
+	admin := app.Group("/admin", requireAuth, middleware.RequireAdmin())
+	admin.Get("/stats", adminHandler.Statistik)
+	admin.Get("/system/credits", adminHandler.Credits)
+	admin.Get("/system/scheduler-status", adminHandler.SchedulerStatus)
+	admin.Post("/system/trigger-scan", csrf, adminHandler.TriggerScan)
+	admin.Get("/users", adminHandler.Users)
 
 	push := app.Group("/push", requireAuth)
 	push.Get("/public-key", notifikasi.VapidPublicKey)

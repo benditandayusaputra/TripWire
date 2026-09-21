@@ -1,3 +1,4 @@
+import { browser } from '$app/environment';
 import { env } from '$env/dynamic/public';
 
 export class HttpError extends Error {
@@ -16,7 +17,7 @@ export class HttpError extends Error {
 	}
 }
 
-export const apiBaseUrl = env.PUBLIC_API_URL ?? 'http://127.0.0.1:8080';
+export const apiBaseUrl = browser ? '/api' : (env.PUBLIC_API_URL ?? 'http://127.0.0.1:8080');
 
 const CSRF_COOKIE = 'tw_csrf';
 

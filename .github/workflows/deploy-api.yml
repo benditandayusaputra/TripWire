@@ -1,0 +1,58 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+env:
+  DEPLOY_HOST: tripwire-app.duckdns.org
+  DEPLOY_KNOWN_HOST: tripwire-app.duckdns.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPSHF/BYEhooobEZ1BFtpTiWwIDMOacKHouDMpPn6ix4
+
+jobs:
+  deploy:
+    name: Build dan kirim ke server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+
+      - name: Unit test
+        run: go test ./...
+
+      - name: Build bundle
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          go build -trimpath -ldflags="-s -w" -o dist/bin/ ./cmd/api ./cmd/scheduler ./cmd/migrate ./cmd/seed ./cmd/vapidgen
+          cp -r migrations dist/
+          echo "$GITHUB_SHA" > dist/REVISION
+          tar -czf tripwire-api.tar.gz -C dist .
+
+      - name: Kirim ke server
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          test -n "$DEPLOY_SSH_KEY" || { echo "Secret DEPLOY_SSH_KEY belum diisi"; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          echo "$DEPLOY_KNOWN_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes tripwire@"$DEPLOY_HOST" < tripwire-api.tar.gz

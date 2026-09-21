@@ -1,4 +1,5 @@
 import type { APIRequestContext, APIResponse, Page } from '@playwright/test';
+import { kueri } from './database';
 
 export const API_URL = `http://127.0.0.1:${process.env.APP_PORT ?? '8080'}`;
 
@@ -105,4 +106,8 @@ export async function masukLewatBrowser(page: Page, prefix: string) {
 	await page.waitForURL(/\/dashboard/);
 
 	return akun;
+}
+
+export function jadikanAdmin(email: string) {
+	kueri(`UPDATE users SET role_id = 2 WHERE email = '${email}'`);
 }
