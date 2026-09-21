@@ -1,5 +1,7 @@
 import { defineConfig } from '@playwright/test';
-import 'dotenv/config';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: 'api/.env', quiet: true });
 
 const apiPort = process.env.APP_PORT ?? '8080';
 const apiURL = `http://127.0.0.1:${apiPort}`;

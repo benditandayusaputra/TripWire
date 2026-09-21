@@ -12,7 +12,7 @@ type SumberCSP = NonNullable<
 	: never;
 
 export default defineConfig(({ mode }) => {
-	const env = loadEnv(mode, '..', '');
+	const env = loadEnv(mode, '.', '');
 	const apiOrigin = new URL(env.PUBLIC_API_URL ?? 'http://127.0.0.1:8080').origin as SumberCSP;
 	const pengembangan = mode !== 'production';
 
@@ -48,8 +48,8 @@ export default defineConfig(({ mode }) => {
 				}
 			})
 		],
-		envDir: '..',
 		server: {
+			host: '127.0.0.1',
 			port: 5173,
 			strictPort: true
 		}

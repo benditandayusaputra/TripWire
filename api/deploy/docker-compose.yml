@@ -1,0 +1,71 @@
+name: tripwire
+
+x-biner: &biner
+  image: gcr.io/distroless/static-debian12
+  restart: unless-stopped
+  working_dir: /app
+  env_file: .env
+  environment:
+    DB_POSTGRES_HOST: tripwire-db
+    DB_POSTGRES_PORT: "5432"
+    REDIS_URL: redis://tripwire-redis:6379/0
+    MIGRATION_DIR: /app/migrations
+    STORAGE_DIR: /data/storage
+  volumes:
+    - ./current:/app:ro
+    - storage:/data/storage
+  depends_on:
+    tripwire-db:
+      condition: service_healthy
+    tripwire-redis:
+      condition: service_started
+
+services:
+  tripwire-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_POSTGRES_NAME}
+      POSTGRES_USER: ${DB_POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${DB_POSTGRES_PASSWORD}
+    command: postgres -c shared_buffers=32MB -c max_connections=30 -c work_mem=2MB
+    volumes:
+      - db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 20
+    mem_limit: 192m
+
+  tripwire-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis:/data
+    mem_limit: 64m
+
+  tripwire-api:
+    <<: *biner
+    entrypoint: ["/app/bin/api"]
+    ports:
+      - "127.0.0.1:8090:8080"
+    networks:
+      - default
+      - proxy
+    mem_limit: 128m
+
+  tripwire-scheduler:
+    <<: *biner
+    entrypoint: ["/app/bin/scheduler"]
+    mem_limit: 96m
+
+networks:
+  proxy:
+    external: true
+    name: deploy_default
+
+volumes:
+  db:
+  redis:
+  storage:

@@ -36,6 +36,8 @@ type Config struct {
 	RateLimitWindow    time.Duration
 	CookieSecure       bool
 	CookieDomain       string
+	ProxyHeader        string
+	TrustedProxies     []string
 
 	InsightSigningKey   string
 	TOTPEncryptionKey   string
@@ -73,11 +75,7 @@ func (c *Config) IsProduction() bool {
 }
 
 func Load() (*Config, error) {
-	for _, path := range []string{".env", "../.env", "../../.env"} {
-		if err := godotenv.Load(path); err == nil {
-			break
-		}
-	}
+	_ = godotenv.Load()
 
 	dsn, err := postgresDSN()
 	if err != nil {
@@ -110,6 +108,8 @@ func Load() (*Config, error) {
 		RateLimitWindow:    envDuration("RATE_LIMIT_WINDOW", time.Minute),
 		CookieSecure:       envBool("COOKIE_SECURE", true),
 		CookieDomain:       os.Getenv("COOKIE_DOMAIN"),
+		ProxyHeader:        os.Getenv("PROXY_HEADER"),
+		TrustedProxies:     strings.Split(env("TRUSTED_PROXIES", "127.0.0.1,::1"), ","),
 
 		InsightSigningKey:   os.Getenv("INSIGHT_SIGNING_PRIVATE_KEY"),
 		TOTPEncryptionKey:   os.Getenv("TOTP_ENCRYPTION_KEY"),
