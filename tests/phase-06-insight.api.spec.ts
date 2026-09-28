@@ -23,16 +23,16 @@ async function sesiSiap(
 
 const HARAPAN_RED_FLAG = {
   ANTM: {
-    skor: 95.9,
+    skor: 97.44,
     kategori: "Kritis",
-    dasar: 59.94,
+    dasar: 60.9,
     suspension: 69,
-    insider: 45.6,
+    insider: 48,
     ownership: 70,
     sinyalAktif: ["suspension", "insider_clustering", "ownership_change"],
     pengali: 1.6,
-    jumlahInsider: 3,
-    arahInsider: 0.6,
+    jumlahInsider: 4,
+    arahInsider: 0.33,
     deltaKonsentrasi: 7,
     faktorFloat: 1,
   },
@@ -73,7 +73,7 @@ const HARAPAN_RED_FLAG = {
     ownership: 100,
     sinyalAktif: ["suspension", "insider_clustering", "ownership_change"],
     pengali: 1.6,
-    jumlahInsider: 5,
+    jumlahInsider: 6,
     arahInsider: 1,
     deltaKonsentrasi: 12,
     faktorFloat: 1,
@@ -153,9 +153,54 @@ test.describe("Fase 6: insight engine red flag dan market intelligence", () => {
       expect(pendukung.free_float_factor).toBeCloseTo(harapan.faktorFloat, 2);
       expect(Array.isArray(pendukung.suspensions)).toBe(true);
       expect(Array.isArray(pendukung.insider_transactions)).toBe(true);
-      expect(Array.isArray(pendukung.ownership_snapshots)).toBe(true);
+      expect(Array.isArray(pendukung.ownership_changes)).toBe(true);
+      expect(Array.isArray(pendukung.major_shareholders)).toBe(true);
+      expect(payload.data_sources).toEqual([
+        `/company/report/${ticker}/`,
+        "/suspensions/",
+        "/filings/",
+      ]);
     });
   }
+
+  test("data pendukung red flag memuat jejak asli dari Sectors", async ({
+    request,
+  }) => {
+    const sesi = await sesiSiap(request, "insight-jejak");
+
+    const isi = await (
+      await sesi.kirim("get", "/insights/red-flag/ANTM")
+    ).json();
+    const pendukung = isi.payload.supporting_data;
+
+    expect(
+      pendukung.suspensions.map(
+        (baris: { severity_tier: number }) => baris.severity_tier,
+      ),
+    ).toEqual([3, 1]);
+    expect(pendukung.suspensions[0].pdf_url).toContain("idx.co.id");
+
+    expect(pendukung.insider_transactions.length).toBe(5);
+    expect(
+      pendukung.insider_transactions.some(
+        (baris: { holder_name: string }) =>
+          baris.holder_name === "Pemegang Saham Lama",
+      ),
+    ).toBe(false);
+
+    const terbesar = pendukung.ownership_changes[0];
+    expect(terbesar.holder_name).toBe("Inalum (Persero)");
+    expect(terbesar.share_pct_before).toBeCloseTo(60, 2);
+    expect(terbesar.share_pct_after).toBeCloseTo(67, 2);
+    expect(terbesar.delta_pp).toBeCloseTo(7, 2);
+    expect(terbesar.filings).toBe(2);
+
+    const publik = pendukung.major_shareholders.find(
+      (baris: { name: string }) => baris.name === "Public",
+    );
+    expect(publik.percentage).toBeCloseTo(35, 2);
+    expect(pendukung.free_float_pct).toBeCloseTo(35, 2);
+  });
 
   test("pengali pola silang hanya aktif saat dua sinyal atau lebih jatuh di jendela yang sama", async ({
     request,
@@ -191,7 +236,7 @@ test.describe("Fase 6: insight engine red flag dan market intelligence", () => {
       await sesi.kirim("get", "/insights/red-flag/PTBA")
     ).json();
 
-    expect(isi.payload.supporting_data.insider_transactions.length).toBe(2);
+    expect(isi.payload.supporting_data.insider_transactions.length).toBe(3);
     expect(isi.payload.supporting_data.insider_count_in_window).toBe(1);
     expect(isi.payload.supporting_data.insider_net_direction).toBe(1);
   });
@@ -240,22 +285,48 @@ test.describe("Fase 6: insight engine red flag dan market intelligence", () => {
     expect(isi.score).toBeNull();
     expect(isi.payload.mode).toBe("standard");
     expect(isi.payload.commodity_exposure).toBeUndefined();
+    expect(isi.payload.data_sources).toEqual([
+      "/company/report/BBCA/",
+      "/subsector/report/banks/",
+    ]);
+
+    const snapshot = isi.payload.sector_snapshot;
+    expect(snapshot.sub_sector).toBe("Banks");
+    expect(snapshot.sector).toBe("Financials");
 
     const metrik = Object.fromEntries(
-      isi.payload.sector_snapshot.metrics.map((baris: { key: string }) => [
-        baris.key,
-        baris,
-      ]),
+      snapshot.metrics.map((baris: { key: string }) => [baris.key, baris]),
     );
 
-    expect(isi.payload.sector_snapshot.sub_sector).toBe("Banks");
+    expect(Object.keys(metrik).sort()).toEqual(
+      ["earnings_growth", "pb", "pe", "ps", "revenue_growth"].sort(),
+    );
+
+    expect(metrik.pe.year).toBe(2025);
+    expect(metrik.pe.unit).toBe("x");
+    expect(metrik.pe.basis).toBe("peer_avg");
     expect(metrik.pe.value).toBeCloseTo(12, 2);
     expect(metrik.pe.sector_average).toBeCloseTo(15, 2);
     expect(metrik.pe.difference_pct).toBeCloseTo(-20, 2);
     expect(metrik.pe.position).toBe("di bawah rata rata sektor");
-    expect(metrik.roe.difference_pct).toBeCloseTo(20, 2);
-    expect(metrik.roe.position).toBe("di atas rata rata sektor");
-    expect(metrik.net_profit_margin.difference_pct).toBeCloseTo(16.67, 2);
+
+    expect(metrik.pb.difference_pct).toBeCloseTo(20, 2);
+    expect(metrik.pb.position).toBe("di atas rata rata sektor");
+
+    expect(metrik.ps.year).toBe(2024);
+    expect(metrik.ps.difference_pct).toBeCloseTo(200, 2);
+
+    expect(metrik.revenue_growth.unit).toBe("%");
+    expect(metrik.revenue_growth.basis).toBe("subsector_weighted_avg");
+    expect(metrik.revenue_growth.value).toBeCloseTo(5, 2);
+    expect(metrik.revenue_growth.sector_average).toBeCloseTo(3, 2);
+    expect(metrik.revenue_growth.difference).toBeCloseTo(2, 2);
+    expect(metrik.revenue_growth.difference_pct).toBeNull();
+    expect(metrik.revenue_growth.position).toBe("di atas rata rata sektor");
+
+    expect(metrik.earnings_growth.value).toBeCloseTo(6.67, 2);
+    expect(metrik.earnings_growth.difference).toBeCloseTo(-1.33, 2);
+    expect(metrik.earnings_growth.position).toBe("di bawah rata rata sektor");
   });
 
   test("mode mendalam tambang menghitung eksposur komoditas dan radar lisensi", async ({
@@ -285,6 +356,22 @@ test.describe("Fase 6: insight engine red flag dan market intelligence", () => {
     expect(eksposur.category).toBe("Sedang");
     expect(eksposur.commodity).toBe("Coal");
 
+    const produksi = isi.payload.production_trend;
+    expect(produksi.commodity).toBe("Coal");
+    expect(produksi.yoy_pct).toBeCloseTo(8, 2);
+    expect(produksi.reserve_life_years).toBeCloseTo(14, 2);
+    expect(produksi.reserve_unit).toBe("Mt");
+
+    const harga = isi.payload.commodity_price;
+    expect(harga.commodity).toBe("Coal");
+    expect(harga.unit).toBe("USD/t");
+    expect(harga.yoy_pct).toBeCloseTo(-6, 2);
+    expect(harga.series.length).toBeGreaterThanOrEqual(12);
+
+    const profil = isi.payload.mining_profile;
+    expect(profil.slug).toBe("pt-alamtri-resources-indonesia-tbk");
+    expect(profil.commodities).toEqual(["Coal"]);
+
     const radar = isi.payload.license_radar;
     expect(radar.window_days).toBe(365);
     expect(radar.total_licenses).toBe(2);
@@ -294,12 +381,21 @@ test.describe("Fase 6: insight engine red flag dan market intelligence", () => {
         (baris: { license_id: string }) => baris.license_id,
       ),
     ).toEqual(["IUP-ADRO-01"]);
+    expect(radar.expiring_soon[0].expired).toBe(false);
 
     expect(isi.payload.mine_sites.length).toBe(2);
     expect(isi.payload.mine_sites[0].latitude).toBeCloseTo(-2.15, 2);
+    expect(isi.payload.mine_sites[0].region).toBe(
+      "Tabalong, Kalimantan Selatan",
+    );
+
+    expect(isi.payload.data_sources).toContain(
+      "/mining/companies/pt-alamtri-resources-indonesia-tbk/",
+    );
+    expect(isi.payload.data_sources).toContain("/mining/commodities/coal/price/");
   });
 
-  test("tipe entitas trading menurunkan skor eksposur komoditas", async ({
+  test("tipe entitas trader menurunkan skor eksposur komoditas", async ({
     request,
   }) => {
     const sesi = await sesiSiap(request, "insight-mi-trading");
@@ -309,11 +405,27 @@ test.describe("Fase 6: insight engine red flag dan market intelligence", () => {
     ).json();
     const eksposur = isi.payload.commodity_exposure;
 
-    expect(eksposur.entity_type).toBe("trading");
+    expect(eksposur.entity_type).toBe("trader");
     expect(eksposur.entity_factor).toBeCloseTo(0.7, 2);
+    expect(eksposur.components.reserve_life).toBeCloseTo(100, 2);
     expect(eksposur.base_score).toBeCloseTo(86, 2);
     expect(eksposur.score).toBeCloseTo(60.2, 2);
     expect(eksposur.category).toBe("Tinggi");
+    expect(isi.payload.production_trend.reserve_unit).toBe("wmt");
+  });
+
+  test("emiten tambang tanpa data di ekstensi mining tetap memakai mode standar", async ({
+    request,
+  }) => {
+    const sesi = await sesiSiap(request, "insight-mi-bukan-tambang");
+
+    const isi = await (
+      await sesi.kirim("get", "/insights/market-intelligence/PTBA")
+    ).json();
+
+    expect(isi.subtype).toBe("sector_relative_snapshot");
+    expect(isi.payload.mode).toBe("standard");
+    expect(isi.payload.data_sources).toContain("/mining/companies/");
   });
 
   test("ticker di luar daftar IDX ditolak sebelum menyentuh Sectors", async ({
