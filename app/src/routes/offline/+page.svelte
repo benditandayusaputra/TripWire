@@ -14,8 +14,8 @@
 		<CloudOff class="text-muted size-8" aria-hidden="true" />
 		<h1 data-testid="judul-offline" class="tw-title text-ink">Kamu sedang offline.</h1>
 		<p class="text-secondary leading-relaxed">
-			Halaman yang pernah dibuka tetap bisa dilihat dari cache. Untuk insight terbaru, sambungkan
-			lagi ke internet.
+			Halaman yang pernah kamu buka tetap bisa dilihat tanpa internet. Untuk insight terbaru,
+			sambungkan lagi ke internet.
 		</p>
 	</div>
 

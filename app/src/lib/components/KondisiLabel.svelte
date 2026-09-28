@@ -2,11 +2,11 @@
 	let { type, config } = $props();
 
 	const nama: Record<string, string> = {
-		recent_event: 'Event terbaru',
+		recent_event: 'Kejadian terbaru',
 		geopolitical: 'Geopolitik',
 		daily: 'Harian',
 		weekly: 'Mingguan',
-		periodic_custom: 'Periodik custom'
+		periodic_custom: 'Berkala, atur sendiri'
 	};
 
 	const hari = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];

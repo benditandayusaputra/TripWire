@@ -17,7 +17,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await expect(item).toContainText('Aneka Tambang Tbk.');
 
 		await item.getByLabel('Jenis kondisi').selectOption('periodic_custom');
-		await item.getByLabel('Interval jam').fill('8');
+		await item.getByLabel('Setiap berapa jam').fill('8');
 		await item.getByTestId('tambah-kondisi').click();
 
 		const kondisi = item.getByTestId('kondisi');

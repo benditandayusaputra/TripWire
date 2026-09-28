@@ -32,7 +32,7 @@
 	<header class="space-y-1.5">
 		<p class="tw-overline">Panel admin</p>
 		<h1 data-testid="admin-heading" class="tw-title text-ink">Kesehatan sistem</h1>
-		<p class="tw-caption">Sisa kuota Sectors, status scheduler, dan daftar pengguna.</p>
+		<p class="tw-caption">Sisa kuota Sectors, pemindaian otomatis, dan daftar pengguna.</p>
 	</header>
 
 	{#if form?.error}
@@ -58,7 +58,7 @@
 	<div class="tw-card space-y-4 p-6">
 		<h2 class="tw-heading text-ink flex items-center gap-2">
 			<CircleGauge class="text-diamond-300 size-4" aria-hidden="true" />
-			Kuota Sectors API
+			Kuota Sectors
 		</h2>
 
 		<div data-testid="admin-credits" class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -66,7 +66,7 @@
 				{data.credits.credits_remaining}
 			</span>
 			<span class="tw-caption">
-				sisa dari {data.credits.credit_budget} credit, terpakai {data.credits.credits_used}
+				sisa dari {data.credits.credit_budget} kredit, terpakai {data.credits.credits_used}
 			</span>
 		</div>
 
@@ -82,7 +82,9 @@
 				size={7}
 				color={data.credits.circuit_open ? 'var(--color-tier-critical)' : 'var(--color-tier-low)'}
 			/>
-			{data.credits.circuit_open ? 'Circuit breaker terbuka' : 'Circuit breaker tertutup'}
+			{data.credits.circuit_open
+				? 'Koneksi ke Sectors dijeda sementara karena beberapa kali gagal'
+				: 'Koneksi ke Sectors normal'}
 		</p>
 	</div>
 
@@ -90,7 +92,7 @@
 		<div class="flex flex-wrap items-center justify-between gap-3">
 			<h2 class="tw-heading text-ink flex items-center gap-2">
 				<Activity class="text-diamond-300 size-4" aria-hidden="true" />
-				Scheduler
+				Pemindaian otomatis
 			</h2>
 
 			<form
@@ -119,7 +121,7 @@
 		{#if data.terakhir}
 			<div data-testid="scheduler-terakhir" class="tw-glass space-y-3 p-4">
 				<p class="tw-overline">
-					Run terakhir · {data.terakhir.pemicu} · {waktuRelatif(data.terakhir.selesai_pada)}
+					Pemindaian terakhir · {data.terakhir.pemicu} · {waktuRelatif(data.terakhir.selesai_pada)}
 				</p>
 
 				<dl class="grid gap-3 sm:grid-cols-4">
@@ -147,13 +149,14 @@
 			</div>
 		{:else}
 			<p data-testid="scheduler-kosong" class="tw-caption">
-				Scheduler belum pernah jalan. Pakai tombol di atas untuk memicu scan pertama.
+				Pemindaian otomatis belum pernah jalan. Pakai tombol di atas untuk memicu pemindaian
+				pertama.
 			</p>
 		{/if}
 
 		{#if data.riwayat.length > 1}
 			<div class="space-y-2">
-				<p class="tw-overline">Riwayat run</p>
+				<p class="tw-overline">Riwayat pemindaian</p>
 				<ul class="space-y-1.5">
 					{#each data.riwayat.slice(1, 6) as run (run.mulai_pada)}
 						<li
