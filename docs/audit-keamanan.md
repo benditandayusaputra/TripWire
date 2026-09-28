@@ -10,6 +10,8 @@ membuktikannya.
 |---|---|---|
 | `bcrypt(salt + password)`, salt disimpan terpisah | Aktif | `internal/crypto/password.go`, kolom `password_salt` |
 | Account lockout di database, bukan cuma rate limit Redis | Aktif | `UserRepository.RegisterFailedLogin`, test lockout fase 14 |
+| Captcha login sekali pakai, dicek sebelum password sehingga tebakan tanpa captcha tidak bisa mengunci akun orang lain | Aktif | `internal/service/captcha.go`, test captcha fase 3 |
+| Parameter `next` setelah login hanya menerima path di origin sendiri | Aktif | `routes/(public)/login/+page.server.ts`, test open redirect fase 3 |
 | JWT access stateless, tanpa roundtrip DB tiap request | Aktif | `internal/crypto/jwt.go`, `middleware.RequireAuth` |
 | Refresh token whitelist, yang tersimpan `token_hash` | Aktif | `TokenRepository`, rotasi diuji di fase 3 |
 | Revoke per device dan revoke semua device | Aktif | `/account/sessions`, halaman perangkat |

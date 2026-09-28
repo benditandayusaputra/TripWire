@@ -33,6 +33,7 @@ type Config struct {
 	LoginRateLimit     int
 	RegisterRateLimit  int
 	WatchlistRateLimit int
+	CaptchaRateLimit   int
 	RateLimitWindow    time.Duration
 	CookieSecure       bool
 	CookieDomain       string
@@ -105,6 +106,7 @@ func Load() (*Config, error) {
 		LoginRateLimit:     envInt("LOGIN_RATE_LIMIT", 20),
 		RegisterRateLimit:  envInt("REGISTER_RATE_LIMIT", 10),
 		WatchlistRateLimit: envInt("WATCHLIST_RATE_LIMIT", 30),
+		CaptchaRateLimit:   envInt("CAPTCHA_RATE_LIMIT", 30),
 		RateLimitWindow:    envDuration("RATE_LIMIT_WINDOW", time.Minute),
 		CookieSecure:       envBool("COOKIE_SECURE", true),
 		CookieDomain:       os.Getenv("COOKIE_DOMAIN"),

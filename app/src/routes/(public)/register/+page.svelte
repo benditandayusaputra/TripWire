@@ -85,9 +85,4 @@
 			</button>
 		</form>
 	{/snippet}
-
-	{#snippet footer()}
-		Sudah punya akun?
-		<a href="/login" class="text-diamond-300 hover:text-diamond-100 font-medium transition">Masuk</a>
-	{/snippet}
 </AuthShell>
