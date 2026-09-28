@@ -12,7 +12,7 @@ function tangkapGalatKonsol(page: Page) {
 	return galat;
 }
 
-async function siapkanInsight(page: Page, ticker: string) {
+async function siapkanInsight(page: Page, ticker: string, jenis = 'red-flag') {
 	await page.goto('/watchlist');
 	await page.getByLabel('Kode emiten').fill(ticker);
 	await page.getByTestId('tambah-ticker').click();
@@ -21,7 +21,7 @@ async function siapkanInsight(page: Page, ticker: string) {
 	const hasil = await page.evaluate(async (alamat) => {
 		const response = await fetch(alamat, { credentials: 'include' });
 		return { status: response.status, body: await response.json().catch(() => null) };
-	}, `${API_URL}/insights/red-flag/${ticker}`);
+	}, `${API_URL}/insights/${jenis}/${ticker}`);
 
 	expect(hasil.status).toBe(200);
 
@@ -94,6 +94,64 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(page.getByTestId('disclaimer-bar')).toBeVisible();
 
 		expect(galat).toEqual([]);
+	});
+
+	test('detail red flag menampilkan jejak suspensi, insider, dan kepemilikan dari Sectors', async ({
+		page
+	}) => {
+		await masukLewatBrowser(page, 'halaman-detail-jejak');
+		const galat = tangkapGalatKonsol(page);
+
+		const id = await siapkanInsight(page, 'ANTM');
+		await page.goto(`/insights/${id}`);
+
+		await expect(page.getByTestId('pola-silang')).toContainText('1.6x');
+		await expect(page.getByTestId('bagian-suspensi')).toContainText('Serius');
+		await expect(page.getByTestId('bagian-suspensi').getByRole('link', { name: /Pengumuman resmi/ }).first()).toHaveAttribute('href', /idx\.co\.id/);
+		await expect(page.getByTestId('bagian-insider')).toContainText('Direktur Utama');
+		await expect(page.getByTestId('bagian-kepemilikan')).toContainText('Inalum (Persero)');
+		await expect(page.getByTestId('bagian-kepemilikan')).toContainText('+7 pp');
+		await expect(page.getByTestId('sumber-data')).toContainText('/filings/');
+
+		expect(galat).toEqual([]);
+	});
+
+	test('detail market intelligence tambang menampilkan eksposur, peta situs, harga, dan radar lisensi', async ({
+		page
+	}) => {
+		await masukLewatBrowser(page, 'halaman-detail-tambang');
+		const galat = tangkapGalatKonsol(page);
+
+		const id = await siapkanInsight(page, 'ADRO', 'market-intelligence');
+		await page.goto(`/insights/${id}`);
+
+		await expect(page.getByTestId('detail-judul')).toContainText('Eksposur komoditas');
+		await expect(page.getByTestId('komponen-eksposur')).toHaveCount(3);
+		await expect(page.getByTestId('bagian-tambang')).toBeVisible();
+		await expect(page.getByTestId('peta-situs')).toBeVisible();
+		await expect(page.locator('[data-testid="peta-situs"] path.leaflet-interactive')).toHaveCount(2);
+		await expect(page.getByTestId('situs-tambang')).toHaveCount(2);
+		await expect(page.getByTestId('harga-komoditas')).toContainText('-6%');
+		await expect(page.getByTestId('tren-produksi')).toContainText('14 tahun');
+		await expect(page.getByTestId('lisensi-segera')).toHaveCount(1);
+		await expect(page.getByTestId('lisensi-segera')).toContainText('IUP-ADRO-01');
+		await expect(page.getByTestId('sumber-data')).toContainText('/mining/commodities/coal/price/');
+
+		expect(galat.filter((pesan) => !pesan.includes('Failed to load resource'))).toEqual([]);
+	});
+
+	test('detail snapshot sektor tanpa skor tidak menampilkan angka nol', async ({ page }) => {
+		await masukLewatBrowser(page, 'halaman-detail-sektor');
+
+		const id = await siapkanInsight(page, 'BBCA', 'market-intelligence');
+		await page.goto(`/insights/${id}`);
+
+		await expect(page.getByTestId('skor-badge')).toHaveAttribute('data-tier', 'none');
+		await expect(page.getByTestId('metrik-sektor')).toHaveCount(5);
+		await expect(page.locator('[data-testid="metrik-sektor"][data-kunci="pe"]')).toContainText('-20%');
+		await expect(page.locator('[data-testid="metrik-sektor"][data-kunci="revenue_growth"]')).toContainText(
+			'+2 pp'
+		);
 	});
 
 	test('verifikasi publik memeriksa insight nyata tanpa perlu login', async ({ page, browser }) => {
