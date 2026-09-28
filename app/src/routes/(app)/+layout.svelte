@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/state';
+	import { navigating, page } from '$app/state';
 	import { Bell, LayoutGrid, ListChecks, LogOut, ShieldCheck, UserRound } from 'lucide-svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
@@ -26,14 +26,19 @@
 			.join('')
 	);
 
+	const tujuan = $derived(navigating.to?.url.pathname ?? page.url.pathname);
+	const lebar = $derived(['/(app)/dashboard', '/(app)/watchlist'].includes(page.route.id ?? ''));
+
 	function aktif(href: string) {
-		return page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
+		return tujuan === href || tujuan.startsWith(`${href}/`);
 	}
 </script>
 
 <div class="min-h-dvh pb-20 sm:pb-0">
 	<header class="border-line/70 bg-void/70 sticky top-0 z-20 border-b backdrop-blur-xl">
-		<div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3.5">
+		<div
+			class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8"
+		>
 			<Wordmark size="sm" href="/dashboard" />
 
 			<nav class="hidden items-center gap-1 sm:flex">
@@ -100,7 +105,11 @@
 		</div>
 	</header>
 
-	<main class="mx-auto max-w-5xl px-6 py-8">
+	<main
+		class={lebar
+			? 'mx-auto max-w-7xl px-4 pt-6 pb-10 sm:px-6 lg:px-8'
+			: 'mx-auto max-w-5xl px-6 py-8'}
+	>
 		{@render children()}
 	</main>
 
