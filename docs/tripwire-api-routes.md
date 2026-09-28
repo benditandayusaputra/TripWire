@@ -68,6 +68,12 @@ Akses: **Publik** (gak perlu login) · **User** (butuh access token valid) · **
 | PATCH | /watchlist/:id/conditions/:cid | User (owner) | Ubah kondisi (aktif/nonaktif, config) |
 | DELETE | /watchlist/:id/conditions/:cid | User (owner) | Hapus kondisi |
 
+Kondisi `recent_event` dan `geopolitical` menyimpan `min_score`. Insight baru hanya dikirim sebagai
+notifikasi ke pengguna yang punya minimal satu kondisi aktif yang menerimanya: kondisi berjadwal
+(`daily`, `weekly`, `periodic_custom`) selalu menerima, sedangkan kondisi berambang menerima kalau
+skor insight mencapai `min_score`. Insight tanpa skor tidak lolos kondisi berambang. Pengguna yang
+belum mengatur kondisi apa pun tetap menerima semua insight emiten yang dipantaunya.
+
 ## Insight
 
 | Method | Path | Akses | Keterangan |

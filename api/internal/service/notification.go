@@ -120,7 +120,7 @@ func (s *NotificationService) Dispatch(ctx context.Context, insight *Insight) (H
 		return hasil, nil
 	}
 
-	penerima, err := s.notifikasi.PenerimaTicker(ctx, insight.Ticker)
+	penerima, err := s.notifikasi.PenerimaTicker(ctx, insight.Ticker, insight.Score)
 	if err != nil {
 		return hasil, err
 	}
