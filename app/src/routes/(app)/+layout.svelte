@@ -55,6 +55,14 @@
 					>
 						<item.icon class="size-4" aria-hidden="true" />
 						{item.label}
+						{#if item.href === '/notifications' && data.unread > 0}
+							<span
+								data-testid="lencana-notifikasi"
+								class="tw-data bg-diamond-500 min-w-5 rounded-full px-1.5 text-center text-[10.5px] leading-5 font-semibold text-[#04101f]"
+							>
+								{data.unread > 99 ? '99+' : data.unread}<span class="sr-only"> belum dibaca</span>
+							</span>
+						{/if}
 					</a>
 				{/each}
 			</nav>
@@ -128,7 +136,16 @@
 							? 'text-diamond-300'
 							: 'text-muted'}"
 					>
-						<item.icon class="size-5" aria-hidden="true" />
+						<span class="relative">
+							<item.icon class="size-5" aria-hidden="true" />
+							{#if item.href === '/notifications' && data.unread > 0}
+								<span
+									class="tw-data bg-diamond-500 absolute -top-1.5 -right-2.5 min-w-4 rounded-full px-1 text-center text-[9.5px] leading-4 font-semibold text-[#04101f]"
+								>
+									{data.unread > 99 ? '99+' : data.unread}<span class="sr-only"> belum dibaca</span>
+								</span>
+							{/if}
+						</span>
 						{item.label}
 					</a>
 				</li>

@@ -1,7 +1,9 @@
+import { execFileSync, spawn } from "node:child_process";
 import { expect, test } from "@playwright/test";
 import type { APIRequestContext } from "@playwright/test";
 import { sesiMasuk } from "./helpers/akun";
-import { langgananUji, pengirimanPush, resetPush } from "./helpers/dorongan";
+import { kueri } from "./helpers/database";
+import { STUB_URL, langgananUji, pengirimanPush, resetPush } from "./helpers/dorongan";
 
 type Sesi = Awaited<ReturnType<typeof sesiMasuk>>["sesi"];
 
@@ -149,7 +151,7 @@ test.describe("Fase 8: notifikasi, web push, dan presence", () => {
     expect(insight.id).toBeTruthy();
 
     const pengiriman = (await pengirimanPush(request)).filter(
-      (item) => `http://127.0.0.1:8899${item.path}` === langganan.endpoint,
+      (item) => `${STUB_URL}${item.path}` === langganan.endpoint,
     );
 
     expect(pengiriman.length).toBe(1);
@@ -301,7 +303,7 @@ test.describe("Fase 8: notifikasi, web push, dan presence", () => {
     await picuInsight(sesi, "BBRI");
 
     const pertama = (await pengirimanPush(request)).filter(
-      (item) => `http://127.0.0.1:8899${item.path}` === langganan.endpoint,
+      (item) => `${STUB_URL}${item.path}` === langganan.endpoint,
     );
     expect(pertama.length).toBe(1);
     expect(pertama[0].gone).toBe(true);
@@ -310,7 +312,7 @@ test.describe("Fase 8: notifikasi, web push, dan presence", () => {
     await picuInsight(sesi, "BBRI");
 
     const kedua = (await pengirimanPush(request)).filter(
-      (item) => `http://127.0.0.1:8899${item.path}` === langganan.endpoint,
+      (item) => `${STUB_URL}${item.path}` === langganan.endpoint,
     );
     expect(kedua.length).toBe(0);
   });
@@ -330,5 +332,293 @@ test.describe("Fase 8: notifikasi, web push, dan presence", () => {
     expect((await request.get("/stream")).status()).toBe(401);
     expect((await request.get("/notifications")).status()).toBe(401);
     expect((await request.post("/push/subscribe")).status()).toBe(401);
+    expect((await request.get("/notifications/summary")).status()).toBe(401);
+    expect((await request.get("/push/subscriptions")).status()).toBe(401);
+    expect((await request.post("/push/test")).status()).toBe(401);
+  });
+});
+
+function idPengguna(email: string) {
+  return kueri(`SELECT id FROM users WHERE email = '${email}'`);
+}
+
+function sisipkan(userId: string, eventId: string, jamLalu: number, dibaca = false) {
+  return kueri(
+    `INSERT INTO notifications (user_id, insight_event_id, sent_at, read_at)
+     VALUES ('${userId}', '${eventId}', now() - interval '${jamLalu} hours', ${dibaca ? "now()" : "NULL"})
+     RETURNING id`,
+  ).split("\n")[0];
+}
+
+async function idInsight(sesi: Sesi, jalur: string) {
+  const response = await sesi.kirim("get", jalur);
+  expect(response.status(), await response.text()).toBe(200);
+  return (await response.json()).id as string;
+}
+
+type ItemNotifikasi = {
+  id: string;
+  ticker: string;
+  insight_type: string;
+  read_at: string | null;
+  company_name?: string;
+  score?: number;
+  prev_score?: number;
+  category?: string;
+  sub_scores?: Record<string, number>;
+  signals?: string[];
+};
+
+async function daftar(sesi: Sesi, query = "") {
+  const response = await sesi.kirim("get", `/notifications${query}`);
+  expect(response.status(), await response.text()).toBe(200);
+  return (await response.json()) as {
+    notifications: ItemNotifikasi[];
+    unread: number;
+    next_cursor: string | null;
+  };
+}
+
+test.describe("Fase 8: pusat notifikasi", () => {
+  test("riwayat bisa disaring, dipaginasi, dan diringkas per hari dan emiten", async ({
+    request,
+  }) => {
+    const { akun, sesi, csrf } = await sesiSiap(request, "notif-pusat");
+    await pantau(sesi, csrf, "BBRI");
+    const pertama = await picuInsight(sesi, "BBRI");
+    await picuInsight(sesi, "BBRI");
+
+    const userId = idPengguna(akun.email);
+    sisipkan(userId, await idInsight(sesi, "/insights/red-flag/ITMG"), 26);
+    sisipkan(userId, await idInsight(sesi, "/insights/red-flag/TLKM"), 72, true);
+    sisipkan(userId, await idInsight(sesi, "/insights/market-intelligence/BBCA"), 240);
+
+    const semua = await daftar(sesi);
+    expect(semua.notifications.map((item) => item.ticker)).toEqual([
+      "BBRI",
+      "BBRI",
+      "ITMG",
+      "TLKM",
+      "BBCA",
+    ]);
+    expect(semua.unread).toBe(4);
+
+    const [bbriBaru] = semua.notifications;
+    expect(bbriBaru.company_name).toContain("Bank Rakyat Indonesia");
+    expect(bbriBaru.prev_score).toBeCloseTo(pertama.score, 2);
+
+    const itmg = semua.notifications[2];
+    expect(itmg.score).toBe(100);
+    expect(itmg.category).toBe("Kritis");
+    expect(Object.keys(itmg.sub_scores ?? {}).sort()).toEqual([
+      "insider_clustering",
+      "ownership_change",
+      "suspension",
+    ]);
+    expect(itmg.signals).toHaveLength(3);
+
+    const kritis = await daftar(sesi, "?tier=critical");
+    expect(kritis.notifications.map((item) => item.ticker)).toEqual(["ITMG"]);
+
+    const intel = await daftar(sesi, "?type=market_intelligence");
+    expect(intel.notifications.map((item) => item.ticker)).toEqual(["BBCA"]);
+
+    const belum = await daftar(sesi, "?status=unread");
+    expect(belum.notifications).toHaveLength(4);
+    expect(belum.notifications.some((item) => item.ticker === "TLKM")).toBe(false);
+
+    const bbri = await daftar(sesi, "?ticker=bbri");
+    expect(bbri.notifications.map((item) => item.ticker)).toEqual(["BBRI", "BBRI"]);
+
+    const halaman1 = await daftar(sesi, "?limit=2");
+    const halaman2 = await daftar(sesi, `?limit=2&before=${halaman1.next_cursor}`);
+    const halaman3 = await daftar(sesi, `?limit=2&before=${halaman2.next_cursor}`);
+    expect(
+      [halaman1, halaman2, halaman3].flatMap((satu) =>
+        satu.notifications.map((item) => item.id),
+      ),
+    ).toEqual(semua.notifications.map((item) => item.id));
+    expect(halaman3.next_cursor).toBeNull();
+
+    for (const [query, field] of [
+      ["?status=aneh", "status"],
+      ["?tier=merah", "tier"],
+      ["?type=saham", "type"],
+      ["?before=bukan-uuid", "before"],
+    ]) {
+      const salah = await sesi.kirim("get", `/notifications${query}`);
+      expect(salah.status()).toBe(422);
+      expect((await salah.json()).fields[field]).toBeTruthy();
+    }
+
+    const ringkasan = await (await sesi.kirim("get", "/notifications/summary")).json();
+    expect(ringkasan).toMatchObject({
+      total: 5,
+      unread: 4,
+      red_flag: 4,
+      market_intelligence: 1,
+      critical: 1,
+      last_7_days: 4,
+      critical_7_days: 1,
+      last_30_days: 5,
+      push_enabled: true,
+      push_devices: 0,
+    });
+    expect(ringkasan.critical + ringkasan.high + ringkasan.moderate + ringkasan.low).toBe(4);
+    expect(ringkasan.peak_30_days).toMatchObject({ ticker: "ITMG", score: 100 });
+
+    expect(ringkasan.daily).toHaveLength(30);
+    const hari = (jamLalu: number) =>
+      new Date(Date.now() - jamLalu * 3_600_000).toLocaleDateString("en-CA", {
+        timeZone: "Asia/Jakarta",
+      });
+    const perTanggal = Object.fromEntries(
+      ringkasan.daily.map((satu: { date: string }) => [satu.date, satu]),
+    );
+    expect(ringkasan.daily.at(-1).date).toBe(hari(0));
+    expect(perTanggal[hari(26)].critical).toBeGreaterThanOrEqual(1);
+    expect(perTanggal[hari(240)].market).toBeGreaterThanOrEqual(1);
+    expect(
+      ringkasan.daily.reduce((jumlah: number, satu: { total: number }) => jumlah + satu.total, 0),
+    ).toBe(5);
+
+    const emiten = Object.fromEntries(
+      ringkasan.tickers.map((satu: { ticker: string }) => [satu.ticker, satu]),
+    );
+    expect(emiten.BBRI).toMatchObject({ total: 2, unread: 2, recent_30_days: 2 });
+    expect(emiten.BBRI.scores).toHaveLength(2);
+    expect(emiten.ITMG.latest_score).toBe(100);
+    expect(emiten.BBCA.latest_score).toBeNull();
+  });
+
+  test("notifikasi bisa ditandai, dikembalikan, dihapus, dan dibersihkan hanya oleh pemiliknya", async ({
+    request,
+  }) => {
+    const a = await sesiSiap(request, "notif-aksi-a");
+    const b = await sesiSiap(request, "notif-aksi-b");
+    const userA = idPengguna(a.akun.email);
+    const itmg = await idInsight(a.sesi, "/insights/red-flag/ITMG");
+    const tlkm = await idInsight(a.sesi, "/insights/red-flag/TLKM");
+
+    const satu = sisipkan(userA, itmg, 1);
+    const dua = sisipkan(userA, tlkm, 2);
+    const tiga = sisipkan(userA, tlkm, 3);
+
+    expect(
+      (await a.sesi.kirim("patch", `/notifications/${satu}/read`, { headers: a.csrf })).status(),
+    ).toBe(200);
+    const kembali = await a.sesi.kirim("delete", `/notifications/${satu}/read`, {
+      headers: a.csrf,
+    });
+    expect(kembali.status()).toBe(200);
+    expect((await kembali.json()).notification.read_at).toBeNull();
+
+    for (const [method, jalur] of [
+      ["patch", `/notifications/${satu}/read`],
+      ["delete", `/notifications/${satu}/read`],
+      ["delete", `/notifications/${satu}`],
+    ] as const) {
+      expect((await b.sesi.kirim(method, jalur, { headers: b.csrf })).status()).toBe(404);
+    }
+    expect(
+      (await a.sesi.kirim("delete", "/notifications/bukan-uuid", { headers: a.csrf })).status(),
+    ).toBe(404);
+    expect((await a.sesi.kirim("post", "/notifications/read-all")).status()).toBe(403);
+
+    const semua = await a.sesi.kirim("post", "/notifications/read-all", { headers: a.csrf });
+    expect(semua.status()).toBe(200);
+    expect((await semua.json()).updated).toBe(3);
+    expect((await daftar(a.sesi)).unread).toBe(0);
+
+    expect(
+      (await a.sesi.kirim("delete", `/notifications/${dua}`, { headers: a.csrf })).status(),
+    ).toBe(204);
+    expect(
+      (await a.sesi.kirim("delete", `/notifications/${dua}`, { headers: a.csrf })).status(),
+    ).toBe(404);
+
+    await a.sesi.kirim("delete", `/notifications/${tiga}/read`, { headers: a.csrf });
+    const bersih = await a.sesi.kirim("delete", "/notifications/read", { headers: a.csrf });
+    expect(bersih.status()).toBe(200);
+    expect((await bersih.json()).deleted).toBe(1);
+
+    expect((await daftar(a.sesi)).notifications.map((item) => item.id)).toEqual([tiga]);
+    expect(kueri(`SELECT count(*) FROM notifications WHERE id = '${satu}'`)).toBe("0");
+  });
+
+  test("push uji dikirim terenkripsi ke semua perangkat pengguna dan dibatasi", async ({
+    request,
+  }) => {
+    const { sesi, csrf } = await sesiSiap(request, "push-uji");
+    const perangkat = [langgananUji(), langgananUji()];
+    for (const langganan of perangkat) {
+      expect(
+        (await sesi.kirim("post", "/push/subscribe", { data: langganan, headers: csrf })).status(),
+      ).toBe(201);
+    }
+
+    const terdaftar = await sesi.kirim("get", "/push/subscriptions");
+    const isi = await terdaftar.json();
+    expect(isi.subscriptions.map((item: { endpoint: string }) => item.endpoint).sort()).toEqual(
+      perangkat.map((item) => item.endpoint).sort(),
+    );
+    expect(JSON.stringify(isi)).not.toContain(perangkat[0].p256dh);
+
+    await resetPush(request);
+    const uji = await sesi.kirim("post", "/push/test", { headers: csrf });
+    expect(uji.status()).toBe(200);
+    expect(await uji.json()).toEqual({ devices: 2, delivered: 2 });
+
+    const terkirim = (await pengirimanPush(request)).filter((item) =>
+      perangkat.some((satu) => satu.endpoint === `${STUB_URL}${item.path}`),
+    );
+    expect(terkirim).toHaveLength(2);
+    expect(terkirim.every((item) => item.content_encoding === "aes128gcm")).toBe(true);
+    expect(terkirim.every((item) => !item.body_text.includes("TripWire"))).toBe(true);
+
+    let status = 200;
+    for (let percobaan = 0; percobaan < 5 && status !== 429; percobaan += 1) {
+      status = (await sesi.kirim("post", "/push/test", { headers: csrf })).status();
+    }
+    expect(status).toBe(429);
+  });
+
+  test("insight dari proses lain diteruskan lewat Redis ke pengguna yang sedang online", async ({
+    request,
+  }) => {
+    const { akun, sesi, csrf } = await sesiSiap(request, "sse-jembatan");
+    await pantau(sesi, csrf, "BBRI");
+    const langganan = langgananUji();
+    expect(
+      (await sesi.kirim("post", "/push/subscribe", { data: langganan, headers: csrf })).status(),
+    ).toBe(201);
+
+    const userId = idPengguna(akun.email);
+    const pendengar = spawn("redis-cli", ["-n", "1", "SUBSCRIBE", "stream:siaran"]);
+    let keluaran = "";
+    pendengar.stdout.on("data", (potongan) => (keluaran += potongan));
+
+    try {
+      await expect.poll(() => keluaran.includes("stream:siaran")).toBe(true);
+      execFileSync("redis-cli", ["-n", "1", "SET", `presence:${userId}`, "uji", "EX", "60"]);
+
+      await resetPush(request);
+      const insight = await picuInsight(sesi, "BBRI");
+
+      await expect.poll(() => keluaran.includes(userId), { timeout: 5000 }).toBe(true);
+      const baris = keluaran.split("\n").find((satu) => satu.includes(userId)) ?? "{}";
+      const siaran = JSON.parse(baris);
+      expect(siaran.event.type).toBe("insight");
+      expect(siaran.event.data.insight_id).toBe(insight.id);
+      expect(siaran.event.data.ticker).toBe("BBRI");
+
+      const push = (await pengirimanPush(request)).filter(
+        (item) => `${STUB_URL}${item.path}` === langganan.endpoint,
+      );
+      expect(push).toHaveLength(0);
+    } finally {
+      pendengar.kill();
+      execFileSync("redis-cli", ["-n", "1", "DEL", `presence:${userId}`]);
+    }
   });
 });
