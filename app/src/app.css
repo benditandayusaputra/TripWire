@@ -30,6 +30,9 @@
 	--color-tier-high: #ff8a3d;
 	--color-tier-critical: #ff4d6a;
 
+	--color-naik: #1faf7a;
+	--color-turun: #f53e36;
+
 	--radius-glass-sm: 8px;
 	--radius-glass: 14px;
 	--radius-glass-lg: 20px;
@@ -41,6 +44,28 @@
 	--edge-soft: rgba(180, 205, 255, 0.1);
 	--edge-strong: rgba(180, 205, 255, 0.2);
 	color-scheme: dark;
+	scroll-padding-top: 88px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	:root {
+		scroll-behavior: smooth;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+:where(a, button, [tabindex]):focus-visible {
+	outline: 2px solid var(--color-diamond-300);
+	outline-offset: 3px;
 }
 
 body {
@@ -150,7 +175,10 @@ body {
 	font-weight: 600;
 	font-size: 15px;
 	color: #04101f;
-	transition: background 0.15s ease;
+	transition:
+		background 0.2s ease,
+		transform 0.2s ease,
+		box-shadow 0.2s ease;
 }
 
 @utility tw-ghost {
@@ -165,8 +193,10 @@ body {
 	font-size: 15px;
 	color: var(--color-secondary);
 	transition:
-		border-color 0.15s ease,
-		color 0.15s ease;
+		border-color 0.2s ease,
+		color 0.2s ease,
+		background 0.2s ease,
+		transform 0.2s ease;
 }
 
 .tw-field:focus {
@@ -182,13 +212,24 @@ body {
 	border-color: var(--color-tier-critical);
 }
 
-.tw-primary:hover {
-	background: var(--color-diamond-300);
+@media (hover: hover) {
+	.tw-primary:not(:disabled):hover {
+		background: var(--color-diamond-300);
+		transform: translateY(-2px);
+		box-shadow: 0 12px 32px -12px rgba(74, 158, 255, 0.75);
+	}
+
+	.tw-ghost:not(:disabled):hover {
+		border-color: var(--color-diamond-700);
+		background: rgba(74, 158, 255, 0.06);
+		color: var(--color-ink);
+		transform: translateY(-2px);
+	}
 }
 
-.tw-ghost:hover {
-	border-color: var(--color-diamond-700);
-	color: var(--color-ink);
+.tw-primary:active,
+.tw-ghost:active {
+	transform: translateY(0);
 }
 
 button:disabled {
@@ -226,4 +267,20 @@ button:disabled {
 	background: var(--color-raised) !important;
 	color: var(--color-ink) !important;
 	box-shadow: 0 18px 40px -20px #000 !important;
+}
+
+.siap:not(.terlihat) .muncul {
+	opacity: 0;
+}
+
+.terlihat .muncul {
+	animation: muncul 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+	animation-delay: calc(var(--urut, 0) * 110ms);
+}
+
+@keyframes muncul {
+	from {
+		opacity: 0;
+		transform: translateY(22px);
+	}
 }
