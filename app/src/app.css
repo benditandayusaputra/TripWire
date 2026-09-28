@@ -195,3 +195,35 @@ button:disabled {
 	opacity: 0.55;
 	cursor: not-allowed;
 }
+
+.leaflet-container {
+	background: var(--color-void) !important;
+	font-family: var(--font-mono);
+}
+
+.leaflet-tile-pane {
+	filter: invert(1) hue-rotate(200deg) brightness(0.72) contrast(0.95) saturate(0.35);
+}
+
+.leaflet-control-attribution {
+	background: rgba(8, 11, 18, 0.72) !important;
+	color: var(--color-muted) !important;
+	font-size: 9px !important;
+}
+
+.leaflet-control-attribution a {
+	color: var(--color-diamond-300) !important;
+}
+
+.leaflet-bar a {
+	background: var(--color-raised) !important;
+	color: var(--color-diamond-100) !important;
+	border-color: var(--edge-strong) !important;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background: var(--color-raised) !important;
+	color: var(--color-ink) !important;
+	box-shadow: 0 18px 40px -20px #000 !important;
+}

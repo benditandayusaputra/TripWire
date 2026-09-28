@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
 						'default-src': ['self'],
 						'script-src': ['self'],
 						'style-src': ['self', 'unsafe-inline'],
-						'img-src': ['self', 'data:', 'blob:', apiOrigin],
+						'img-src': ['self', 'data:', 'blob:', apiOrigin, 'https://tile.openstreetmap.org'],
 						'font-src': ['self', 'data:'],
 						'connect-src': ['self', apiOrigin, ...sumberDev],
 						'worker-src': ['self'],
@@ -48,6 +48,9 @@ export default defineConfig(({ mode }) => {
 				}
 			})
 		],
+		optimizeDeps: {
+			include: ['leaflet']
+		},
 		server: {
 			host: '127.0.0.1',
 			port: 5173,

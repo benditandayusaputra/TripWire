@@ -163,6 +163,61 @@ test.describe("Fase 8: notifikasi, web push, dan presence", () => {
     expect(pengiriman[0].body_text).not.toContain("BBRI");
   });
 
+  test("ambang skor kondisi event terbaru menyaring penerima notifikasi", async ({
+    request,
+  }) => {
+    const ketat = await sesiSiap(request, "notif-ambang-ketat");
+    const longgar = await sesiSiap(request, "notif-ambang-longgar");
+    const campur = await sesiSiap(request, "notif-ambang-campur");
+
+    async function kondisi(
+      sesi: Sesi,
+      csrf: Record<string, string>,
+      itemId: string,
+      jenis: string,
+      config: Record<string, unknown>,
+    ) {
+      const response = await sesi.kirim(
+        "post",
+        `/watchlist/${itemId}/conditions`,
+        { data: { condition_type: jenis, config }, headers: csrf },
+      );
+      expect(response.status()).toBe(201);
+    }
+
+    const itemKetat = await pantau(ketat.sesi, ketat.csrf, "BBRI");
+    await kondisi(ketat.sesi, ketat.csrf, itemKetat.id, "recent_event", {
+      min_score: 90,
+    });
+
+    const itemLonggar = await pantau(longgar.sesi, longgar.csrf, "BBRI");
+    await kondisi(longgar.sesi, longgar.csrf, itemLonggar.id, "geopolitical", {
+      min_score: 5,
+    });
+
+    const itemCampur = await pantau(campur.sesi, campur.csrf, "BBRI");
+    await kondisi(campur.sesi, campur.csrf, itemCampur.id, "recent_event", {
+      min_score: 90,
+    });
+    await kondisi(campur.sesi, campur.csrf, itemCampur.id, "daily", {});
+
+    const insight = await picuInsight(ketat.sesi, "BBRI");
+    expect(insight.score).toBeGreaterThan(5);
+    expect(insight.score).toBeLessThan(90);
+
+    async function menerima(sesi: Sesi) {
+      const isi = await (await sesi.kirim("get", "/notifications")).json();
+      return isi.notifications.some(
+        (item: { insight_event_id: string }) =>
+          item.insight_event_id === insight.id,
+      );
+    }
+
+    expect(await menerima(ketat.sesi)).toBe(false);
+    expect(await menerima(longgar.sesi)).toBe(true);
+    expect(await menerima(campur.sesi)).toBe(true);
+  });
+
   test("insight yang terkirim tercatat di riwayat notifikasi pemiliknya", async ({
     request,
   }) => {
