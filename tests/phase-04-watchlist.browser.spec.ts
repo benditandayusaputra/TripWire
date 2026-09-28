@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { API_URL, masukLewatBrowser } from './helpers/akun';
+import { API_URL, masukLewatBrowser, sesiMasuk } from './helpers/akun';
 
 function tangkapGalatKonsol(page: Page) {
 	const galat: string[] = [];
@@ -208,6 +208,27 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 
 		await page.getByLabel('Kode emiten').fill('ANT');
 		await expect(page.getByRole('option', { name: /ANTM/ })).toContainText('Dipantau');
+	});
+
+	test('insight baru lewat SSE memunculkan kabar tanpa muat ulang halaman', async ({
+		page,
+		request
+	}) => {
+		await masukLewatBrowser(page, 'wl-langsung');
+		await page.goto('/watchlist');
+		await tambah(page, 'BBRI');
+		await siap(page);
+		await page.evaluate(() => ((window as unknown as { penanda: string }).penanda = 'sama'));
+
+		const { sesi } = await sesiMasuk(request, 'wl-langsung-pemicu');
+		await new Promise((selesai) => setTimeout(selesai, 2400));
+		expect((await sesi.kirim('get', '/insights/red-flag/BBRI')).status()).toBe(200);
+
+		await expect(page.getByTestId('kabar-insight')).toContainText('BBRI');
+		await expect(page.getByTestId('watchlist-item').filter({ hasText: 'BBRI' })).toBeVisible();
+		expect(await page.evaluate(() => (window as unknown as { penanda?: string }).penanda)).toBe(
+			'sama'
+		);
 	});
 
 	test('di layar 390px detail emiten muncul sebagai lembar dan bisa ditutup', async ({ page }) => {

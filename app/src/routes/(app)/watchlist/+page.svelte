@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { fly } from 'svelte/transition';
 	import { goto, invalidateAll } from '$app/navigation';
+	import { navigating } from '$app/state';
 	import { BellRing, Database, Plus, Radar, ShieldCheck, TriangleAlert } from 'lucide-svelte';
 	import DisclaimerBar from '$lib/components/DisclaimerBar.svelte';
 	import CariEmiten from '$lib/components/watchlist/CariEmiten.svelte';
@@ -51,7 +52,7 @@
 		if (!terbaru || terbaru.notification_id === terakhirTerbaca) return;
 		terakhirTerbaca = terbaru.notification_id;
 		kabar = { ticker: terbaru.ticker, skor: terbaru.score };
-		invalidateAll();
+		if (!navigating.to) invalidateAll();
 		clearTimeout(jedaKabar);
 		jedaKabar = setTimeout(() => (kabar = null), 6000);
 	});
