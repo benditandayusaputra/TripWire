@@ -363,6 +363,36 @@ const hargaKomoditas = {
 	nickel: seriHarga('Nickel', 16_500, 15_000)
 };
 
+function hargaHarian(kode, mulai) {
+	const tanggal = [];
+	for (let mundur = 1; hariLalu(mundur) >= mulai; mundur += 1) {
+		const hari = new Date(`${hariLalu(mundur)}T00:00:00Z`).getUTCDay();
+		if (hari !== 0 && hari !== 6) tanggal.unshift(hariLalu(mundur));
+	}
+
+	let benih = [...kode].reduce((jumlah, huruf) => jumlah * 31 + huruf.charCodeAt(0), 7) % 2147483647;
+	const acak = () => (benih = (benih * 16807) % 2147483647) / 2147483647;
+	const fraksi = (harga) => Math.max(50, Math.round(harga / 5) * 5);
+
+	let tutup = laporan[kode]?.overview.last_close_price ?? 1000;
+	const baris = [];
+	for (let i = tanggal.length - 1; i >= 0; i -= 1) {
+		const buka = fraksi(tutup * (1 + (acak() - 0.5) * 0.03));
+		baris.unshift({
+			symbol: `${kode}.JK`,
+			date: tanggal[i],
+			close: tutup,
+			open: buka,
+			high: Math.max(buka, tutup) + 5 * Math.round(acak() * 6),
+			low: Math.min(buka, tutup) - 5 * Math.round(acak() * 6),
+			volume: Math.round(20 + acak() * 60) * 1_000_000,
+			market_cap: tutup * 24_000_000_000
+		});
+		tutup = fraksi(buka * (1 + (acak() - 0.5) * 0.02));
+	}
+	return baris;
+}
+
 const situsTambang = {
 	'pt-alamtri-resources-indonesia-tbk': [
 		{ name: 'Tutupan', slug: 'tutupan', commodity_type: 'Coal', province: 'Kalimantan Selatan', city: 'Tabalong', latitude: -2.15, longitude: 115.42 },
@@ -606,6 +636,12 @@ createServer((req, res) => {
 			},
 			slug: situs.slug
 		});
+	}
+
+	const cocokHarian = path.match(/^\/daily\/([a-z0-9.]+)\/$/i);
+	if (cocokHarian) {
+		const mulai = url.searchParams.get('start') ?? hariLalu(30);
+		return balas(res, 200, hargaHarian(kodeDari(cocokHarian[1]), mulai));
 	}
 
 	return balas(res, 404, { error: 'rute stub tidak dikenal' });

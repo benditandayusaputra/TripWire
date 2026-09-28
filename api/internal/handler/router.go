@@ -29,6 +29,7 @@ type Dependencies struct {
 	Account    *service.AccountService
 	Feed       *service.FeedService
 	Admin      *service.AdminService
+	Pantauan   *service.PantauanService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -115,6 +116,10 @@ func Register(app *fiber.App, deps Dependencies) {
 	group.Post("/:id/conditions", watchlist.AddCondition)
 	group.Patch("/:id/conditions/:cid", watchlist.UpdateCondition)
 	group.Delete("/:id/conditions/:cid", watchlist.RemoveCondition)
+
+	pantauan := NewPantauanHandler(deps.Pantauan)
+	group.Get("/overview", pantauan.Ringkasan)
+	group.Get("/:id/prices", pantauan.Harga)
 
 	market := NewMarketHandler(deps.Market)
 	app.Get("/market/credits", requireAuth, market.Credits)

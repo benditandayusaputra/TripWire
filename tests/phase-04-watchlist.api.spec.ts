@@ -125,6 +125,64 @@ test.describe('Fase 4: watchlist dan kondisi lewat API', () => {
 		expect((await benar.json()).condition.config.interval_hours).toBe(12);
 	});
 
+	test('ringkasan watchlist memuat skor terakhir, riwayat, dan jadwal cek kondisi aktif', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'ringkasan');
+		const csrf = { 'X-CSRF-Token': sesi.cookie('tw_csrf') };
+
+		const { item } = await (
+			await sesi.kirim('post', '/watchlist', { data: { ticker: 'ANTM' }, headers: csrf })
+		).json();
+
+		const mingguan = await (
+			await sesi.kirim('post', `/watchlist/${item.id}/conditions`, {
+				data: { condition_type: 'weekly', config: { weekday: 3 } },
+				headers: csrf
+			})
+		).json();
+		const berambang = await (
+			await sesi.kirim('post', `/watchlist/${item.id}/conditions`, {
+				data: { condition_type: 'recent_event', config: { min_score: 70 } },
+				headers: csrf
+			})
+		).json();
+		await sesi.kirim('patch', `/watchlist/${item.id}/conditions/${berambang.condition.id}`, {
+			data: { is_active: false },
+			headers: csrf
+		});
+
+		const redFlag = await sesi.kirim('get', '/insights/red-flag/ANTM');
+		expect(redFlag.status()).toBe(200);
+		const insight = await redFlag.json();
+
+		const response = await sesi.kirim('get', '/watchlist/overview');
+		expect(response.status()).toBe(200);
+		const { risk, schedule } = await response.json();
+
+		expect(risk.ANTM.red_flag).toMatchObject({ id: insight.id, score: insight.score });
+		expect(Object.keys(risk.ANTM.red_flag.sub_scores).sort()).toEqual(
+			['insider_clustering', 'ownership_change', 'suspension'].sort()
+		);
+		expect(risk.ANTM.history.at(-1).score).toBe(insight.score);
+		expect(risk.ANTM.insight_count).toBeGreaterThanOrEqual(1);
+
+		const sekarang = Date.now();
+		expect(new Date(schedule.next_scan_at).getTime()).toBeGreaterThan(sekarang);
+
+		const cekMingguan = schedule.conditions[mingguan.condition.id];
+		expect(new Date(cekMingguan).getTime()).toBeGreaterThan(sekarang);
+		expect(
+			new Date(cekMingguan).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'Asia/Jakarta' })
+		).toBe('Wed');
+		expect(schedule.conditions[berambang.condition.id]).toBeUndefined();
+
+		const { sesi: orangLain } = await sesiMasuk(request, 'ringkasan-lain');
+		const kosong = await (await orangLain.kirim('get', '/watchlist/overview')).json();
+		expect(kosong.risk).toEqual({});
+		expect(kosong.schedule.conditions).toEqual({});
+	});
+
 	test('pencarian ticker mengembalikan emiten dari daftar resmi IDX', async ({ request }) => {
 		const { sesi } = await sesiMasuk(request, 'cari');
 

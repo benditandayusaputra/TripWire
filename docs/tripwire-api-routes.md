@@ -62,6 +62,8 @@ Akses: **Publik** (gak perlu login) · **User** (butuh access token valid) · **
 | Method | Path | Akses | Keterangan |
 |---|---|---|---|
 | GET | /watchlist | User | List saham yang dipantau, plus `quotes` per ticker (harga penutupan, perubahan harian, kapitalisasi, rentang 52 minggu, indeks) dari salinan laporan emiten, tanpa memanggil Sectors |
+| GET | /watchlist/overview | User | Ringkasan risiko per ticker dari `insight_events` (Red Flag terakhir beserta sub skor dan pengali pola silang, skor sebelumnya, riwayat 40 skor terakhir, insight Market Intelligence terakhir, jumlah insight) dan jadwal jaga: waktu scan terakhir, scan berikutnya, dan cek berikutnya per kondisi aktif. Tidak memanggil Sectors |
+| GET | /watchlist/:id/prices | User (owner) | Harga harian 90 hari (open, high, low, close, volume) dari Sectors `/daily/`, 1 credit per emiten per hari, dilayani cache setelahnya |
 | POST | /watchlist | User | Tambah ticker baru |
 | PATCH | /watchlist/:id | User (owner) | Ubah data_display_pref |
 | DELETE | /watchlist/:id | User (owner) | Hapus dari watchlist |
@@ -75,6 +77,11 @@ notifikasi ke pengguna yang punya minimal satu kondisi aktif yang menerimanya: k
 (`daily`, `weekly`, `periodic_custom`) selalu menerima, sedangkan kondisi berambang menerima kalau
 skor insight mencapai `min_score`. Insight tanpa skor tidak lolos kondisi berambang. Pengguna yang
 belum mengatur kondisi apa pun tetap menerima semua insight emiten yang dipantaunya.
+
+Jadwal cek di `GET /watchlist/overview` dihitung dari `SCHEDULER_CRON` dan aturan `jatuhTempo` yang
+sama dengan scheduler: kondisi harian dan berambang ikut setiap putaran, mingguan hanya di hari
+Jakarta yang dipilih, dan berkala hanya di jam putaran yang habis dibagi `interval_hours`. Kondisi
+yang tidak jatuh tempo dalam 62 hari ke depan tidak diberi waktu.
 
 ## Insight
 
