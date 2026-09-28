@@ -48,12 +48,12 @@ Kondisi terpenuhi, sistem generate insight, insight ditandatangani dan dicatat, 
 
 ### Red Flag Detector (berlaku untuk semua saham di watchlist)
 Menggabungkan tiga sinyal tata kelola yang biasanya tersebar dan ditampilkan terpisah: histori suspend beserta alasan resmi, pola transaksi insider dan pemegang saham mayor yang tidak wajar, dan perubahan konsentrasi kepemilikan. Nilai jual utamanya ada di pencarian pola silang antar tiga sinyal ini, misalnya klaster penjualan insider yang terjadi berdekatan waktu dengan suspend, bukan menampilkan tiap sinyal secara terpisah seperti yang sudah lazim.
-Status: konsep sudah matang, formula skoring konkret (bobot tiap sinyal, ambang batas klaster) belum difinalisasi.
+Status: berjalan dengan data asli Sectors API v2, formula lengkap di tripwire-red-flag-formula.md.
 
 ### Market Intelligence
 Mode standar: snapshot fundamental dibandingkan rata rata sektor.
 Mode mendalam, khusus emiten tambang, memanfaatkan kedalaman data Sectors di sektor ini: skor eksposur komoditas (tren produksi, tren harga komoditas, rasio umur cadangan, dimodifikasi tipe entitas mine owner versus trading/holding), radar kedaluwarsa lisensi tambang, konteks peta situs tambang.
-Status: formula skor eksposur komoditas sudah dirancang sebagai starting point, siap diuji begitu API key aktif.
+Status: berjalan dengan data asli Sectors API v2 termasuk ekstensi Mining, formula lengkap di tripwire-market-intelligence.md.
 
 ## 9. Kebutuhan Non-Fungsional
 Detail lengkap ada di tripwire-security-design.md, ringkasannya:
