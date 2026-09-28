@@ -51,6 +51,42 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		expect(galat).toEqual([]);
 	});
 
+	test('beranda memutar simulasi, notifikasi terkirim sebelum harga anjlok', async ({ page }) => {
+		const galat = tangkapGalatKonsol(page);
+
+		await page.goto('/');
+		const terminal = page.getByRole('figure', { name: /Simulasi grafik harga saham fiktif SIMU/ });
+		const skor = terminal.getByTestId('skor-badge');
+		const putarUlang = terminal.getByRole('button', { name: 'Putar ulang simulasi' });
+
+		await expect(skor).toHaveAttribute('data-tier', 'low');
+		await expect(putarUlang).toBeDisabled();
+
+		await expect(skor).toHaveAttribute('data-tier', 'critical', { timeout: 10_000 });
+		await expect(terminal.getByText('SIMU menyentuh skor 91, Kritis')).toBeVisible();
+		await expect(terminal.getByText('▲')).toBeVisible();
+
+		await expect(putarUlang).toBeEnabled({ timeout: 10_000 });
+		await expect(terminal.getByText('▼')).toBeVisible();
+		await expect(terminal).toContainText('4 hari bursa lebih awal');
+
+		const slider = terminal.getByRole('slider', { name: 'Telusuri grafik per hari' });
+		await slider.focus();
+		await page.keyboard.press('Home');
+		await expect(slider).toHaveAttribute('aria-valuetext', /1 Jun 2026, harga tutup 1\.180, Red Flag Score 6$/);
+		await page.keyboard.press('End');
+		await expect(slider).toHaveAttribute('aria-valuetext', /30 Jul 2026, harga tutup 780, Red Flag Score 100$/);
+
+		const gauge = page.getByRole('img', { name: /^Red Flag Score \d+ dari 100/ });
+		await expect(gauge).toHaveAttribute('aria-label', 'Red Flag Score 91 dari 100, Kritis');
+		await page.getByRole('button', { name: /1 sinyal/ }).click();
+		await expect(gauge).toHaveAttribute('aria-label', 'Red Flag Score 70 dari 100, Tinggi');
+		await page.getByRole('button', { name: /3 sinyal/ }).click();
+		await expect(gauge).toHaveAttribute('aria-label', 'Red Flag Score 100 dari 100, Kritis');
+
+		expect(galat).toEqual([]);
+	});
+
 	test('dashboard menampilkan ringkasan dan feed insight dari watchlist', async ({ page }) => {
 		const akun = await masukLewatBrowser(page, 'halaman-dashboard');
 		const galat = tangkapGalatKonsol(page);
