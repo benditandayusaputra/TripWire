@@ -10,6 +10,8 @@ import (
 	"github.com/benditandayusaputra/tripwire/api/internal/service"
 )
 
+const batasUjiPush = 5
+
 type Dependencies struct {
 	Config     *config.Config
 	Redis      *redis.Client
@@ -136,7 +138,12 @@ func Register(app *fiber.App, deps Dependencies) {
 	notifikasi := NewNotificationHandler(deps.Notifikasi)
 	notifications := app.Group("/notifications", requireAuth)
 	notifications.Get("/", notifikasi.List)
+	notifications.Get("/summary", notifikasi.Summary)
+	notifications.Post("/read-all", csrf, notifikasi.MarkAllRead)
+	notifications.Delete("/read", csrf, notifikasi.DeleteRead)
 	notifications.Patch("/:id/read", csrf, notifikasi.MarkRead)
+	notifications.Delete("/:id/read", csrf, notifikasi.MarkUnread)
+	notifications.Delete("/:id", csrf, notifikasi.Delete)
 
 	adminHandler := NewAdminHandler(deps.Admin)
 	admin := app.Group("/admin", requireAuth, middleware.RequireAdmin())
@@ -148,6 +155,10 @@ func Register(app *fiber.App, deps Dependencies) {
 
 	push := app.Group("/push", requireAuth)
 	push.Get("/public-key", notifikasi.VapidPublicKey)
+	push.Get("/subscriptions", notifikasi.Devices)
+	push.Post("/test", csrf,
+		middleware.RateLimit(deps.Redis, "push_test", batasUjiPush, cfg.RateLimitWindow, middleware.UserID),
+		notifikasi.TestPush)
 	push.Post("/subscribe", csrf, middleware.XSSSanitize(), notifikasi.Subscribe)
 	push.Delete("/subscribe/:endpoint", csrf, notifikasi.Unsubscribe)
 }

@@ -1,4 +1,4 @@
-import { berlanggananPush, kunciPublikPush } from '$lib/api/notifications';
+import { berlanggananPush, cabutPerangkat, kunciPublikPush } from '$lib/api/notifications';
 
 function base64UrlKeBytes(nilai: string): Uint8Array<ArrayBuffer> {
 	const padded = nilai.padEnd(nilai.length + ((4 - (nilai.length % 4)) % 4), '=');
@@ -24,6 +24,7 @@ export class PushStore {
 	didukung = $state(false);
 	izin = $state<NotificationPermission>('default');
 	berlangganan = $state(false);
+	endpoint = $state('');
 	sibuk = $state(false);
 	pesan = $state('');
 
@@ -41,6 +42,31 @@ export class PushStore {
 		const registrasi = await navigator.serviceWorker.getRegistration();
 		const langganan = await registrasi?.pushManager.getSubscription();
 		this.berlangganan = Boolean(langganan);
+		this.endpoint = langganan?.endpoint ?? '';
+	}
+
+	async nonaktifkan() {
+		if (this.sibuk) return;
+
+		this.sibuk = true;
+		this.pesan = '';
+
+		try {
+			const registrasi = await navigator.serviceWorker.getRegistration();
+			const langganan = await registrasi?.pushManager.getSubscription();
+			if (langganan) {
+				await cabutPerangkat(langganan.endpoint).catch(() => undefined);
+				await langganan.unsubscribe();
+			}
+
+			this.berlangganan = false;
+			this.endpoint = '';
+			this.pesan = 'Notifikasi push dimatikan di perangkat ini.';
+		} catch (galat) {
+			this.pesan = galat instanceof Error ? galat.message : 'Gagal mematikan notifikasi push.';
+		} finally {
+			this.sibuk = false;
+		}
 	}
 
 	async aktifkan() {
@@ -75,6 +101,7 @@ export class PushStore {
 			});
 
 			this.berlangganan = true;
+			this.endpoint = langganan.endpoint;
 			this.pesan = 'Notifikasi push aktif di perangkat ini.';
 		} catch (galat) {
 			this.pesan = galat instanceof Error ? galat.message : 'Gagal mengaktifkan notifikasi push.';
