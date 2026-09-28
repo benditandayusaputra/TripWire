@@ -5,7 +5,8 @@ dotenv.config({ path: 'api/.env', quiet: true });
 
 const apiPort = process.env.APP_PORT ?? '8080';
 const apiURL = `http://127.0.0.1:${apiPort}`;
-const appURL = 'http://127.0.0.1:5173';
+const appPort = process.env.APP_TEST_PORT ?? '5173';
+const appURL = `http://127.0.0.1:${appPort}`;
 const stubPort = process.env.SECTORS_STUB_PORT ?? '8899';
 const stubURL = `http://127.0.0.1:${stubPort}`;
 
@@ -63,7 +64,7 @@ export default defineConfig({
 			timeout: 120_000
 		},
 		{
-			command: 'npm run dev',
+			command: `npm run dev -- --port ${appPort}`,
 			cwd: 'app',
 			env: {
 				PUBLIC_API_URL: apiURL
