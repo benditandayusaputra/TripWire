@@ -29,7 +29,7 @@
 
 		<div class="flex flex-wrap items-center gap-3">
 			<span class="tw-overline">{labelSubtype(insight.subtype)}</span>
-			<SignatureBadge compact />
+			<SignatureBadge />
 		</div>
 	</div>
 </a>

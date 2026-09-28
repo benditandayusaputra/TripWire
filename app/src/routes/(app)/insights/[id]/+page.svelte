@@ -25,12 +25,17 @@
 		formatRingkas,
 		formatTanggal,
 		formatTanggalSaja,
+		formatPoin,
 		judulInsight,
 		labelKeparahan,
 		labelKomoditas,
+		labelMetrik,
 		labelSinyal,
 		labelSubtype,
+		labelSumber,
+		labelTipePerusahaan,
 		labelTransaksi,
+		satuanAwam,
 		selisihHari
 	} from '$lib/insight';
 	import { tierDariSkor } from '$lib/skor';
@@ -60,12 +65,16 @@
 	const situsBerkoordinat = $derived(
 		situs.filter((item) => item.latitude !== null && item.longitude !== null)
 	);
-	const sumber = $derived(payload.data_sources ?? []);
+	const sumber = $derived(labelSumber(payload.data_sources ?? []));
 
 	const komponenEksposur = $derived(
 		eksposur
 			? [
-					{ kunci: 'production_trend', label: 'Tren produksi', nilai: eksposur.components.production_trend },
+					{
+						kunci: 'production_trend',
+						label: 'Tren produksi',
+						nilai: eksposur.components.production_trend
+					},
 					{
 						kunci: 'commodity_price_trend',
 						label: 'Tren harga komoditas',
@@ -89,8 +98,26 @@
 	}
 
 	function teksSelisih(baris: { unit: string; difference: number; difference_pct: number | null }) {
-		if (baris.unit === '%') return formatBertanda(baris.difference, ' pp');
+		if (baris.unit === '%') return formatPoin(baris.difference);
 		return formatBertanda(baris.difference_pct);
+	}
+
+	function alasanSegel(hasil: {
+		signature_valid: boolean;
+		hash_valid: boolean;
+		chain_valid: boolean;
+	}) {
+		if (!hasil.signature_valid) return 'Isi insight ini sudah berubah setelah disegel.';
+		if (!hasil.hash_valid)
+			return 'Catatan insight ini tidak cocok dengan urutan catatan sebelumnya.';
+		if (!hasil.chain_valid) return 'Catatan insight sebelumnya tidak ditemukan.';
+		return '';
+	}
+
+	function penjelasanEntitas(tipe: string, faktor: number) {
+		const nama = labelTipePerusahaan(tipe).toLowerCase();
+		if (faktor >= 1) return `Perusahaan ini ${nama}, jadi skornya dihitung penuh.`;
+		return `Perusahaan ini ${nama}, bukan penambang langsung, jadi skornya dikurangi.`;
 	}
 
 	function teksNilai(nilai: number, unit: string) {
@@ -153,36 +180,33 @@
 				{#if verifikasi.valid}
 					<span class="text-tier-low inline-flex items-center gap-2">
 						<ShieldCheck class="size-4" aria-hidden="true" />
-						<span class="tw-overline text-tier-low">Signature terverifikasi</span>
+						<span class="tw-overline text-tier-low">Segel keaslian valid</span>
 					</span>
+					<span class="text-secondary text-[12.5px]">Isinya sama persis dengan saat dibuat.</span>
 				{:else}
 					<span class="text-tier-critical inline-flex items-center gap-2">
 						<ShieldX class="size-4" aria-hidden="true" />
-						<span class="tw-overline text-tier-critical">Signature tidak valid</span>
+						<span class="tw-overline text-tier-critical">Segel tidak cocok</span>
 					</span>
 				{/if}
-
-				<span class="tw-data text-secondary text-[12px]">
-					{verifikasi.algorithm} · 0x{verifikasi.digest.slice(0, 4)}...{verifikasi.digest.slice(-4)}
-				</span>
 
 				<a
 					href="/verify-insight?id={insight.id}"
 					class="text-diamond-300 hover:text-diamond-100 ml-auto text-[13px] font-medium transition"
 				>
-					Verifikasi mandiri
+					Cek keaslian
 				</a>
 			</div>
 
-			{#if verifikasi.reason}
-				<p class="text-tier-critical text-[13px]">{verifikasi.reason}</p>
+			{#if !verifikasi.valid && alasanSegel(verifikasi)}
+				<p class="text-tier-critical text-[13px]">{alasanSegel(verifikasi)}</p>
 			{/if}
 		{/if}
 	</header>
 
 	{#if subSkor.length > 0}
 		<div class="tw-card space-y-4 p-6">
-			<h2 class="tw-heading text-ink">Rincian sub skor</h2>
+			<h2 class="tw-heading text-ink">Rincian skor</h2>
 
 			<dl class="grid gap-3 sm:grid-cols-3">
 				{#each subSkor as [kunci, nilai] (kunci)}
@@ -204,11 +228,15 @@
 					<ShieldAlert class="mt-0.5 size-4 flex-none {tier.text}" aria-hidden="true" />
 					<span class="text-secondary">
 						{#if pola.multiplier_applied > 1}
-							Pengali pola silang <span class="tw-data text-ink">{pola.multiplier_applied}x</span>
-							aktif karena {pola.signals_active_in_window} sinyal muncul bersamaan dalam {pola.window_days}
-							hari: {(pola.active_signals ?? []).map(labelSinyal).join(', ')}.
+							Skor dinaikkan
+							<span class="tw-data text-ink">{formatAngka(pola.multiplier_applied, 1)} kali</span>
+							karena {pola.signals_active_in_window} tanda bahaya muncul berdekatan dalam {pola.window_days}
+							hari:
+							{(pola.active_signals ?? [])
+								.map((kunci) => labelSinyal(kunci).toLowerCase())
+								.join(', ')}.
 						{:else}
-							Tidak ada pola silang aktif dalam {pola.window_days} hari terakhir, skor memakai bobot dasar.
+							Tidak ada tanda bahaya yang muncul berdekatan dalam {pola.window_days} hari terakhir.
 						{/if}
 					</span>
 				</p>
@@ -229,9 +257,11 @@
 							aria-hidden="true"
 						></span>
 						<div class="min-w-0 flex-1 space-y-1">
-							<p class="text-ink text-[13.5px] leading-snug">{item.reason || 'Alasan tidak dicantumkan'}</p>
+							<p class="text-ink text-[13.5px] leading-snug">
+								{item.reason || 'Alasan tidak dicantumkan'}
+							</p>
 							<p class="tw-overline flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px]">
-								<span>IDX · {formatTanggalSaja(item.date)}</span>
+								<span>Diumumkan IDX · {formatTanggalSaja(item.date)}</span>
 								<span>{labelKeparahan(item.severity_tier)}</span>
 								{#if item.pdf_url}
 									<a
@@ -255,8 +285,8 @@
 	{#if insider.length > 0}
 		<div class="tw-card space-y-3 p-6" data-testid="bagian-insider">
 			<div class="flex flex-wrap items-baseline justify-between gap-2">
-				<h2 class="tw-heading text-ink">Transaksi insider dan pemegang saham mayor</h2>
-				<span class="tw-overline">90 hari · KSEI</span>
+				<h2 class="tw-heading text-ink">Transaksi orang dalam dan pemegang saham besar</h2>
+				<span class="tw-overline">90 hari terakhir · data KSEI</span>
 			</div>
 			<ul class="space-y-2">
 				{#each insider as item, urutan (urutan)}
@@ -272,14 +302,19 @@
 								{item.holder_name}
 								<span class="text-muted">{labelTransaksi(item.transaction_type)}</span>
 								{#if item.transaction_value > 0}
-									<span class="tw-data text-secondary">Rp {formatRingkas(item.transaction_value)}</span>
+									<span class="tw-data text-secondary"
+										>Rp {formatRingkas(item.transaction_value)}</span
+									>
 								{/if}
 							</p>
 							<p class="tw-overline flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px]">
 								<span>{formatTanggalSaja(item.date)}</span>
 								{#if item.share_pct_before !== undefined && item.share_pct_after !== undefined}
 									<span class="tw-data normal-case">
-										{formatAngka(item.share_pct_before, 3)}% ke {formatAngka(item.share_pct_after, 3)}%
+										{formatAngka(item.share_pct_before, 3)}% ke {formatAngka(
+											item.share_pct_after,
+											3
+										)}%
 									</span>
 								{/if}
 								{#if item.source_url}
@@ -305,7 +340,7 @@
 		<div class="tw-card space-y-4 p-6" data-testid="bagian-kepemilikan">
 			<div class="flex items-center gap-2.5">
 				<Users class="text-secondary size-4" aria-hidden="true" />
-				<h2 class="tw-heading text-ink">Konsentrasi kepemilikan</h2>
+				<h2 class="tw-heading text-ink">Perubahan pemegang saham</h2>
 			</div>
 
 			{#if perubahan.length > 0}
@@ -316,7 +351,7 @@
 							<span class="tw-data text-secondary text-[13px]">
 								{formatAngka(item.share_pct_before)}% ke {formatAngka(item.share_pct_after)}%
 								<span class={Math.abs(item.delta_pp) > 3 ? 'text-tier-high' : 'text-muted'}>
-									({formatBertanda(item.delta_pp, ' pp')})
+									({formatPoin(item.delta_pp)})
 								</span>
 							</span>
 						</li>
@@ -330,7 +365,9 @@
 					{#each pemegang as item (item.name)}
 						<div class="space-y-1">
 							<div class="flex items-baseline justify-between gap-3 text-[13px]">
-								<span class="text-secondary">{item.name === 'Public' ? 'Publik (free float)' : item.name}</span>
+								<span class="text-secondary"
+									>{item.name === 'Public' ? 'Masyarakat umum' : item.name}</span
+								>
 								<span class="tw-data text-ink">{formatAngka(item.percentage)}%</span>
 							</div>
 							<div class="bg-line h-1.5 overflow-hidden rounded-full">
@@ -349,7 +386,7 @@
 	{#if eksposur}
 		<div class="tw-card space-y-4 p-6" data-testid="bagian-eksposur">
 			<div class="flex flex-wrap items-baseline justify-between gap-2">
-				<h2 class="tw-heading text-ink">Skor eksposur komoditas</h2>
+				<h2 class="tw-heading text-ink">Seberapa besar pengaruh komoditas</h2>
 				<span class="tw-overline">{labelKomoditas(eksposur.commodity)} · {eksposur.category}</span>
 			</div>
 
@@ -365,10 +402,10 @@
 			</dl>
 
 			<p class="text-secondary text-[13px]">
-				Skor dasar <span class="tw-data text-ink">{formatAngka(eksposur.base_score)}</span> dikali
-				faktor tipe entitas <span class="tw-data text-ink">{eksposur.entity_factor}x</span>
-				({eksposur.entity_type.replace(/_/g, ' ')}). Komponen tanpa data tidak ikut dihitung dan bobotnya
-				dibagi ulang ke komponen lain.
+				Makin tinggi skornya, makin besar pengaruh naik turun harga dan produksi
+				{labelKomoditas(eksposur.commodity).toLowerCase()} terhadap bisnis perusahaan.
+				{penjelasanEntitas(eksposur.entity_type, eksposur.entity_factor)} Bagian yang datanya belum tersedia
+				tidak ikut dihitung.
 			</p>
 		</div>
 	{/if}
@@ -376,7 +413,7 @@
 	{#if metrik.length > 0}
 		<div class="tw-card space-y-4 p-6" data-testid="bagian-sektor">
 			<div class="flex flex-wrap items-baseline justify-between gap-2">
-				<h2 class="tw-heading text-ink">Fundamental terhadap rata rata sektor</h2>
+				<h2 class="tw-heading text-ink">Dibanding rata rata sektor</h2>
 				<span class="tw-overline">{snapshot?.sub_sector}</span>
 			</div>
 
@@ -388,7 +425,7 @@
 						data-kunci={baris.key}
 					>
 						<span class="text-ink text-[13.5px]">
-							{baris.label}
+							{labelMetrik(baris.key, baris.label)}
 							<span class="tw-overline ml-1 text-[9.5px]">{baris.year}</span>
 						</span>
 						<span class="tw-data text-secondary inline-flex items-center gap-1 text-[13px]">
@@ -408,9 +445,8 @@
 			</ul>
 
 			<p class="text-muted text-[12px]">
-				Valuasi dibandingkan dengan rata rata peer satu subsektor dari laporan emiten Sectors.
-				Pertumbuhan dibandingkan dengan rata rata tertimbang subsektor. Posisi di atas atau di bawah
-				rata rata bukan penilaian baik atau buruk.
+				Angka perusahaan dibandingkan dengan rata rata perusahaan sejenis di subsektor yang sama.
+				Berada di atas atau di bawah rata rata bukan berarti baik atau buruk.
 			</p>
 		</div>
 	{/if}
@@ -423,7 +459,7 @@
 				>
 					Sektor tambang
 				</span>
-				<h2 class="tw-heading text-ink">Lokasi situs</h2>
+				<h2 class="tw-heading text-ink">Lokasi tambang</h2>
 			</div>
 
 			{#if situs.length > 0}
@@ -433,16 +469,22 @@
 					{/if}
 					<ul class="bg-line grid gap-px">
 						{#each situs as item (item.name + item.region)}
-							<li class="bg-base/85 flex items-center gap-2.5 px-3.5 py-2.5" data-testid="situs-tambang">
+							<li
+								class="bg-base/85 flex items-center gap-2.5 px-3.5 py-2.5"
+								data-testid="situs-tambang"
+							>
 								<span
 									class="size-2.25 flex-none rotate-45 rounded-xs {warnaKomoditas(item.commodity)
 										.latar}"
 									aria-hidden="true"
 								></span>
 								<span class="min-w-0 flex-1 text-[13px] font-medium">
-									{item.name}{#if item.region}<span class="text-secondary">, {item.region}</span>{/if}
+									{item.name}{#if item.region}<span class="text-secondary">, {item.region}</span
+										>{/if}
 								</span>
-								<span class="tw-data text-muted flex-none text-[11px]">{labelKomoditas(item.commodity)}</span>
+								<span class="tw-data text-muted flex-none text-[11px]"
+									>{labelKomoditas(item.commodity)}</span
+								>
 							</li>
 						{/each}
 					</ul>
@@ -450,7 +492,7 @@
 			{:else}
 				<p class="tw-glass text-secondary flex items-center gap-2 px-4 py-3 text-[13px]">
 					<MapPin class="size-4" aria-hidden="true" />
-					Sectors belum mencatat situs tambang untuk emiten ini.
+					Belum ada data lokasi tambang untuk perusahaan ini.
 				</p>
 			{/if}
 
@@ -462,17 +504,21 @@
 						<span class="tw-data text-muted text-[11.5px]">{harga.unit}</span>
 						{#if harga.yoy_pct !== null}
 							<span
-								class="tw-data text-[11.5px] {harga.yoy_pct >= 0 ? 'text-tier-low' : 'text-tier-high'}"
+								class="tw-data text-[11.5px] {harga.yoy_pct >= 0
+									? 'text-tier-low'
+									: 'text-tier-high'}"
 							>
 								{formatBertanda(harga.yoy_pct)}
 							</span>
 						{/if}
-						<span class="tw-overline ml-auto text-[9.5px]">per {formatTanggalSaja(harga.latest_date)}</span>
+						<span class="tw-overline ml-auto text-[9.5px]"
+							>per {formatTanggalSaja(harga.latest_date)}</span
+						>
 					</div>
 					<GrafikHarga seri={harga.series} />
 					<p class="text-muted text-[12px] leading-relaxed">
-						Harga komoditas menjadi salah satu komponen skor eksposur komoditas, bukan bagian dari
-						perhitungan Red Flag Score.
+						Harga komoditas ikut menentukan skor pengaruh komoditas di atas, tapi tidak memengaruhi
+						skor risiko tata kelola.
 					</p>
 				</div>
 			{/if}
@@ -482,7 +528,8 @@
 					<div class="flex items-center gap-2.5">
 						<Factory class="text-secondary size-4" aria-hidden="true" />
 						<h3 class="text-ink text-[15px] font-semibold">
-							Produksi {labelKomoditas(produksi.commodity)} {produksi.year}
+							Produksi {labelKomoditas(produksi.commodity)}
+							{produksi.year}
 						</h3>
 					</div>
 					<ul class="space-y-2">
@@ -492,9 +539,12 @@
 									{baris.sub_type || labelKomoditas(produksi.commodity)}
 								</span>
 								<span class="tw-data text-ink text-[13px]">
-									{formatAngka(baris.production)} {baris.unit}
+									{formatAngka(baris.production)}
+									{satuanAwam(baris.unit)}
 									{#if baris.yoy_pct !== null}
-										<span class="text-muted">({formatBertanda(baris.yoy_pct)} dari {produksi.previous_year})</span>
+										<span class="text-muted"
+											>({formatBertanda(baris.yoy_pct)} dari {produksi.previous_year})</span
+										>
 									{/if}
 								</span>
 							</li>
@@ -502,10 +552,14 @@
 					</ul>
 					{#if produksi.reserve_life_years !== null}
 						<p class="text-secondary text-[13px]">
-							Cadangan <span class="tw-data text-ink">{formatAngka(produksi.reserves)} {produksi.reserve_unit}</span>,
-							cukup sekitar
-							<span class="tw-data text-ink">{formatAngka(produksi.reserve_life_years, 1)} tahun</span>
-							pada laju produksi {produksi.year}.
+							Cadangannya
+							<span class="tw-data text-ink"
+								>{formatAngka(produksi.reserves)} {satuanAwam(produksi.reserve_unit)}</span
+							>, cukup untuk sekitar
+							<span class="tw-data text-ink"
+								>{formatAngka(produksi.reserve_life_years, 1)} tahun</span
+							>
+							kalau produksi tetap seperti tahun {produksi.year}.
 						</p>
 					{/if}
 				</div>
@@ -516,9 +570,9 @@
 					<div class="flex flex-wrap items-baseline justify-between gap-2">
 						<div class="flex items-center gap-2.5">
 							<CalendarClock class="text-secondary size-4" aria-hidden="true" />
-							<h3 class="text-ink text-[15px] font-semibold">Radar lisensi tambang</h3>
+							<h3 class="text-ink text-[15px] font-semibold">Izin tambang yang segera berakhir</h3>
 						</div>
-						<span class="tw-overline">{radar.total_licenses} lisensi tercatat</span>
+						<span class="tw-overline">{radar.total_licenses} izin tercatat</span>
 					</div>
 
 					{#if radar.expiring_soon.length > 0}
@@ -533,12 +587,17 @@
 									></span>
 									<div class="min-w-0 flex-1 space-y-1">
 										<p class="text-ink text-[13.5px] leading-snug">
-											{lisensi.license_type ?? 'Lisensi'} {lisensi.license_id}
-											<span class="text-muted">· {labelKomoditas(lisensi.commodity)}, {lisensi.status}</span>
+											{lisensi.license_type ?? 'Izin'}
+											{lisensi.license_id}
+											<span class="text-muted"
+												>· {labelKomoditas(lisensi.commodity)}, {lisensi.status}</span
+											>
 										</p>
 										<p class="tw-overline flex flex-wrap gap-x-3 text-[10px]">
 											<span>
-												Berakhir {formatTanggalSaja(lisensi.expires_at)} · {teksLisensi(lisensi.expires_at)}
+												Berakhir {formatTanggalSaja(lisensi.expires_at)} · {teksLisensi(
+													lisensi.expires_at
+												)}
 											</span>
 											{#if lisensi.city || lisensi.province}
 												<span class="normal-case">
@@ -552,7 +611,7 @@
 						</ul>
 					{:else}
 						<p class="text-secondary text-[13px]">
-							Tidak ada lisensi yang berakhir dalam {radar.window_days} hari ke depan maupun ke belakang.
+							Tidak ada izin tambang yang berakhir dalam setahun terakhir maupun setahun ke depan.
 						</p>
 					{/if}
 				</div>
@@ -564,12 +623,12 @@
 		<div class="tw-glass space-y-2 px-4 py-3.5" data-testid="sumber-data">
 			<p class="tw-overline flex items-center gap-2 text-[10px]">
 				<Database class="size-3.5" aria-hidden="true" />
-				Sumber data Sectors API v2
+				Sumber data dari Sectors
 			</p>
 			<ul class="flex flex-wrap gap-1.5">
-				{#each sumber as endpoint (endpoint)}
-					<li class="tw-data rounded-glass-sm border-line text-secondary border px-2 py-0.5 text-[11px]">
-						{endpoint}
+				{#each sumber as nama (nama)}
+					<li class="rounded-glass-sm border-line text-secondary border px-2 py-0.5 text-[12px]">
+						{nama}
 					</li>
 				{/each}
 			</ul>
@@ -579,7 +638,7 @@
 	{#if payload.mining_profile}
 		<p class="text-muted flex items-center gap-2 text-[12px]">
 			<Gem class="size-3.5" aria-hidden="true" />
-			{payload.mining_profile.name} · {payload.mining_profile.company_type} ·
+			{payload.mining_profile.name} · {labelTipePerusahaan(payload.mining_profile.company_type)} ·
 			{payload.mining_profile.commodities.map(labelKomoditas).join(', ')}
 		</p>
 	{/if}

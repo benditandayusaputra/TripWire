@@ -105,13 +105,13 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		const id = await siapkanInsight(page, 'ANTM');
 		await page.goto(`/insights/${id}`);
 
-		await expect(page.getByTestId('pola-silang')).toContainText('1.6x');
+		await expect(page.getByTestId('pola-silang')).toContainText('1,6 kali');
 		await expect(page.getByTestId('bagian-suspensi')).toContainText('Serius');
 		await expect(page.getByTestId('bagian-suspensi').getByRole('link', { name: /Pengumuman resmi/ }).first()).toHaveAttribute('href', /idx\.co\.id/);
 		await expect(page.getByTestId('bagian-insider')).toContainText('Direktur Utama');
 		await expect(page.getByTestId('bagian-kepemilikan')).toContainText('Inalum (Persero)');
-		await expect(page.getByTestId('bagian-kepemilikan')).toContainText('+7 pp');
-		await expect(page.getByTestId('sumber-data')).toContainText('/filings/');
+		await expect(page.getByTestId('bagian-kepemilikan')).toContainText('naik 7 poin');
+		await expect(page.getByTestId('sumber-data')).toContainText('Laporan transaksi KSEI');
 
 		expect(galat).toEqual([]);
 	});
@@ -125,7 +125,7 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		const id = await siapkanInsight(page, 'ADRO', 'market-intelligence');
 		await page.goto(`/insights/${id}`);
 
-		await expect(page.getByTestId('detail-judul')).toContainText('Eksposur komoditas');
+		await expect(page.getByTestId('detail-judul')).toContainText('Pengaruh harga komoditas');
 		await expect(page.getByTestId('komponen-eksposur')).toHaveCount(3);
 		await expect(page.getByTestId('bagian-tambang')).toBeVisible();
 		await expect(page.getByTestId('peta-situs')).toBeVisible();
@@ -135,7 +135,7 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(page.getByTestId('tren-produksi')).toContainText('14 tahun');
 		await expect(page.getByTestId('lisensi-segera')).toHaveCount(1);
 		await expect(page.getByTestId('lisensi-segera')).toContainText('IUP-ADRO-01');
-		await expect(page.getByTestId('sumber-data')).toContainText('/mining/commodities/coal/price/');
+		await expect(page.getByTestId('sumber-data')).toContainText('Harga komoditas');
 
 		expect(galat.filter((pesan) => !pesan.includes('Failed to load resource'))).toEqual([]);
 	});
@@ -150,7 +150,7 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(page.getByTestId('metrik-sektor')).toHaveCount(5);
 		await expect(page.locator('[data-testid="metrik-sektor"][data-kunci="pe"]')).toContainText('-20%');
 		await expect(page.locator('[data-testid="metrik-sektor"][data-kunci="revenue_growth"]')).toContainText(
-			'+2 pp'
+			'naik 2 poin'
 		);
 	});
 
@@ -170,7 +170,9 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(hasil).toBeVisible();
 		await expect(hasil).toHaveAttribute('data-valid', 'true');
 		await expect(hasil).toContainText('MDKA');
-		await expect(hasil).toContainText('Ed25519');
+		await expect(hasil).toContainText('Insight ini asli dari TripWire');
+		await tamu.getByText('Detail teknis untuk pemeriksa').click();
+		await expect(tamu.getByTestId('detail-teknis')).toContainText('Ed25519');
 
 		expect(galat).toEqual([]);
 		await konteks.close();
