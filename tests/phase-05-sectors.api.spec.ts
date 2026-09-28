@@ -82,6 +82,43 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		expect(sesudah - sebelum).toBe(4);
 	});
 
+	test('kutipan harga watchlist dibaca dari salinan laporan tanpa memanggil Sectors lagi', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-kutipan');
+
+		const tambah = await sesi.kirim('post', '/watchlist', {
+			data: { ticker: 'INCO' },
+			headers: { 'X-CSRF-Token': sesi.cookie('tw_csrf') }
+		});
+		expect(tambah.status()).toBe(201);
+
+		expect((await sesi.kirim('get', '/market/INCO')).status()).toBe(200);
+		await tungguCacheKedaluwarsa();
+
+		const sebelum = await statistikStub(request);
+		const kredit = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const daftar = await sesi.kirim('get', '/watchlist');
+		expect(daftar.status()).toBe(200);
+
+		const { quotes } = await daftar.json();
+		expect(quotes.INCO).toMatchObject({
+			ticker: 'INCO',
+			last_close_price: 3900,
+			daily_close_change: 0.0155,
+			high_52w: 4600,
+			low_52w: 3100,
+			sector: 'Basic Materials'
+		});
+		expect(quotes.INCO.indices).toContain('LQ45');
+
+		expect(await statistikStub(request)).toBe(sebelum);
+		const kreditSesudah = (await (await sesi.kirim('get', '/market/credits')).json()).meta
+			.credits_used;
+		expect(kreditSesudah).toBe(kredit);
+	});
+
 	test('ticker di luar daftar IDX tidak pernah diteruskan ke Sectors', async ({ request }) => {
 		const { sesi } = await sesiMasuk(request, 'sectors-ticker');
 

@@ -133,3 +133,25 @@ func TestProduksiTambangDariResponsAsliSectors(t *testing.T) {
 	}
 	dekat(t, "skor eksposur", eksposur.Score, (18.7*0.35+85.6*0.35+23.1*0.30)/1.0)
 }
+
+const laporanHargaANTM = `{"symbol":"ANTM.JK","company_name":"Aneka Tambang Tbk.","overview":{"listing_board":"Main","sector":"Basic Materials","sub_sector":"Basic Materials","market_cap":77619370061750,"market_cap_rank":27,"last_close_price":3230,"latest_close_date":"2026-09-25","daily_close_change":-0.0122324159021407,"all_time_price":{"ytd_low":{"2026-06-04":2450},"52_w_low":{"2026-06-04":2450},"ytd_high":{"2026-01-26":4970},"52_w_high":{"2026-01-26":4970},"all_time_low":{"2015-12-14":285}},"esg_score":33.68,"indices":["IDXHIDIV20","LQ45","IDX30"]},"valuation":{"last_close_price":3230,"historical_valuation":[]}}`
+
+func TestKutipanDariResponsAsliSectors(t *testing.T) {
+	kutipan, ada := uraiKutipan("ANTM", json.RawMessage(laporanHargaANTM))
+	if !ada {
+		t.Fatalf("kutipan ANTM harus terbaca dari laporan emiten")
+	}
+
+	dekat(t, "harga penutupan", kutipan.Harga, 3230)
+	dekat(t, "perubahan harian", *kutipan.PerubahanHarian*100, -1.22)
+	dekat(t, "kapitalisasi pasar", *kutipan.Kapitalisasi/1e12, 77.62)
+	dekat(t, "tertinggi 52 minggu", *kutipan.Tertinggi52, 4970)
+	dekat(t, "terendah 52 minggu", *kutipan.Terendah52, 2450)
+	if kutipan.TanggalTutup != "2026-09-25" || kutipan.Sektor != "Basic Materials" || len(kutipan.Indeks) != 3 {
+		t.Errorf("kutipan tidak lengkap: %+v", kutipan)
+	}
+
+	if _, ada := uraiKutipan("PPGL", json.RawMessage(laporanPPGL)); ada {
+		t.Errorf("laporan tanpa harga penutupan tidak boleh menghasilkan kutipan")
+	}
+}
