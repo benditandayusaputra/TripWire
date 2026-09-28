@@ -96,6 +96,17 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(page.getByTestId('ringkasan')).toBeVisible();
 		await expect(page.getByTestId('feed-kosong')).toBeVisible();
 
+		const mulai = page.getByTestId('mulai');
+		await mulai.getByLabel('Kode emiten untuk dipantau').fill('ZZZZ');
+		await mulai.getByRole('button', { name: 'Pantau' }).click();
+		await expect(mulai.getByRole('alert')).toContainText('tidak terdaftar');
+
+		await mulai.getByLabel('Kode emiten untuk dipantau').fill('TLKM');
+		await mulai.getByRole('button', { name: 'Pantau' }).click();
+		await expect(page.getByTestId('baris-watchlist').filter({ hasText: 'TLKM' })).toBeVisible();
+		await expect(page).toHaveURL(/\/dashboard$/);
+		await expect(mulai).toHaveCount(0);
+
 		await siapkanInsight(page, 'ANTM');
 
 		await page.goto('/dashboard');
@@ -108,6 +119,67 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(page.getByTestId('insight-card').first()).toBeVisible();
 
 		expect(galat).toEqual([]);
+	});
+
+	test('dashboard menampilkan harga watchlist, sorotan skor, peta risiko, dan orang dalam', async ({
+		page
+	}) => {
+		await masukLewatBrowser(page, 'halaman-dashboard-pasar');
+		const galat = tangkapGalatKonsol(page);
+
+		await siapkanInsight(page, 'PTBA');
+		await siapkanInsight(page, 'ANTM');
+
+		await page.goto('/dashboard');
+		const baris = page.getByTestId('baris-watchlist');
+		await expect(baris).toHaveCount(2);
+		await expect(baris.first()).toHaveAttribute('data-ticker', 'ANTM');
+		await expect(baris.filter({ hasText: 'ANTM' })).toContainText('3.230');
+		await expect(baris.filter({ hasText: 'ANTM' })).toContainText('▼ 1,22%');
+		await expect(baris.filter({ hasText: 'PTBA' })).toContainText('▲ 0,76%');
+
+		const sorotan = page.getByTestId('sorotan-emiten');
+		await expect(sorotan).toHaveAttribute('data-ticker', 'ANTM');
+		await expect(sorotan.getByRole('slider', { name: 'Telusuri riwayat Red Flag Score ANTM' })).toBeVisible();
+		await expect(sorotan).toContainText('Rentang 52 minggu');
+
+		await baris.filter({ hasText: 'PTBA' }).getByRole('button', { name: /PTBA/ }).click();
+		await expect(sorotan).toHaveAttribute('data-ticker', 'PTBA');
+		await expect(sorotan).toContainText('2.650');
+
+		await page.getByTestId('petak-risiko').filter({ hasText: 'ANTM' }).click();
+		await expect(sorotan).toHaveAttribute('data-ticker', 'ANTM');
+
+		await page.getByRole('button', { name: 'Emiten' }).click();
+		await expect(baris.first()).toHaveAttribute('data-ticker', 'ANTM');
+		await page.getByRole('button', { name: 'Emiten' }).click();
+		await expect(baris.first()).toHaveAttribute('data-ticker', 'PTBA');
+
+		await expect(page.getByTestId('panel-orang-dalam')).toContainText('Direktur Utama');
+		await expect(page.getByTestId('kalimat-ringkas')).toContainText('ANTM');
+
+		expect(galat).toEqual([]);
+	});
+
+	test('status bursa mengikuti jadwal perdagangan BEI dalam WIB', async ({ page }) => {
+		await masukLewatBrowser(page, 'halaman-bursa');
+		const status = page.getByTestId('status-bursa');
+
+		await page.clock.setFixedTime(new Date('2026-09-29T03:15:00Z'));
+		await page.goto('/dashboard');
+		await expect(status).toContainText('Sesi I berjalan');
+		await expect(status).toHaveAttribute('data-buka', 'true');
+
+		await page.clock.setFixedTime(new Date('2026-10-02T05:00:00Z'));
+		await page.reload();
+		await expect(status).toContainText('Istirahat siang');
+		await expect(status).toContainText('Sesi II mulai 14.00 WIB');
+		await expect(status).toHaveAttribute('data-buka', 'false');
+
+		await page.clock.setFixedTime(new Date('2026-10-03T03:00:00Z'));
+		await page.reload();
+		await expect(status).toContainText('Bursa tutup');
+		await expect(status).toContainText('Buka Senin 09.00 WIB');
 	});
 
 	test('detail insight menampilkan sub skor, data pendukung, dan badge signature', async ({
