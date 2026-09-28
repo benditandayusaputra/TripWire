@@ -29,7 +29,10 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		expect(isiPertama.ticker).toBe('ANTM');
 		expect(isiPertama.company_name).toBe('Aneka Tambang Tbk.');
 		expect(isiPertama.data.company_name).toBe('Aneka Tambang Tbk.');
-		expect(isiPertama.data.financials.revenue).toBe(41000000000000);
+		expect(isiPertama.data.overview.industry).toBe('Metals & Minerals');
+		expect(Object.keys(isiPertama.data).sort()).toEqual(
+			['company_name', 'financials', 'overview', 'ownership', 'symbol', 'valuation'].sort()
+		);
 		expect(isiPertama.meta.cached).toBe(false);
 
 		const setelahPertama = await statistikStub(request);
@@ -63,6 +66,20 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		expect(isiKedua.meta.credits_used).toBe(isiPertama.meta.credits_used);
 		expect(isiKedua.meta.credits_remaining).toBe(isiPertama.meta.credits_remaining);
 		expect(isiKedua.meta.credit_budget).toBeGreaterThan(0);
+	});
+
+	test('laporan emiten v2 ditagih satu credit per section yang diminta', async ({ request }) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-biaya');
+
+		await tungguCacheKedaluwarsa();
+		const sebelum = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const response = await sesi.kirim('get', '/market/TLKM');
+		expect(response.status()).toBe(200);
+		expect((await response.json()).meta.cached).toBe(false);
+
+		const sesudah = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+		expect(sesudah - sebelum).toBe(4);
 	});
 
 	test('ticker di luar daftar IDX tidak pernah diteruskan ke Sectors', async ({ request }) => {

@@ -6,12 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/benditandayusaputra/tripwire/api/pkg/sectorsclient"
 )
 
 var ErrPasarTidakTersedia = errors.New("service: data pasar sedang tidak tersedia")
+
+const (
+	batasHalamanUniverse = 200
+	maksHalamanUniverse  = 10
+)
 
 type MarketMeta struct {
 	Cached           bool  `json:"cached"`
@@ -46,7 +50,7 @@ func (s *MarketService) CompanyReport(ctx context.Context, rawTicker string) (*M
 		return nil, v
 	}
 
-	hasil, err := s.client.Get(ctx, fmt.Sprintf("/company/report/%s/", strings.ToLower(ticker.Code)))
+	hasil, err := s.client.Get(ctx, pathLaporan(ticker.Code), 0, biayaLaporan)
 	if err != nil {
 		return nil, err
 	}
@@ -77,33 +81,42 @@ func (s *MarketService) Credits(ctx context.Context) MarketMeta {
 }
 
 func (s *MarketService) RefreshTickerUniverse(ctx context.Context) (int, error) {
-	hasil, err := s.client.GetWithTTL(ctx, "/companies/", 24*time.Hour)
-	if err != nil {
-		return 0, err
-	}
+	tickers := make([]Ticker, 0, 1000)
+	offset := 0
 
-	var mentah []struct {
-		Symbol      string `json:"symbol"`
-		CompanyName string `json:"company_name"`
-		Name        string `json:"name"`
-	}
-	if err := json.Unmarshal(hasil.Data, &mentah); err != nil {
-		return 0, fmt.Errorf("service: daftar emiten Sectors tidak terbaca: %w", err)
-	}
-
-	tickers := make([]Ticker, 0, len(mentah))
-	for _, baris := range mentah {
-		code := s.tickers.Normalize(baris.Symbol)
-		if len(code) != 4 {
-			continue
+	for halaman := 0; halaman < maksHalamanUniverse; halaman++ {
+		path := fmt.Sprintf("/companies/?limit=%d&offset=%d", batasHalamanUniverse, offset)
+		hasil, err := s.client.Get(ctx, path, ttlReferensi, 1)
+		if err != nil {
+			return 0, err
 		}
 
-		nama := baris.CompanyName
-		if nama == "" {
-			nama = baris.Name
+		var isi struct {
+			Results []struct {
+				Symbol      string `json:"symbol"`
+				CompanyName string `json:"company_name"`
+			} `json:"results"`
+			Pagination struct {
+				HasNext    bool `json:"has_next"`
+				NextOffset *int `json:"next_offset"`
+			} `json:"pagination"`
+		}
+		if err := json.Unmarshal(hasil.Data, &isi); err != nil {
+			return 0, fmt.Errorf("service: daftar emiten Sectors tidak terbaca: %w", err)
 		}
 
-		tickers = append(tickers, Ticker{Code: code, Name: nama, ListingBoard: "Sectors"})
+		for _, baris := range isi.Results {
+			code := s.tickers.Normalize(baris.Symbol)
+			if len(code) != 4 {
+				continue
+			}
+			tickers = append(tickers, Ticker{Code: code, Name: strings.TrimSpace(baris.CompanyName), ListingBoard: "Sectors"})
+		}
+
+		if !isi.Pagination.HasNext || isi.Pagination.NextOffset == nil || *isi.Pagination.NextOffset <= offset {
+			break
+		}
+		offset = *isi.Pagination.NextOffset
 	}
 
 	if len(tickers) == 0 {
