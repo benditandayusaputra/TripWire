@@ -1,301 +1,387 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { CalendarClock, Plus, Trash2, TriangleAlert } from 'lucide-svelte';
-	import Field from '$lib/components/Field.svelte';
-	import KondisiLabel from '$lib/components/KondisiLabel.svelte';
-	import Mark from '$lib/components/Mark.svelte';
+	import { fly } from 'svelte/transition';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { BellRing, Database, Plus, Radar, ShieldCheck, TriangleAlert } from 'lucide-svelte';
+	import DisclaimerBar from '$lib/components/DisclaimerBar.svelte';
+	import CariEmiten from '$lib/components/watchlist/CariEmiten.svelte';
+	import PanelEmiten from '$lib/components/watchlist/PanelEmiten.svelte';
+	import RingkasanPantauan from '$lib/components/watchlist/RingkasanPantauan.svelte';
+	import TabelWatchlist from '$lib/components/watchlist/TabelWatchlist.svelte';
+	import { emiten } from '$lib/emiten';
+	import { presenceStore } from '$lib/stores/presenceStore.svelte';
+	import { tierDariSkor } from '$lib/skor';
+	import { BATAS_WATCHLIST, type Baris } from '$lib/watchlist';
 
 	let { data, form } = $props();
 
-	let ticker = $state('');
-	let conditionType = $state('daily');
-	let intervalHours = $state(6);
-	let weekday = $state(1);
+	let sekarang = $state(Date.now());
+	let kabar = $state<{ ticker: string; skor: number | null } | null>(null);
+	let terakhirTerbaca = presenceStore.insightBaru[0]?.notification_id;
+	let jedaKabar: ReturnType<typeof setTimeout> | undefined;
 
-	const cocok = $derived.by(() => {
-		const needle = ticker.trim().toUpperCase();
-		if (needle.length < 1) return [];
-		return data.tickers
-			.filter((t) => t.code.startsWith(needle) || t.name.toUpperCase().includes(needle))
-			.slice(0, 6);
+	const baris = $derived<Baris[]>(
+		data.items.map((item) => ({
+			item,
+			kutipan: data.quotes[item.ticker] ?? null,
+			risiko: data.risk[item.ticker] ?? null,
+			skor: data.risk[item.ticker]?.red_flag?.score ?? null,
+			ubah: data.quotes[item.ticker]?.daily_close_change ?? null,
+			aktif: item.conditions.filter((kondisi) => kondisi.is_active).length
+		}))
+	);
+	const terpilih = $derived(baris.find((b) => b.item.ticker === data.kode) ?? null);
+	const dipantau = $derived(data.items.map((item) => item.ticker));
+	const populer = $derived(emiten.filter(([kode]) => !dipantau.includes(kode)).slice(0, 8));
+	const penuh = $derived(data.items.length >= BATAS_WATCHLIST);
+
+	onMount(() => {
+		const detak = setInterval(() => (sekarang = Date.now()), 30_000);
+		presenceStore.sambung();
+		return () => {
+			clearInterval(detak);
+			clearTimeout(jedaKabar);
+			presenceStore.putus();
+		};
 	});
 
-	const totalKondisi = $derived(
-		data.items.reduce((jumlah, item) => jumlah + item.conditions.length, 0)
-	);
+	$effect(() => {
+		const terbaru = presenceStore.insightBaru[0];
+		if (!terbaru || terbaru.notification_id === terakhirTerbaca) return;
+		terakhirTerbaca = terbaru.notification_id;
+		kabar = { ticker: terbaru.ticker, skor: terbaru.score };
+		invalidateAll();
+		clearTimeout(jedaKabar);
+		jedaKabar = setTimeout(() => (kabar = null), 6000);
+	});
 
-	const kondisiAktif = $derived(
-		data.items.reduce(
-			(jumlah, item) => jumlah + item.conditions.filter((kondisi) => kondisi.is_active).length,
-			0
-		)
-	);
+	function fokusLembar(node: HTMLElement) {
+		if (data.dipilih && matchMedia('(max-width: 1023.98px)').matches) {
+			node
+				.querySelector<HTMLElement>('[data-testid="panel-emiten"]')
+				?.focus({ preventScroll: true });
+		}
+	}
+
+	function pintasan(event: KeyboardEvent) {
+		const target = event.target as HTMLElement;
+		const mengetik =
+			['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable;
+		if (event.key === '/' && !mengetik) {
+			event.preventDefault();
+			document.getElementById('ticker')?.focus();
+		} else if (event.key === 'Escape' && data.dipilih && !mengetik) {
+			goto('/watchlist', { noScroll: true });
+		}
+	}
 </script>
 
 <svelte:head>
 	<title>Watchlist TripWire</title>
 </svelte:head>
 
-<section class="space-y-7">
-	<header class="flex flex-wrap items-end justify-between gap-4">
+<svelte:window onkeydown={pintasan} />
+
+<section class="space-y-6">
+	<header class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
 		<div class="space-y-1.5">
 			<p class="tw-overline">Watchlist</p>
 			<h1 class="tw-title text-ink">Emiten yang kamu pantau</h1>
+			<p class="text-secondary max-w-2xl text-[14px]">
+				Harga penutupan dan kapitalisasi dibaca dari Sectors, skor risiko dari pemindaian TripWire.
+				Pilih satu emiten untuk melihat grafik, sinyal tata kelola, dan jadwal pengecekannya.
+			</p>
 		</div>
-
-		<dl class="flex gap-2.5">
-			<div class="tw-glass px-3.5 py-2 text-center">
-				<dt class="tw-overline">Saham</dt>
-				<dd class="tw-data text-ink mt-0.5 text-[17px] font-semibold">{data.items.length}</dd>
+		<div class="flex flex-wrap items-center gap-3">
+			<p
+				data-testid="status-langsung"
+				data-terhubung={presenceStore.terhubung}
+				class="langsung"
+				class:aktif={presenceStore.terhubung}
+			>
+				<span class="titik" aria-hidden="true"></span>
+				{presenceStore.terhubung ? 'Pembaruan langsung' : 'Menyambungkan'}
+			</p>
+			<div
+				class="slot"
+				aria-label="{data.items.length} dari {BATAS_WATCHLIST} slot watchlist terpakai"
+			>
+				<p class="flex items-baseline justify-between gap-6">
+					<span class="tw-overline">Slot</span>
+					<span class="tw-data text-ink text-[14px]">
+						{data.items.length} <span class="text-muted">/ {BATAS_WATCHLIST}</span>
+					</span>
+				</p>
+				<span class="lajur-slot"
+					><span style="width:{(data.items.length / BATAS_WATCHLIST) * 100}%"></span></span
+				>
 			</div>
-			<div class="tw-glass px-3.5 py-2 text-center">
-				<dt class="tw-overline">Kondisi</dt>
-				<dd class="tw-data text-ink mt-0.5 text-[17px] font-semibold">{totalKondisi}</dd>
-			</div>
-			<div class="tw-glass px-3.5 py-2 text-center">
-				<dt class="tw-overline">Aktif</dt>
-				<dd class="tw-data text-tier-low mt-0.5 text-[17px] font-semibold">{kondisiAktif}</dd>
-			</div>
-		</dl>
+		</div>
 	</header>
 
-	<div class="tw-card p-5">
-		<h2 class="tw-heading text-ink flex items-center gap-2">
-			<Plus class="text-diamond-300 size-4" aria-hidden="true" />
-			Tambah emiten
-		</h2>
-
-		{#if form?.aksi === 'tambah' && form?.error}
-			<p
-				data-testid="watchlist-error"
-				role="alert"
-				class="rounded-glass border-tier-critical/35 bg-tier-critical/10 text-tier-critical mt-4 flex items-start gap-2.5 border px-3.5 py-2.5 text-[13.5px]"
-			>
-				<TriangleAlert class="mt-0.5 size-4 flex-none" aria-hidden="true" />
-				{form.error}
-			</p>
-		{/if}
-
-		<form
-			method="POST"
-			action="?/tambah"
-			class="mt-4 flex flex-wrap items-end gap-3"
-			use:enhance={() =>
-				async ({ update }) => {
-					await update({ reset: false });
-					ticker = '';
-				}}
+	{#if kabar}
+		<p
+			data-testid="kabar-insight"
+			class="kabar"
+			role="status"
+			transition:fly={{ y: -12, duration: 250 }}
 		>
-			<div class="min-w-[11rem] flex-1">
-				<Field
-					id="ticker"
-					label="Kode emiten"
-					bind:value={ticker}
-					placeholder="ANTM"
-					autocomplete="off"
-					list="daftar-ticker"
-					mono
-				/>
-				<datalist id="daftar-ticker">
-					{#each cocok as emiten (emiten.code)}
-						<option value={emiten.code}>{emiten.name}</option>
-					{/each}
-				</datalist>
-			</div>
+			<BellRing class="text-diamond-300 size-4 flex-none" aria-hidden="true" />
+			<span>
+				Insight baru <span class="tw-data text-ink font-semibold">{kabar.ticker}</span>
+				{#if kabar.skor !== null}
+					dengan skor <span class="tw-data font-semibold {tierDariSkor(kabar.skor).text}"
+						>{Math.round(kabar.skor)}</span
+					>
+				{/if}, watchlist sudah diperbarui.
+			</span>
+		</p>
+	{/if}
 
-			<div class="space-y-1.5">
-				<label for="data_display_pref" class="text-secondary block text-[13.5px] font-medium">
-					Tampilan data
-				</label>
-				<select id="data_display_pref" name="data_display_pref" class="tw-field">
-					<option value="insight_only">Insight saja</option>
-					<option value="insight_plus_data">Insight plus data</option>
-				</select>
-			</div>
-
-			<button type="submit" data-testid="tambah-ticker" class="tw-primary">
-				<Plus class="size-4" aria-hidden="true" />
-				Tambah
-			</button>
-		</form>
+	<div class="tw-card relative z-20 p-4 sm:p-5">
+		<CariEmiten {dipantau} {penuh} galat={form?.aksi === 'tambah' ? (form?.error ?? '') : ''} />
+		<p class="text-muted mt-2.5 hidden text-[12px] sm:block">
+			Tekan <kbd class="tw-data border-line rounded border px-1 text-[11px]">/</kbd> untuk langsung
+			mencari.
+			{penuh ? 'Watchlist sudah penuh, hapus satu emiten untuk menambah yang baru.' : ''}
+		</p>
 	</div>
 
+	{#if form?.aksi === 'hapus' && form?.error}
+		<p role="alert" class="text-tier-critical flex items-center gap-2 text-[13px]">
+			<TriangleAlert class="size-4" aria-hidden="true" />
+			{form.error}
+		</p>
+	{/if}
+
 	{#if data.items.length === 0}
-		<div class="tw-glass flex items-center gap-3 px-4 py-4">
-			<Mark size={7} color="var(--color-muted)" />
-			<p data-testid="watchlist-kosong" class="tw-caption">
-				Belum ada emiten yang dipantau. Tambahkan satu kode emiten untuk mulai.
-			</p>
+		<div class="kosong">
+			<div class="max-w-xl space-y-3">
+				<span class="ikon-kosong"><Radar class="size-5" aria-hidden="true" /></span>
+				<h2 class="tw-heading text-ink">Mulai dari satu emiten</h2>
+				<p data-testid="watchlist-kosong" class="text-secondary text-[14px] leading-relaxed">
+					Belum ada emiten yang dipantau. Cari kode emiten di atas, atau pilih salah satu di bawah.
+					TripWire langsung memasang jadwal cek harian supaya emiten itu ikut dipindai.
+				</p>
+			</div>
+
+			<div class="mt-5 flex flex-wrap gap-2">
+				{#each populer as [kode, nama] (kode)}
+					<form method="POST" action="?/tambah" use:enhance>
+						<input type="hidden" name="ticker" value={kode} />
+						<input type="hidden" name="pantau_harian" value="on" />
+						<button type="submit" class="chip-populer" title="Pantau {nama}">
+							<Plus class="size-3" aria-hidden="true" />
+							<span class="tw-data text-ink font-semibold">{kode}</span>
+							<span class="text-muted hidden sm:inline">{nama}</span>
+						</button>
+					</form>
+				{/each}
+			</div>
+
+			<ol class="mt-7 grid gap-3 sm:grid-cols-3">
+				{#each [{ ikon: Database, judul: 'Data dari Sectors', teks: 'Laporan emiten, transaksi orang dalam, dan riwayat suspensi diambil otomatis.' }, { ikon: ShieldCheck, judul: 'Skor 0 sampai 100', teks: 'Tiga sinyal tata kelola digabung jadi Red Flag Score yang bisa dicek sumbernya.' }, { ikon: BellRing, judul: 'Kabar saat melewati batas', teks: 'Atur kondisi pemicu per emiten, notifikasi datang lengkap dengan alasannya.' }] as langkah (langkah.judul)}
+					<li class="langkah">
+						<langkah.ikon class="text-diamond-300 size-4" aria-hidden="true" />
+						<p class="text-ink mt-2 text-[14px] font-medium">{langkah.judul}</p>
+						<p class="tw-caption mt-1">{langkah.teks}</p>
+					</li>
+				{/each}
+			</ol>
 		</div>
 	{:else}
-		<ul data-testid="watchlist-items" class="space-y-4">
-			{#each data.items as item (item.id)}
-				<li data-testid="watchlist-item" data-ticker={item.ticker} class="tw-card overflow-hidden">
-					<div class="border-line/70 flex items-start justify-between gap-4 border-b p-5">
-						<div class="min-w-0">
-							<p class="tw-data text-diamond-300 text-[19px] font-semibold tracking-wider">
-								{item.ticker}
-							</p>
-							<p class="text-secondary mt-0.5 text-[14px]">{item.company_name}</p>
-							<p class="tw-overline mt-2.5">
-								{item.data_display_pref === 'insight_only' ? 'Insight saja' : 'Insight plus data'}
-							</p>
+		<RingkasanPantauan {baris} jadwal={data.schedule} {sekarang} />
+
+		<div class="grid items-start gap-5 lg:grid-cols-12">
+			<div class="min-w-0 lg:col-span-5">
+				<TabelWatchlist {baris} terpilih={data.kode} />
+			</div>
+
+			<div class="min-w-0 lg:col-span-7">
+				{#if terpilih}
+					{#key terpilih.item.id}
+						<div class="wadah-panel" class:lembar={data.dipilih} {@attach fokusLembar}>
+							<PanelEmiten
+								item={terpilih.item}
+								kutipan={terpilih.kutipan}
+								risiko={terpilih.risiko}
+								jadwal={data.schedule}
+								harga={data.harga}
+								insights={data.insights}
+								galatKondisi={form?.aksi === 'kondisi' ? (form?.error ?? '') : ''}
+								galatTampilan={form?.aksi === 'tampilan' ? (form?.error ?? '') : ''}
+							/>
 						</div>
-
-						<form method="POST" action="?/hapus" use:enhance>
-							<input type="hidden" name="item_id" value={item.id} />
-							<button
-								type="submit"
-								data-testid="hapus-ticker"
-								aria-label="Hapus {item.ticker} dari watchlist"
-								class="rounded-glass border-line text-muted hover:border-tier-critical/50 hover:text-tier-critical border p-2 transition"
-							>
-								<Trash2 class="size-4" aria-hidden="true" />
-							</button>
-						</form>
-					</div>
-
-					<div class="space-y-4 p-5">
-						<h3 class="tw-overline flex items-center gap-2">
-							<CalendarClock class="size-3.5" aria-hidden="true" />
-							Kondisi pemicu
-						</h3>
-
-						{#if item.conditions.length === 0}
-							<p class="text-muted text-[13.5px]">Belum ada kondisi.</p>
-						{:else}
-							<ul data-testid="daftar-kondisi" class="space-y-2">
-								{#each item.conditions as kondisi (kondisi.id)}
-									<li
-										data-testid="kondisi"
-										data-condition-type={kondisi.condition_type}
-										class="tw-glass flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 text-[13.5px]"
-									>
-										<span class="flex items-center gap-2.5">
-											<Mark
-												size={7}
-												color={kondisi.is_active ? 'var(--color-tier-low)' : 'var(--color-muted)'}
-											/>
-											<KondisiLabel type={kondisi.condition_type} config={kondisi.config} />
-											<span
-												data-testid="status-kondisi"
-												class="tw-overline {kondisi.is_active ? 'text-tier-low' : 'text-muted'}"
-											>
-												{kondisi.is_active ? 'Aktif' : 'Nonaktif'}
-											</span>
-										</span>
-
-										<span class="flex items-center gap-2">
-											<form method="POST" action="?/ubahKondisi" use:enhance>
-												<input type="hidden" name="item_id" value={item.id} />
-												<input type="hidden" name="condition_id" value={kondisi.id} />
-												<input type="hidden" name="is_active" value={String(!kondisi.is_active)} />
-												<button
-													type="submit"
-													data-testid="toggle-kondisi"
-													class="tw-ghost px-2.5 py-1 text-[12.5px]"
-												>
-													{kondisi.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-												</button>
-											</form>
-
-											<form method="POST" action="?/hapusKondisi" use:enhance>
-												<input type="hidden" name="item_id" value={item.id} />
-												<input type="hidden" name="condition_id" value={kondisi.id} />
-												<button
-													type="submit"
-													data-testid="hapus-kondisi"
-													class="rounded-glass border-line text-muted hover:border-tier-critical/50 hover:text-tier-critical border px-2.5 py-1 text-[12.5px] transition"
-												>
-													Hapus
-												</button>
-											</form>
-										</span>
-									</li>
-								{/each}
-							</ul>
-						{/if}
-
-						<form
-							method="POST"
-							action="?/tambahKondisi"
-							class="flex flex-wrap items-end gap-3"
-							use:enhance
-						>
-							<input type="hidden" name="item_id" value={item.id} />
-
-							<div class="space-y-1.5">
-								<label
-									for="condition_type-{item.id}"
-									class="text-secondary block text-[12.5px] font-medium"
-								>
-									Jenis kondisi
-								</label>
-								<select
-									id="condition_type-{item.id}"
-									name="condition_type"
-									bind:value={conditionType}
-									class="tw-field py-2 text-[13.5px]"
-								>
-									<option value="daily">Harian</option>
-									<option value="weekly">Mingguan</option>
-									<option value="recent_event">Kejadian terbaru</option>
-									<option value="geopolitical">Geopolitik</option>
-									<option value="periodic_custom">Berkala, atur sendiri</option>
-								</select>
-							</div>
-
-							{#if conditionType === 'periodic_custom'}
-								<div class="space-y-1.5">
-									<label
-										for="interval-{item.id}"
-										class="text-secondary block text-[12.5px] font-medium"
-									>
-										Setiap berapa jam
-									</label>
-									<input
-										id="interval-{item.id}"
-										name="interval_hours"
-										type="number"
-										min="1"
-										max="720"
-										bind:value={intervalHours}
-										class="tw-field tw-data w-24 py-2 text-[13.5px]"
-									/>
-								</div>
-							{/if}
-
-							{#if conditionType === 'weekly'}
-								<div class="space-y-1.5">
-									<label
-										for="weekday-{item.id}"
-										class="text-secondary block text-[12.5px] font-medium"
-									>
-										Hari
-									</label>
-									<select
-										id="weekday-{item.id}"
-										name="weekday"
-										bind:value={weekday}
-										class="tw-field py-2 text-[13.5px]"
-									>
-										<option value={1}>Senin</option>
-										<option value={2}>Selasa</option>
-										<option value={3}>Rabu</option>
-										<option value={4}>Kamis</option>
-										<option value={5}>Jumat</option>
-									</select>
-								</div>
-							{/if}
-
-							<button type="submit" data-testid="tambah-kondisi" class="tw-ghost">
-								<Plus class="size-4" aria-hidden="true" />
-								Tambah kondisi
-							</button>
-						</form>
-					</div>
-				</li>
-			{/each}
-		</ul>
+					{/key}
+				{/if}
+			</div>
+		</div>
 	{/if}
+
+	<DisclaimerBar />
 </section>
+
+<style>
+	.langsung {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		border: 1px solid var(--edge-soft);
+		border-radius: 999px;
+		padding: 5px 12px;
+		font-size: 12px;
+		color: var(--color-muted);
+	}
+
+	.langsung .titik {
+		width: 7px;
+		height: 7px;
+		border-radius: 999px;
+		background: var(--color-muted);
+	}
+
+	.langsung.aktif {
+		color: var(--color-secondary);
+	}
+
+	.langsung.aktif .titik {
+		background: var(--color-diamond-300);
+		box-shadow: 0 0 0 0 rgba(143, 208, 255, 0.6);
+		animation: denyut 2s ease-out infinite;
+	}
+
+	@keyframes denyut {
+		70% {
+			box-shadow: 0 0 0 7px rgba(143, 208, 255, 0);
+		}
+		100% {
+			box-shadow: 0 0 0 0 rgba(143, 208, 255, 0);
+		}
+	}
+
+	.kabar {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		border: 1px solid rgba(143, 208, 255, 0.28);
+		border-radius: 14px;
+		background: rgba(20, 28, 46, 0.9);
+		padding: 10px 14px;
+		font-size: 13px;
+		color: var(--color-secondary);
+	}
+
+	.slot {
+		min-width: 12rem;
+		border: 1px solid var(--edge-soft);
+		border-radius: 14px;
+		background: rgba(255, 255, 255, 0.025);
+		padding: 10px 14px;
+	}
+
+	.lajur-slot {
+		display: block;
+		height: 4px;
+		margin-top: 8px;
+		overflow: hidden;
+		border-radius: 999px;
+		background: rgba(180, 205, 255, 0.1);
+	}
+
+	.lajur-slot span {
+		display: block;
+		height: 100%;
+		border-radius: 999px;
+		background: var(--color-diamond-500);
+	}
+
+	.kosong {
+		border: 1px solid var(--edge);
+		border-radius: 20px;
+		background:
+			radial-gradient(600px 240px at 20% 0%, rgba(74, 158, 255, 0.12), transparent 70%),
+			var(--color-base);
+		padding: 28px;
+	}
+
+	.ikon-kosong {
+		display: grid;
+		width: 40px;
+		height: 40px;
+		place-items: center;
+		border: 1px solid var(--color-diamond-700);
+		border-radius: 12px;
+		background: var(--color-diamond-900);
+		color: var(--color-diamond-300);
+	}
+
+	.chip-populer {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		border: 1px solid var(--edge);
+		border-radius: 999px;
+		padding: 6px 12px;
+		font-size: 12.5px;
+		color: var(--color-diamond-300);
+		transition:
+			border-color 0.2s ease,
+			background 0.2s ease,
+			transform 0.2s ease;
+	}
+
+	@media (hover: hover) {
+		.chip-populer:hover {
+			border-color: var(--color-diamond-500);
+			background: rgba(74, 158, 255, 0.08);
+			transform: translateY(-2px);
+		}
+	}
+
+	.langkah {
+		border: 1px solid var(--edge-soft);
+		border-radius: 14px;
+		background: rgba(255, 255, 255, 0.02);
+		padding: 14px 16px;
+	}
+
+	.wadah-panel {
+		display: none;
+	}
+
+	.wadah-panel.lembar {
+		position: fixed;
+		inset: 0;
+		z-index: 50;
+		display: block;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		background: rgba(8, 11, 18, 0.78);
+		backdrop-filter: blur(8px);
+		padding: 12px 8px 24px;
+		animation: naik-lembar 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+	}
+
+	@keyframes naik-lembar {
+		from {
+			opacity: 0;
+			transform: translateY(24px);
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.wadah-panel,
+		.wadah-panel.lembar {
+			position: sticky;
+			top: 84px;
+			z-index: auto;
+			display: block;
+			overflow: visible;
+			background: none;
+			backdrop-filter: none;
+			padding: 0;
+			animation: none;
+		}
+	}
+</style>

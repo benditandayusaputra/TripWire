@@ -92,10 +92,8 @@ test.describe('Fase 13: panel admin dan kontrol aksesnya', () => {
 		await page.getByLabel('Kode emiten').fill('ANTM');
 		await page.getByTestId('tambah-ticker').click();
 
-		const item = page.getByTestId('watchlist-item').filter({ hasText: 'ANTM' });
-		await item.getByLabel('Jenis kondisi').selectOption('daily');
-		await item.getByTestId('tambah-kondisi').click();
-		await expect(item.getByTestId('kondisi')).toBeVisible();
+		const kondisi = page.getByTestId('panel-emiten').getByTestId('kondisi');
+		await expect(kondisi).toHaveAttribute('data-condition-type', 'daily');
 
 		await page.goto('/admin');
 		await page.getByTestId('trigger-scan').click();
