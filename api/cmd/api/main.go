@@ -122,11 +122,13 @@ func main() {
 	}
 
 	streamHub := service.NewStreamHub(store.Redis)
+	go streamHub.Dengarkan(context.Background())
 	notifikasi := service.NewNotificationService(
 		repository.NewNotificationRepository(store),
 		repository.NewPushRepository(store),
 		streamHub,
 		pengirimPush,
+		tickers,
 		!cfg.IsProduction(),
 	)
 

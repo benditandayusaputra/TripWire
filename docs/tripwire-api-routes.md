@@ -88,16 +88,30 @@ belum mengatur kondisi apa pun tetap menerima semua insight emiten yang dipantau
 
 | Method | Path | Akses | Keterangan |
 |---|---|---|---|
-| GET | /notifications | User | Riwayat notifikasi |
+| GET | /notifications | User | Riwayat notifikasi, filter `status` (unread, read), `type`, `tier` (critical, high, moderate, low), `ticker`, paginasi `limit` dan `before` (id notifikasi terakhir, balasan memuat `next_cursor`) |
+| GET | /notifications/summary | User | KPI kotak masuk, aktivitas 30 hari per tanggal WIB, sebaran tier, emiten yang paling sering memicu, skor tertinggi 30 hari, jumlah perangkat push |
+| POST | /notifications/read-all | User | Tandai semua notifikasi dibaca |
 | PATCH | /notifications/:id/read | User (owner) | Tandai udah dibuka |
+| DELETE | /notifications/:id/read | User (owner) | Kembalikan jadi belum dibaca |
+| DELETE | /notifications/:id | User (owner) | Hapus satu notifikasi, insight-nya tetap ada di feed |
+| DELETE | /notifications/read | User | Hapus semua notifikasi yang sudah dibaca |
 | POST | /push/subscribe | User | Simpan push_subscription (endpoint, p256dh, auth key) |
 | DELETE | /push/subscribe/:endpoint | User (owner) | Berhenti langganan push |
+| GET | /push/subscriptions | User | Perangkat yang berlangganan push, tanpa kunci enkripsinya |
+| POST | /push/test | User | Kirim notifikasi uji ke semua perangkat, maksimal 5 kali per menit per pengguna |
+
+Tier di filter dan ringkasan hanya berlaku untuk insight red flag, memakai batas yang sama dengan
+`lib/skor.ts`. Notifikasi market intelligence punya kategori sendiri.
 
 ## Realtime
 
 | Method | Path | Akses | Keterangan |
 |---|---|---|---|
 | GET | /stream | User | SSE, insight baru + heartbeat presence |
+
+Insight yang lahir di proses scheduler diteruskan ke proses API lewat Redis pub/sub kanal
+`stream:siaran`, lalu dikirim ke koneksi SSE pengguna. Pengguna yang tidak punya presence di Redis
+langsung dikirimi web push.
 
 ## Admin
 
