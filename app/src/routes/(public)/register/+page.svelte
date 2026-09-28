@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { AtSign, KeyRound, User, UserPlus } from 'lucide-svelte';
+	import { AtSign, KeyRound, LoaderCircle, User, UserPlus } from 'lucide-svelte';
 	import AuthShell from '$lib/components/AuthShell.svelte';
 	import Field from '$lib/components/Field.svelte';
 
@@ -79,8 +79,12 @@
 				hint="Minimal 10 karakter, memuat huruf dan angka."
 			/>
 
-			<button type="submit" disabled={submitting} class="tw-primary w-full">
-				<UserPlus class="size-4" aria-hidden="true" />
+			<button type="submit" disabled={submitting} aria-busy={submitting} class="tw-primary w-full">
+				{#if submitting}
+					<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
+				{:else}
+					<UserPlus class="size-4" aria-hidden="true" />
+				{/if}
 				{submitting ? 'Memproses' : 'Daftar'}
 			</button>
 		</form>
