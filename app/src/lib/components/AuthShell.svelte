@@ -1,14 +1,21 @@
 <script lang="ts">
 	import { FileCheck2, Radar, ShieldAlert } from 'lucide-svelte';
+	import Logo from './Logo.svelte';
 	import Mark from './Mark.svelte';
 	import Wordmark from './Wordmark.svelte';
 
 	let { title, subtitle, children, footer } = $props();
 
 	const janji = [
-		{ icon: ShieldAlert, teks: 'Skor risiko tata kelola dari suspensi, insider, dan kepemilikan' },
-		{ icon: Radar, teks: 'Mode mendalam untuk emiten tambang, sampai radar lisensi' },
-		{ icon: FileCheck2, teks: 'Tiap insight disegel Ed25519, siapa pun bisa memverifikasi' }
+		{
+			icon: ShieldAlert,
+			teks: 'Skor risiko dari suspensi saham, transaksi orang dalam, dan perubahan pemegang saham'
+		},
+		{
+			icon: Radar,
+			teks: 'Analisis khusus saham tambang, sampai izin tambang yang segera berakhir'
+		},
+		{ icon: FileCheck2, teks: 'Setiap insight bersegel digital, keasliannya bisa dicek siapa pun' }
 	];
 </script>
 
@@ -26,6 +33,7 @@
 		</div>
 
 		<div class="relative max-w-md space-y-7">
+			<Logo size={88} />
 			<p class="tw-overline">Sectors Hackathon 2026</p>
 			<h2 class="tw-display text-ink">Red flag terdeteksi sebelum jadi berita.</h2>
 

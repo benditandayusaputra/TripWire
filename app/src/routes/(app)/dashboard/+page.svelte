@@ -24,8 +24,8 @@
 
 	const saringan = [
 		{ nilai: '', label: 'Semua' },
-		{ nilai: 'red_flag', label: 'Red flag' },
-		{ nilai: 'market_intelligence', label: 'Market intel' }
+		{ nilai: 'red_flag', label: 'Risiko' },
+		{ nilai: 'market_intelligence', label: 'Analisis pasar' }
 	];
 </script>
 
