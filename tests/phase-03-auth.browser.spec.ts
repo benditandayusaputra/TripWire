@@ -19,6 +19,31 @@ test.describe('Fase 3: alur autentikasi dari sisi pengguna', () => {
 		}
 	});
 
+	test('tombol masuk dan daftar langsung menampilkan status proses saat dikirim', async ({ page }) => {
+		await page.route(/\/(login|register)$/, async (route) => {
+			if (route.request().method() === 'POST') await new Promise((r) => setTimeout(r, 1500));
+			await route.continue();
+		});
+
+		for (const [halaman, tombol] of [
+			['/login', 'Masuk'],
+			['/register', 'Daftar']
+		]) {
+			await page.goto(halaman);
+			await expect(page.getByRole('button', { name: 'Tampilkan password' })).toBeEnabled();
+			if (halaman === '/register') await page.getByLabel('Nama lengkap').fill('Penguji TripWire');
+			await page.getByLabel('Email').fill('proses@tripwire.test');
+			await page.getByLabel('Password').fill('RahasiaKuat123');
+			if (halaman === '/login') await page.getByLabel('Kode captcha').fill('000000');
+			await page.getByRole('button', { name: tombol, exact: true }).click();
+
+			const sibuk = page.getByRole('button', { name: 'Memproses' });
+			await expect(sibuk).toHaveAttribute('aria-busy', 'true');
+			await expect(sibuk).toHaveCSS('opacity', '1');
+			await expect(sibuk.locator('.animate-spin')).toBeVisible();
+		}
+	});
+
 	test('captcha salah ditolak, kode baru dimuat, lalu login berhasil', async ({ page, request }) => {
 		const akun = akunBaru('captcha-ui');
 		await daftarLewatApi(request, akun);
