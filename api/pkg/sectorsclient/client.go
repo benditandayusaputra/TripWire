@@ -26,6 +26,8 @@ const (
 	keyCircuit        = "sectors:circuit:terbuka"
 	keyKegagalan      = "sectors:circuit:kegagalan"
 	prefixCache       = "sectors:cache:"
+	prefixTidakAda    = "sectors:cache404:"
+	biayaTidakAda     = 1
 )
 
 type Options struct {
@@ -77,13 +79,16 @@ func New(client *redis.Client, opts Options) *Client {
 	}
 }
 
-func (c *Client) Get(ctx context.Context, path string) (*Hasil, error) {
-	return c.GetWithTTL(ctx, path, c.opts.CacheTTL)
-}
-
-func (c *Client) GetWithTTL(ctx context.Context, path string, ttl time.Duration) (*Hasil, error) {
+func (c *Client) Get(ctx context.Context, path string, ttl time.Duration, biaya int64) (*Hasil, error) {
 	mulai := time.Now()
-	cacheKey := prefixCache + strings.TrimPrefix(path, "/")
+	kunci := strings.TrimPrefix(path, "/")
+	cacheKey := prefixCache + kunci
+	if ttl <= 0 {
+		ttl = c.opts.CacheTTL
+	}
+	if biaya <= 0 {
+		biaya = 1
+	}
 
 	if cached, err := c.redis.Get(ctx, cacheKey).Bytes(); err == nil && len(cached) > 0 {
 		terpakai, tersisa := c.Kredit(ctx)
@@ -97,6 +102,10 @@ func (c *Client) GetWithTTL(ctx context.Context, path string, ttl time.Duration)
 		}, nil
 	}
 
+	if ada, _ := c.redis.Exists(ctx, prefixTidakAda+kunci).Result(); ada > 0 {
+		return nil, ErrTidakDitemukan
+	}
+
 	if c.opts.APIKey == "" {
 		return nil, ErrKunciBelumDiisi
 	}
@@ -105,22 +114,24 @@ func (c *Client) GetWithTTL(ctx context.Context, path string, ttl time.Duration)
 		return nil, ErrCircuitTerbuka
 	}
 
-	terpakai, tersisa := c.Kredit(ctx)
-	if tersisa <= c.opts.CreditThreshold {
+	if _, tersisa := c.Kredit(ctx); tersisa-biaya < c.opts.CreditThreshold {
 		return nil, ErrCreditHabis
 	}
 
 	data, err := c.ambilUpstream(ctx, path)
 	if err != nil {
-		if errors.Is(err, ErrUpstreamGagal) {
+		switch {
+		case errors.Is(err, ErrTidakDitemukan):
+			c.redis.IncrBy(ctx, keyCreditTerpakai, biayaTidakAda)
+			c.redis.Set(ctx, prefixTidakAda+kunci, "1", ttl)
+		case errors.Is(err, ErrUpstreamGagal):
 			c.catatKegagalan(ctx)
 		}
 		return nil, err
 	}
 
 	c.redis.Del(ctx, keyKegagalan)
-	terpakai, _ = c.redis.Incr(ctx, keyCreditTerpakai).Result()
-	tersisa = c.opts.CreditBudget - terpakai
+	terpakai, _ := c.redis.IncrBy(ctx, keyCreditTerpakai, biaya).Result()
 
 	if err := c.redis.Set(ctx, cacheKey, []byte(data), ttl).Err(); err != nil {
 		return nil, err
@@ -131,7 +142,7 @@ func (c *Client) GetWithTTL(ctx context.Context, path string, ttl time.Duration)
 		Cached:    false,
 		Latensi:   time.Since(mulai),
 		Terpakai:  terpakai,
-		Tersisa:   tersisa,
+		Tersisa:   c.opts.CreditBudget - terpakai,
 		CacheKey:  cacheKey,
 		SumberURL: c.opts.BaseURL + path,
 	}, nil
@@ -159,6 +170,8 @@ func (c *Client) ambilUpstream(ctx context.Context, path string) (json.RawMessag
 	switch {
 	case response.StatusCode == http.StatusNotFound:
 		return nil, ErrTidakDitemukan
+	case response.StatusCode == http.StatusTooManyRequests:
+		return nil, fmt.Errorf("%w: kuota atau batas laju Sectors terlampaui", ErrUpstreamGagal)
 	case response.StatusCode >= 400:
 		return nil, fmt.Errorf("%w: status %d", ErrUpstreamGagal, response.StatusCode)
 	}

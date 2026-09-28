@@ -45,10 +45,13 @@ Setelah seeding, isi feed lewat salah satu cara berikut:
 - Masuk sebagai `admin@tripwire.demo`, buka `/admin`, tekan tombol scan manual
 - Atau jalankan `SCHEDULER_RUN_ON_START=true go run ./cmd/scheduler` dari folder `api`
 
-Tanpa `SECTORS_API_KEY` yang aktif, pemindaian akan gagal di lapisan klien Sectors. Untuk
-pengembangan lokal, arahkan `SECTORS_API_BASE_URL` ke stub di `tests/stub/sectors.mjs`. Perlu
-diketahui stub itu hanya punya data mendalam untuk ANTM dan PTBA, jadi emiten lain akan berskor
-rendah atau kosong. Itu keterbatasan data contoh, bukan kesalahan mesin skoring.
+Tanpa `SECTORS_API_KEY` yang aktif, pemindaian akan gagal di lapisan klien Sectors. Scan pertama
+untuk lima emiten di akun demo memakai sekitar 70 credit, rinciannya di `tripwire-sectors-api.md`.
+
+Untuk pengembangan tanpa memakai credit, arahkan `SECTORS_API_BASE_URL` ke stub di
+`tests/stub/sectors.mjs`. Stub meniru bentuk respons v2 tapi datanya karangan, dengan skenario
+red flag untuk ANTM, PTBA, MDKA, dan ITMG, mode tambang untuk ADRO dan INCO, serta snapshot sektor
+untuk BBCA. Emiten lain berskor rendah atau kosong. Jangan merekam video demo dengan data stub.
 
 ## Membersihkan Sisa Test
 

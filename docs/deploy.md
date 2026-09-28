@@ -107,3 +107,6 @@ Tambahkan lagi blok di atas lalu ulangi langkah muat ulang.
 - Fungsi Vercel punya batas durasi, jadi koneksi stream notifikasi terputus berkala dan tersambung
   ulang otomatis oleh browser.
 - Tanpa `SECTORS_API_KEY`, scan berjalan tapi setiap emiten gagal diambil dan feed insight kosong.
+- `.env` server wajib memakai `SECTORS_API_BASE_URL=https://api.sectors.app/v2`. Sectors v1 sudah
+  dihentikan dan membalas 410 Gone untuk setiap path. `SECTORS_CACHE_TTL=24h` disarankan supaya
+  scheduler tiap 6 jam tidak menghabiskan credit, rincian biaya ada di `tripwire-sectors-api.md`.

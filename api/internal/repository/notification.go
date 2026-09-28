@@ -16,12 +16,26 @@ func NewNotificationRepository(store *Store) *NotificationRepository {
 	return &NotificationRepository{store: store}
 }
 
-func (r *NotificationRepository) PenerimaTicker(ctx context.Context, ticker string) ([]string, error) {
+func (r *NotificationRepository) PenerimaTicker(ctx context.Context, ticker string, skor *float64) ([]string, error) {
 	penerima := []string{}
-	query := `SELECT DISTINCT user_id::text
-	          FROM watchlist_items
-	          WHERE ticker = $1`
-	if err := r.store.DB.SelectContext(ctx, &penerima, query, ticker); err != nil {
+	query := `SELECT DISTINCT w.user_id::text
+	          FROM watchlist_items w
+	          WHERE w.ticker = $1
+	            AND (
+	              NOT EXISTS (
+	                SELECT 1 FROM watch_conditions c
+	                WHERE c.watchlist_item_id = w.id AND c.is_active
+	              )
+	              OR EXISTS (
+	                SELECT 1 FROM watch_conditions c
+	                WHERE c.watchlist_item_id = w.id AND c.is_active
+	                  AND (
+	                    c.condition_type NOT IN ('recent_event', 'geopolitical')
+	                    OR $2::numeric >= COALESCE((c.config->>'min_score')::numeric, 0)
+	                  )
+	              )
+	            )`
+	if err := r.store.DB.SelectContext(ctx, &penerima, query, ticker, skor); err != nil {
 		return nil, err
 	}
 	return penerima, nil

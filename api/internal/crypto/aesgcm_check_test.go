@@ -37,9 +37,12 @@ func TestCipherBolakBalik(t *testing.T) {
 		t.Fatalf("Decrypt = %q, %v", kembali, err)
 	}
 
-	rusak := []byte(terenkripsi)
-	rusak[len(rusak)-2] ^= 0x01
-	if _, err := c.Decrypt(string(rusak)); err == nil {
+	rusak, err := base64.StdEncoding.DecodeString(terenkripsi)
+	if err != nil {
+		t.Fatalf("ciphertext bukan base64: %v", err)
+	}
+	rusak[len(rusak)-1] ^= 0x01
+	if _, err := c.Decrypt(base64.StdEncoding.EncodeToString(rusak)); err == nil {
 		t.Fatal("ciphertext yang diubah harusnya ditolak")
 	}
 
