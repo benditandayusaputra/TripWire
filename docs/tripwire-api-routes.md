@@ -7,7 +7,9 @@ Akses: **Publik** (gak perlu login) · **User** (butuh access token valid) · **
 | Method | Path | Akses | Keterangan |
 |---|---|---|---|
 | POST | /auth/register | Publik | Buat akun baru, kirim email verifikasi |
-| POST | /auth/login | Publik | Return access + refresh token, catat ke auth_audit_log |
+| POST | /auth/captcha | Publik | Buat captcha 6 angka (gambar PNG base64), jawaban disimpan di Redis 10 menit |
+| GET | /auth/captcha/:id/audio | Publik | Versi audio captcha (WAV, bahasa Inggris) untuk pengguna pembaca layar |
+| POST | /auth/login | Publik | Wajib `captcha_id` + `captcha_answer` yang cocok (sekali pakai), lalu return access + refresh token, catat ke auth_audit_log |
 | POST | /auth/logout | User | Revoke refresh token device ini |
 | POST | /auth/refresh | Publik* | Tukar refresh token jadi access token baru (*validasi tetap dari token itu sendiri) |
 | POST | /auth/password/forgot | Publik | Generate password_reset_tokens, kirim email |

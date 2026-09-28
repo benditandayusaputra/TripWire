@@ -46,6 +46,7 @@ export default defineConfig({
 			cwd: 'api',
 			env: {
 				REGISTER_RATE_LIMIT: '500',
+				CAPTCHA_RATE_LIMIT: '1000',
 				API_PUBLIC_URL: apiURL,
 				FEATURE_WEBAUTHN: 'true',
 				REDIS_URL: 'redis://127.0.0.1:6379/1',
