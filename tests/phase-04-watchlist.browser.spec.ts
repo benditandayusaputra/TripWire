@@ -17,6 +17,10 @@ async function tambah(page: Page, ticker: string) {
 	await expect(page.getByTestId('panel-emiten')).toHaveAttribute('data-ticker', ticker);
 }
 
+async function siap(page: Page) {
+	await expect(page.getByTestId('status-langsung')).toHaveAttribute('data-terhubung', 'true');
+}
+
 async function pindai(page: Page, ticker: string) {
 	const status = await page.evaluate(
 		async (alamat) => (await fetch(alamat, { credentials: 'include' })).status,
@@ -115,6 +119,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await tambah(page, 'ANTM');
 		await pindai(page, 'ANTM');
 		await page.reload();
+		await siap(page);
 
 		const panel = page.getByTestId('panel-emiten');
 		await expect(panel.getByTestId('harga-terakhir')).toHaveText('3.230');
@@ -159,6 +164,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await pindai(page, 'BBCA');
 		await pindai(page, 'ANTM');
 		await page.goto('/watchlist');
+		await siap(page);
 
 		const baris = page.getByTestId('watchlist-item');
 		await expect(baris.first()).toHaveAttribute('data-ticker', 'ANTM');
@@ -186,7 +192,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await masukLewatBrowser(page, 'wl-cari');
 
 		await page.goto('/watchlist');
-		await expect(page.getByTestId('status-langsung')).toHaveAttribute('data-terhubung', 'true');
+		await siap(page);
 		await page.keyboard.press('/');
 		await expect(page.getByLabel('Kode emiten')).toBeFocused();
 		await page.keyboard.type('aneka');
@@ -215,6 +221,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await expect(panel).toBeInViewport();
 		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 
+		await siap(page);
 		await page.getByRole('link', { name: 'Tutup detail MDKA' }).click();
 		await expect(page).toHaveURL(/\/watchlist$/);
 		await expect(panel).toBeHidden();
