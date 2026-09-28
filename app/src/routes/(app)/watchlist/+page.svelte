@@ -239,9 +239,9 @@
 								>
 									<option value="daily">Harian</option>
 									<option value="weekly">Mingguan</option>
-									<option value="recent_event">Event terbaru</option>
+									<option value="recent_event">Kejadian terbaru</option>
 									<option value="geopolitical">Geopolitik</option>
-									<option value="periodic_custom">Periodik custom</option>
+									<option value="periodic_custom">Berkala, atur sendiri</option>
 								</select>
 							</div>
 
@@ -251,7 +251,7 @@
 										for="interval-{item.id}"
 										class="text-secondary block text-[12.5px] font-medium"
 									>
-										Interval jam
+										Setiap berapa jam
 									</label>
 									<input
 										id="interval-{item.id}"

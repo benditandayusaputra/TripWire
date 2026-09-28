@@ -178,16 +178,56 @@ export type Insight = {
 };
 
 const LABEL_SINYAL: Record<string, string> = {
-	suspension: 'Suspensi',
-	insider_clustering: 'Klaster insider',
-	ownership_change: 'Perubahan kepemilikan'
+	suspension: 'Suspensi saham',
+	insider_clustering: 'Transaksi orang dalam',
+	ownership_change: 'Perubahan pemegang saham'
 };
 
 const LABEL_SUBTYPE: Record<string, string> = {
 	governance_risk_composite: 'Risiko tata kelola',
-	sector_relative_snapshot: 'Snapshot sektor',
-	mining_deep_dive: 'Mode mendalam tambang'
+	sector_relative_snapshot: 'Perbandingan sektor',
+	mining_deep_dive: 'Analisis tambang'
 };
+
+const LABEL_METRIK: Record<string, string> = {
+	pe: 'PER, harga dibanding laba',
+	pb: 'PBV, harga dibanding nilai buku',
+	ps: 'PSR, harga dibanding penjualan',
+	revenue_growth: 'Pertumbuhan pendapatan',
+	earnings_growth: 'Pertumbuhan laba'
+};
+
+const SATUAN: Record<string, string> = {
+	mt: 'juta ton',
+	koz: 'ribu ons',
+	wmt: 'juta ton basah',
+	dmt: 'juta ton kering',
+	tni: 'ton nikel',
+	t: 'ton',
+	kg: 'kg'
+};
+
+const TIPE_PERUSAHAAN: Record<string, string> = {
+	mine_owner: 'Pemilik tambang',
+	trader: 'Pedagang komoditas',
+	trading: 'Pedagang komoditas',
+	holding: 'Perusahaan induk',
+	contractor: 'Kontraktor tambang',
+	consultant: 'Konsultan tambang',
+	manufacturer: 'Produsen'
+};
+
+const SUMBER: [RegExp, string][] = [
+	[/^\/company\/report\//, 'Laporan perusahaan'],
+	[/^\/suspensions\//, 'Riwayat suspensi IDX'],
+	[/^\/filings\//, 'Laporan transaksi KSEI'],
+	[/^\/subsector\/report\//, 'Laporan subsektor'],
+	[/^\/mining\/companies\/performance\//, 'Kinerja produksi tambang'],
+	[/^\/mining\/companies\/[^/]+\/$/, 'Profil dan izin tambang'],
+	[/^\/mining\/companies\/$/, 'Daftar perusahaan tambang'],
+	[/^\/mining\/commodities\//, 'Harga komoditas'],
+	[/^\/mining\/sites\//, 'Lokasi tambang']
+];
 
 const LABEL_KEPARAHAN: Record<number, string> = {
 	1: 'Rutin',
@@ -224,6 +264,35 @@ export function labelKomoditas(nama: string): string {
 	return LABEL_KOMODITAS[nama.toLowerCase()] ?? nama;
 }
 
+export function labelMetrik(kunci: string, cadangan: string): string {
+	return LABEL_METRIK[kunci] ?? cadangan;
+}
+
+export function satuanAwam(satuan: string | undefined): string {
+	if (!satuan) return '';
+	return SATUAN[satuan.toLowerCase()] ?? satuan;
+}
+
+export function labelTipePerusahaan(tipe: string): string {
+	const kunci = tipe.trim().toLowerCase().split(/\s+/).join('_');
+	return TIPE_PERUSAHAAN[kunci] ?? tipe;
+}
+
+export function labelSumber(daftar: string[]): string[] {
+	const hasil: string[] = [];
+	for (const endpoint of daftar) {
+		const label = SUMBER.find(([pola]) => pola.test(endpoint))?.[1] ?? 'Data Sectors';
+		if (!hasil.includes(label)) hasil.push(label);
+	}
+	return hasil;
+}
+
+export function formatPoin(nilai: number | null | undefined): string {
+	if (nilai === null || nilai === undefined || Number.isNaN(nilai)) return '-';
+	if (nilai === 0) return 'tetap';
+	return `${nilai > 0 ? 'naik' : 'turun'} ${formatAngka(Math.abs(nilai), 2)} poin`;
+}
+
 export function formatAngka(nilai: number | null | undefined, digit = 2): string {
 	if (nilai === null || nilai === undefined || Number.isNaN(nilai)) return '-';
 	return new Intl.NumberFormat('id-ID', { maximumFractionDigits: digit }).format(nilai);
@@ -258,19 +327,21 @@ export function judulInsight(insight: Insight): string {
 	const pola = insight.payload?.cross_pattern;
 
 	if (pola?.multiplier_applied && pola.multiplier_applied > 1 && pola.active_signals?.length) {
-		const sinyal = pola.active_signals.map(labelSinyal).join(', ');
-		return `Pola silang terdeteksi: ${sinyal} dalam ${pola.window_days ?? 30} hari`;
+		const sinyal = pola.active_signals.map((kunci) => labelSinyal(kunci).toLowerCase());
+		const daftar =
+			sinyal.length > 1 ? `${sinyal.slice(0, -1).join(', ')} dan ${sinyal.at(-1)}` : sinyal[0];
+		return `Tanda bahaya muncul berdekatan: ${daftar} dalam ${pola.window_days ?? 30} hari`;
 	}
 
 	if (insight.insight_type === 'red_flag') {
-		return `Skor risiko tata kelola ${insight.payload?.category ?? ''}`.trim();
+		return `Risiko tata kelola ${(insight.payload?.category ?? '').toLowerCase()}`.trim();
 	}
 
 	if (insight.subtype === 'mining_deep_dive') {
-		return 'Eksposur komoditas dan radar lisensi tambang';
+		return 'Pengaruh harga komoditas dan izin tambang';
 	}
 
-	return 'Snapshot fundamental terhadap rata rata sektor';
+	return 'Kinerja dibanding rata rata sektor';
 }
 
 export function waktuRelatif(iso: string): string {

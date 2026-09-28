@@ -10,23 +10,27 @@
 		{
 			icon: ShieldAlert,
 			judul: 'Red Flag Detector',
-			teks: 'Riwayat suspensi, klaster transaksi insider, dan perubahan konsentrasi kepemilikan digabung jadi satu skor yang bisa ditelusuri per komponen.'
+			teks: 'Riwayat suspensi saham, transaksi orang dalam, dan perubahan pemegang saham besar digabung jadi satu skor risiko. Setiap angkanya bisa kamu telusuri.'
 		},
 		{
 			icon: Radar,
 			judul: 'Market Intelligence',
-			teks: 'Fundamental dibanding rata rata sektor, dengan mode mendalam untuk emiten tambang sampai radar kedaluwarsa lisensi.'
+			teks: 'Kinerja perusahaan dibandingkan dengan rata rata sektornya. Khusus saham tambang, ada analisis produksi, harga komoditas, dan izin tambang yang segera berakhir.'
 		},
 		{
 			icon: FileCheck2,
-			judul: 'Insight terverifikasi',
-			teks: 'Tiap insight disegel Ed25519 dan diikat hash chain, jadi klaim integritasnya bisa dicek siapa pun, bukan cuma dipercaya.'
+			judul: 'Bisa dicek keasliannya',
+			teks: 'Setiap insight diberi segel digital begitu dibuat, jadi isinya tidak bisa diubah diam diam. Siapa pun bisa mengecek keasliannya tanpa perlu akun.'
 		}
 	];
 
 	const contoh = [
-		{ skor: 91, ticker: 'BRPT', judul: 'Klaster transaksi insider tiga hari sebelum suspensi' },
-		{ skor: 72, ticker: 'ANTM', judul: 'Perubahan kepemilikan 5,4% tanpa keterbukaan informasi' },
+		{
+			skor: 91,
+			ticker: 'BRPT',
+			judul: 'Beberapa orang dalam menjual saham tiga hari sebelum suspensi'
+		},
+		{ skor: 72, ticker: 'ANTM', judul: 'Kepemilikan berubah 5,4% tanpa pengumuman resmi' },
 		{ skor: 12, ticker: 'BBCA', judul: 'Skor turun setelah laporan audit tahunan bersih' }
 	];
 </script>
@@ -56,8 +60,8 @@
 				<h1 class="tw-display text-ink">Red flag terdeteksi sebelum jadi berita.</h1>
 
 				<p class="text-secondary max-w-xl text-[17px] leading-relaxed">
-					TripWire memantau watchlist saham IDX kamu, membaca sinyal tata kelola dari data Sectors,
-					lalu mengirim peringatan begitu kondisi yang kamu tentukan terpenuhi.
+					TripWire memantau saham IDX pilihanmu setiap hari, membaca tanda bahaya dari data Sectors,
+					lalu mengabari kamu begitu ada yang perlu diperhatikan.
 				</p>
 
 				<div class="flex flex-wrap gap-3">
@@ -85,7 +89,7 @@
 									<span class="tw-data text-diamond-300 text-[12px] tracking-wider">
 										{item.ticker}
 									</span>
-									<SignatureBadge compact />
+									<SignatureBadge />
 								</p>
 							</div>
 						</li>

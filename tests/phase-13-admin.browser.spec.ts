@@ -64,7 +64,7 @@ test.describe('Fase 13: panel admin dan kontrol aksesnya', () => {
 		await expect(page).toHaveURL(/\/admin/);
 		await expect(page.getByTestId('admin-heading')).toBeVisible();
 		await expect(page.getByTestId('admin-statistik')).toBeVisible();
-		await expect(page.getByTestId('admin-credits')).toContainText('credit');
+		await expect(page.getByTestId('admin-credits')).toContainText('kredit');
 
 		const baris = page.getByTestId('admin-user-row');
 		await expect(baris.first()).toBeVisible();

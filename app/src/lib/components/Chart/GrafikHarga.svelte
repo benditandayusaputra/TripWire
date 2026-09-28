@@ -59,7 +59,13 @@
 			vector-effect="non-scaling-stroke"
 		/>
 		{#if terakhir}
-			<circle cx={terakhir[0]} cy={terakhir[1]} r="4" class="fill-diamond-500 stroke-void" stroke-width="2" />
+			<circle
+				cx={terakhir[0]}
+				cy={terakhir[1]}
+				r="4"
+				class="fill-diamond-500 stroke-void"
+				stroke-width="2"
+			/>
 		{/if}
 	</svg>
 	<div class="tw-data text-muted mt-1.5 flex justify-between text-[9.5px]">

@@ -190,12 +190,10 @@
 				<h2 class="tw-heading text-ink">Sidik jari dan security key</h2>
 				<p class="tw-caption mt-1">
 					{#if data.status.webauthn_enabled}
-						WebAuthn aktif di server ini. Terdaftar: <span class="tw-data text-ink"
-							>{data.status.webauthn_credentials}</span
-						> authenticator.
+						Masuk dengan sidik jari atau security key sudah bisa dipakai. Perangkat terdaftar:
+						<span class="tw-data text-ink">{data.status.webauthn_credentials}</span>.
 					{:else}
-						WebAuthn dimatikan lewat feature flag di konfigurasi server, jadi endpoint-nya tidak
-						terpasang.
+						Masuk dengan sidik jari atau security key belum tersedia untuk saat ini.
 					{/if}
 				</p>
 			</div>

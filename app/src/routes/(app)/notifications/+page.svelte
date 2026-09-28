@@ -41,20 +41,20 @@
 
 	function judul(jenis?: string, subtype?: string, skor?: number | null) {
 		if (jenis === 'red_flag') {
-			return `Skor risiko tata kelola ${tierDariSkor(skor).label.toLowerCase()}`;
+			return `Risiko tata kelola ${tierDariSkor(skor).label.toLowerCase()}`;
 		}
-		if (subtype === 'mining_deep_dive') return 'Eksposur komoditas tambang diperbarui';
-		return 'Snapshot fundamental terhadap sektor diperbarui';
+		if (subtype === 'mining_deep_dive') return 'Analisis tambang diperbarui';
+		return 'Perbandingan dengan sektor diperbarui';
 	}
 
 	function penjelasan(jenis?: string, subtype?: string) {
 		if (jenis === 'red_flag') {
-			return 'Gabungan sinyal suspend, klaster insider, dan perubahan konsentrasi kepemilikan.';
+			return 'Gabungan tanda bahaya dari suspensi saham, transaksi orang dalam, dan perubahan pemegang saham.';
 		}
 		if (subtype === 'mining_deep_dive') {
-			return 'Tren produksi, harga komoditas, umur cadangan, dan radar lisensi tambang.';
+			return 'Produksi, harga komoditas, cadangan, dan izin tambang terbaru.';
 		}
-		return 'Perbandingan fundamental emiten terhadap rata rata sub sektornya.';
+		return 'Kinerja perusahaan dibanding rata rata sektornya.';
 	}
 
 	async function tandaiSemua() {
@@ -92,7 +92,7 @@
 <section class="space-y-7">
 	<header class="flex flex-wrap items-start justify-between gap-3">
 		<div class="space-y-1.5">
-			<p class="tw-overline">Realtime</p>
+			<p class="tw-overline">Langsung</p>
 			<h1 class="tw-title text-ink">Notifikasi</h1>
 			<p class="tw-caption">
 				Insight baru dari watchlist kamu masuk begitu dibuat, tanpa perlu memuat ulang halaman.
@@ -189,7 +189,7 @@
 					</span>
 
 					<div class="flex flex-wrap items-center justify-between gap-3 pt-0.5">
-						<SignatureBadge compact />
+						<SignatureBadge />
 						<a
 							class="text-diamond-300 inline-flex items-center gap-1.5 text-[12.5px] hover:underline"
 							href={`/insights/${insight.insight_id}`}
