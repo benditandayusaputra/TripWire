@@ -1,14 +1,17 @@
 import { panggilApi } from '$lib/server/api';
+import type { Notifikasi } from '$lib/api/notifications';
+import type { ItemWatchlist, Kutipan } from '$lib/dashboard';
 import type { Insight } from '$lib/insight';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ request, url }) => {
+export const load: PageServerLoad = async ({ request }) => {
 	const cookie = request.headers.get('cookie') ?? '';
-	const jenis = url.searchParams.get('type') ?? '';
 
-	const [feed, ringkasan] = await Promise.all([
-		panggilApi(`/insights?limit=20${jenis ? `&type=${jenis}` : ''}`, {}, cookie),
-		panggilApi('/account/summary', {}, cookie)
+	const [feed, ringkasan, watchlist, notifikasi] = await Promise.all([
+		panggilApi('/insights?limit=100', {}, cookie),
+		panggilApi('/account/summary', {}, cookie),
+		panggilApi('/watchlist', {}, cookie),
+		panggilApi('/notifications', {}, cookie)
 	]);
 
 	return {
@@ -19,6 +22,8 @@ export const load: PageServerLoad = async ({ request, url }) => {
 			insight_kritis: 0,
 			kondisi_aktif: 0
 		}) as Record<string, number>,
-		jenis
+		items: (watchlist.payload?.items ?? []) as ItemWatchlist[],
+		quotes: (watchlist.payload?.quotes ?? {}) as Record<string, Kutipan>,
+		notifications: (notifikasi.payload?.notifications ?? []) as Notifikasi[]
 	};
 };
