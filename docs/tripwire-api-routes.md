@@ -61,7 +61,7 @@ Akses: **Publik** (gak perlu login) · **User** (butuh access token valid) · **
 
 | Method | Path | Akses | Keterangan |
 |---|---|---|---|
-| GET | /watchlist | User | List saham yang dipantau |
+| GET | /watchlist | User | List saham yang dipantau, plus `quotes` per ticker (harga penutupan, perubahan harian, kapitalisasi, rentang 52 minggu, indeks) dari salinan laporan emiten, tanpa memanggil Sectors |
 | POST | /watchlist | User | Tambah ticker baru |
 | PATCH | /watchlist/:id | User (owner) | Ubah data_display_pref |
 | DELETE | /watchlist/:id | User (owner) | Hapus dari watchlist |

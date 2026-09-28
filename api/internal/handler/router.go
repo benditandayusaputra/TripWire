@@ -101,7 +101,7 @@ func Register(app *fiber.App, deps Dependencies) {
 	files.Post("/", berkas.Upload)
 	files.Delete("/:id", berkas.Hapus)
 
-	watchlist := NewWatchlistHandler(deps.Watchlist)
+	watchlist := NewWatchlistHandler(deps.Watchlist, deps.Market)
 	app.Get("/tickers", requireAuth, watchlist.SearchTickers)
 
 	group := app.Group("/watchlist", requireAuth, csrf, middleware.XSSSanitize())

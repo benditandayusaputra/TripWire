@@ -22,6 +22,11 @@ TripWire memakai v2 dengan base URL `https://api.sectors.app/v2` dan header `Aut
 `SECTORS_CACHE_TTL` bawaannya 24 jam. Data harian Sectors paling cepat berubah sekali sehari, jadi
 scheduler yang jalan tiap 6 jam hampir selalu dilayani cache.
 
+Setiap respons yang berhasil juga disalin ke `sectors:salinan:<path>` selama 14 hari. Salinan ini tidak
+pernah dipakai untuk menghitung insight, hanya untuk kutipan harga di `GET /watchlist` (field `quotes`),
+yang dibaca dari cache laporan emiten atau salinannya tanpa memanggil Sectors dan tanpa memakai credit.
+Emiten yang belum pernah dipindai tidak punya kutipan sampai scan pertamanya.
+
 ## 2. Aturan Penagihan
 Diambil dari dokumentasi Sectors, dan diterapkan di `api/pkg/sectorsclient`:
 
