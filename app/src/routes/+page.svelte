@@ -20,38 +20,8 @@
 	import SkorGauge from '$lib/components/beranda/SkorGauge.svelte';
 	import { subSkor, tanggal, TICKER } from '$lib/components/beranda/simulasi';
 	import { tierDariSkor } from '$lib/skor';
+	import { emiten } from '$lib/emiten';
 	import { terlihat } from '$lib/terlihat';
-
-	const emiten = [
-		['BBCA', 'Bank Central Asia'],
-		['ANTM', 'Aneka Tambang'],
-		['TLKM', 'Telkom Indonesia'],
-		['PTBA', 'Bukit Asam'],
-		['BBRI', 'Bank Rakyat Indonesia'],
-		['MDKA', 'Merdeka Copper Gold'],
-		['ASII', 'Astra International'],
-		['INCO', 'Vale Indonesia'],
-		['BMRI', 'Bank Mandiri'],
-		['ADRO', 'Alamtri Resources Indonesia'],
-		['UNVR', 'Unilever Indonesia'],
-		['ITMG', 'Indo Tambangraya Megah'],
-		['GOTO', 'GoTo Gojek Tokopedia'],
-		['AMMN', 'Amman Mineral Internasional'],
-		['BBNI', 'Bank Negara Indonesia'],
-		['TINS', 'Timah'],
-		['ICBP', 'Indofood CBP Sukses Makmur'],
-		['NCKL', 'Trimegah Bangun Persada'],
-		['KLBF', 'Kalbe Farma'],
-		['MEDC', 'Medco Energi Internasional'],
-		['PGAS', 'Perusahaan Gas Negara'],
-		['MBMA', 'Merdeka Battery Materials'],
-		['CPIN', 'Charoen Pokphand Indonesia'],
-		['SMGR', 'Semen Indonesia'],
-		['BRIS', 'Bank Syariah Indonesia'],
-		['AMRT', 'Sumber Alfaria Trijaya'],
-		['ISAT', 'Indosat'],
-		['TPIA', 'Chandra Asri Pacific']
-	];
 
 	const penjelasanSinyal = {
 		'orang-dalam': {

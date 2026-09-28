@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { masukLewatBrowser } from './helpers/akun';
 import { kodeTOTP } from './helpers/totp';
+import { isiCaptcha } from './helpers/captcha';
 
 test.describe('Fase 9: alur dua faktor dari sisi pengguna', () => {
 	test('aktifkan TOTP, terima kode cadangan, lalu masuk lagi memakai kode authenticator', async ({
@@ -40,6 +41,7 @@ test.describe('Fase 9: alur dua faktor dari sisi pengguna', () => {
 
 		await page.getByLabel('Email').fill(akun.email);
 		await page.getByLabel('Password').fill(akun.password);
+		await isiCaptcha(page);
 		await page.getByRole('button', { name: 'Masuk' }).click();
 
 		await expect(page.getByTestId('totp-diperlukan')).toBeVisible();
@@ -48,6 +50,7 @@ test.describe('Fase 9: alur dua faktor dari sisi pengguna', () => {
 		await page.getByLabel('Email').fill(akun.email);
 		await page.getByLabel('Password').fill(akun.password);
 		await page.getByLabel('Kode verifikasi').fill(kodeTOTP(rahasia));
+		await isiCaptcha(page);
 		await page.getByRole('button', { name: 'Masuk' }).click();
 
 		await expect(page).toHaveURL(/\/dashboard/);
@@ -73,12 +76,14 @@ test.describe('Fase 9: alur dua faktor dari sisi pengguna', () => {
 
 		await page.getByLabel('Email').fill(akun.email);
 		await page.getByLabel('Password').fill(akun.password);
+		await isiCaptcha(page);
 		await page.getByRole('button', { name: 'Masuk' }).click();
 		await expect(page.getByTestId('totp-diperlukan')).toBeVisible();
 
 		await page.getByLabel('Email').fill(akun.email);
 		await page.getByLabel('Password').fill(akun.password);
 		await page.getByLabel('Kode verifikasi').fill(kodeCadangan);
+		await isiCaptcha(page);
 		await page.getByRole('button', { name: 'Masuk' }).click();
 
 		await expect(page).toHaveURL(/\/dashboard/);
@@ -108,6 +113,7 @@ test.describe('Fase 9: alur dua faktor dari sisi pengguna', () => {
 		await page.getByTestId('logout-button').click();
 		await page.getByLabel('Email').fill(akun.email);
 		await page.getByLabel('Password').fill(akun.password);
+		await isiCaptcha(page);
 		await page.getByRole('button', { name: 'Masuk' }).click();
 		await expect(page).toHaveURL(/\/dashboard/);
 	});

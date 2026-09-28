@@ -16,6 +16,7 @@ type Dependencies struct {
 	Signer     *crypto.TokenSigner
 	Health     *service.HealthService
 	Auth       *service.AuthService
+	Captcha    *service.CaptchaService
 	Watchlist  *service.WatchlistService
 	Market     *service.MarketService
 	Integrity  *service.IntegrityService
@@ -43,8 +44,11 @@ func Register(app *fiber.App, deps Dependencies) {
 	app.Get("/health", health.Health)
 	app.Get("/health/tables", health.Tables)
 
-	auth := NewAuthHandler(cfg, deps.Auth)
+	auth := NewAuthHandler(cfg, deps.Auth, deps.Captcha)
 	authGroup := app.Group("/auth")
+	batasCaptcha := middleware.RateLimit(deps.Redis, "captcha", cfg.CaptchaRateLimit, cfg.RateLimitWindow, middleware.ClientIP)
+	authGroup.Post("/captcha", batasCaptcha, auth.Captcha)
+	authGroup.Get("/captcha/:id/audio", batasCaptcha, auth.CaptchaAudio)
 	authGroup.Post("/register",
 		middleware.RateLimit(deps.Redis, "register", cfg.RegisterRateLimit, cfg.RateLimitWindow, middleware.ClientIP),
 		auth.Register)

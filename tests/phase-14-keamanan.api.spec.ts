@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { SesiApi, akunBaru, daftarLewatApi, sesiMasuk } from './helpers/akun';
+import { denganCaptcha } from './helpers/captcha';
 
 test.describe('Fase 14: audit keamanan, verifikasi lapisan yang wajib aktif', () => {
 	test('header keamanan terpasang di tiap respons API', async ({ request }) => {
@@ -60,7 +61,7 @@ test.describe('Fase 14: audit keamanan, verifikasi lapisan yang wajib aktif', ()
 
 		for (percobaan = 1; percobaan <= 40; percobaan += 1) {
 			const response = await request.post('/auth/login', {
-				data: { email, password: 'PasswordSalahSekali1' }
+				data: await denganCaptcha(request, { email, password: 'PasswordSalahSekali1' })
 			});
 
 			if (response.status() === 429) {
@@ -82,7 +83,7 @@ test.describe('Fase 14: audit keamanan, verifikasi lapisan yang wajib aktif', ()
 		await daftarLewatApi(request, akun);
 
 		const response = await request.post('/auth/login', {
-			data: { email: akun.email, password: akun.password }
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password })
 		});
 
 		const setCookie = response
@@ -164,7 +165,7 @@ test.describe('Fase 14: audit keamanan, verifikasi lapisan yang wajib aktif', ()
 
 		for (let percobaan = 1; percobaan <= 10; percobaan += 1) {
 			const response = await request.post('/auth/login', {
-				data: { email: akun.email, password: 'PasswordSalahSekali1' }
+				data: await denganCaptcha(request, { email: akun.email, password: 'PasswordSalahSekali1' })
 			});
 
 			if (response.status() === 423) {
@@ -177,7 +178,7 @@ test.describe('Fase 14: audit keamanan, verifikasi lapisan yang wajib aktif', ()
 		expect(terkunci, 'akun harus terkunci setelah beberapa kali gagal').toBe(true);
 
 		const benarTapiTerkunci = await request.post('/auth/login', {
-			data: { email: akun.email, password: akun.password }
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password })
 		});
 		expect(benarTapiTerkunci.status()).toBe(423);
 	});

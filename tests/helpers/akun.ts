@@ -1,5 +1,6 @@
 import type { APIRequestContext, APIResponse, Page } from '@playwright/test';
 import { kueri } from './database';
+import { denganCaptcha, isiCaptcha } from './captcha';
 
 export const API_URL = `http://127.0.0.1:${process.env.APP_PORT ?? '8080'}`;
 
@@ -80,7 +81,7 @@ export async function sesiMasuk(request: APIRequestContext, prefix: string) {
 
 	const sesi = new SesiApi(request);
 	const masuk = await sesi.kirim('post', '/auth/login', {
-		data: { email: akun.email, password: akun.password }
+		data: await denganCaptcha(request, { email: akun.email, password: akun.password })
 	});
 
 	if (masuk.status() !== 200) {
@@ -102,6 +103,7 @@ export async function masukLewatBrowser(page: Page, prefix: string) {
 
 	await page.getByLabel('Email').fill(akun.email);
 	await page.getByLabel('Password').fill(akun.password);
+	await isiCaptcha(page);
 	await page.getByRole('button', { name: 'Masuk' }).click();
 	await page.waitForURL(/\/dashboard/);
 
