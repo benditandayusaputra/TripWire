@@ -11,7 +11,13 @@ export const actions: Actions = {
 
 		const { response, payload } = await panggilApi('/auth/login', {
 			method: 'POST',
-			body: JSON.stringify({ email, password, totp_code: totpCode })
+			body: JSON.stringify({
+				email,
+				password,
+				totp_code: totpCode,
+				captcha_id: String(form.get('captcha_id') ?? ''),
+				captcha_answer: String(form.get('captcha_answer') ?? '')
+			})
 		});
 
 		if (!response.ok) {
@@ -19,14 +25,14 @@ export const actions: Actions = {
 				email,
 				error: pesanGalat(payload, 'Tidak bisa masuk sekarang'),
 				lockedUntil: typeof payload?.locked_until === 'string' ? payload.locked_until : '',
-				totpRequired: payload?.totp_required === true,
+				totpRequired: payload?.totp_required === true || form.has('totp_code'),
 				fields: (payload?.fields ?? {}) as Record<string, string>
 			});
 		}
 
 		teruskanCookie(response, cookies);
 
-		const tujuan = url.searchParams.get('next') ?? '/dashboard';
-		redirect(303, tujuan.startsWith('/') ? tujuan : '/dashboard');
+		const tujuan = new URL(url.searchParams.get('next') ?? '/dashboard', url.origin);
+		redirect(303, tujuan.origin === url.origin ? tujuan.pathname + tujuan.search : '/dashboard');
 	}
 };

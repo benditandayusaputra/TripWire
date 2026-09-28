@@ -156,6 +156,7 @@ func main() {
 		Signer:     signer,
 		Health:     service.NewHealthService(store, version),
 		Auth:       authService,
+		Captcha:    service.NewCaptchaService(store.Redis),
 		Watchlist:  service.NewWatchlistService(watchlistRepo, tickers),
 		Market:     market,
 		Integrity:  integrity,

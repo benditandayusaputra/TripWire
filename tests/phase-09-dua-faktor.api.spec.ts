@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { sesiMasuk } from './helpers/akun';
 import { kodeTOTP } from './helpers/totp';
+import { denganCaptcha } from './helpers/captcha';
 
 test.describe('Fase 9: dua faktor lewat API', () => {
 	test('rahasia TOTP tidak pernah ikut ter-serialize di respons akun', async ({ request }) => {
@@ -84,18 +85,18 @@ test.describe('Fase 9: dua faktor lewat API', () => {
 		});
 
 		const tanpaKode = await request.post('/auth/login', {
-			data: { email: akun.email, password: akun.password }
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password })
 		});
 		expect(tanpaKode.status()).toBe(401);
 		expect((await tanpaKode.json()).totp_required).toBe(true);
 
 		const kodeSalah = await request.post('/auth/login', {
-			data: { email: akun.email, password: akun.password, totp_code: '000000' }
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password, totp_code: '000000' })
 		});
 		expect(kodeSalah.status()).toBe(401);
 
 		const kodeBenar = await request.post('/auth/login', {
-			data: { email: akun.email, password: akun.password, totp_code: kodeTOTP(setup.secret) }
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password, totp_code: kodeTOTP(setup.secret) })
 		});
 		expect(kodeBenar.status()).toBe(200);
 	});
@@ -113,12 +114,12 @@ test.describe('Fase 9: dua faktor lewat API', () => {
 		const kodeCadangan = backup_codes[0];
 
 		const pertama = await request.post('/auth/login', {
-			data: { email: akun.email, password: akun.password, totp_code: kodeCadangan }
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password, totp_code: kodeCadangan })
 		});
 		expect(pertama.status()).toBe(200);
 
 		const kedua = await request.post('/auth/login', {
-			data: { email: akun.email, password: akun.password, totp_code: kodeCadangan }
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password, totp_code: kodeCadangan })
 		});
 		expect(kedua.status()).toBe(401);
 
@@ -158,7 +159,7 @@ test.describe('Fase 9: dua faktor lewat API', () => {
 		});
 
 		const masuk = await request.post('/auth/login', {
-			data: { email: akun.email, password: akun.password }
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password })
 		});
 		expect(masuk.status()).toBe(200);
 	});

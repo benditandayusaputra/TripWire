@@ -1,10 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { akunBaru, jadikanAdmin, masukLewatBrowser } from './helpers/akun';
+import { isiCaptcha } from './helpers/captcha';
 
 async function masukSebagai(page: import('@playwright/test').Page, email: string, password: string) {
 	await page.goto('/login');
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Password').fill(password);
+	await isiCaptcha(page);
 	await page.getByRole('button', { name: 'Masuk' }).click();
 	await page.waitForURL(/\/dashboard/);
 }
