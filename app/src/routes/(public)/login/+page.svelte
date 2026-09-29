@@ -2,7 +2,15 @@
 	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { AtSign, KeyRound, LogIn, RefreshCw, ShieldCheck, Volume2 } from 'lucide-svelte';
+	import {
+		AtSign,
+		KeyRound,
+		LoaderCircle,
+		LogIn,
+		RefreshCw,
+		ShieldCheck,
+		Volume2
+	} from 'lucide-svelte';
 	import AuthShell from '$lib/components/AuthShell.svelte';
 	import Field from '$lib/components/Field.svelte';
 	import Mark from '$lib/components/Mark.svelte';
@@ -200,8 +208,12 @@
 			{/if}
 		</div>
 
-		<button type="submit" disabled={submitting} class="tw-primary w-full">
-			<LogIn class="size-4" aria-hidden="true" />
+		<button type="submit" disabled={submitting} aria-busy={submitting} class="tw-primary w-full">
+			{#if submitting}
+				<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
+			{:else}
+				<LogIn class="size-4" aria-hidden="true" />
+			{/if}
 			{submitting ? 'Memproses' : 'Masuk'}
 		</button>
 	</form>
