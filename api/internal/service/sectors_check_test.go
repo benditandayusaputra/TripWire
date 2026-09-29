@@ -31,6 +31,17 @@ func dekat(t *testing.T, nama string, hasil, harapan float64) {
 	}
 }
 
+func TestIndeksHarianUrutTanpaBarisRusak(t *testing.T) {
+	seri, err := uraiIndeks(json.RawMessage(`[{"index_code":"IHSG","date":"2026-09-29","price":7123.45},{"index_code":"IHSG","date":"2026-09-26T00:00:00","price":"7080.1"},{"index_code":"IHSG","date":"2026-09-25","price":null},{"index_code":"IHSG","date":"","price":7000}]`))
+	if err != nil {
+		t.Fatalf("respons indeks tidak terbaca: %v", err)
+	}
+	if len(seri) != 2 || seri[0].Tanggal != "2026-09-26" || seri[1].Tanggal != "2026-09-29" {
+		t.Fatalf("seri indeks harus urut naik tanpa baris kosong, dapat %+v", seri)
+	}
+	dekat(t, "harga berupa teks", seri[0].Nilai, 7080.1)
+}
+
 func TestTierKeparahanAlasanResmiIDX(t *testing.T) {
 	kasus := map[string]int{
 		"Terjadinya peningkatan harga kumulatif yang signifikan pada saham ASLI.JK":                         1,
