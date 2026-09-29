@@ -25,6 +25,14 @@ func (h *MarketHandler) CompanyReport(c *fiber.Ctx) error {
 	return c.JSON(report)
 }
 
+func (h *MarketHandler) Profil(c *fiber.Ctx) error {
+	profil, err := h.market.Profil(c.Context(), c.Params("ticker"))
+	if err != nil {
+		return sectorsError(c, err)
+	}
+	return c.JSON(profil)
+}
+
 func (h *MarketHandler) Teratas(c *fiber.Ctx) error {
 	saham, meta, err := h.market.Teratas(c.Context())
 	if err != nil {
@@ -36,6 +44,22 @@ func (h *MarketHandler) Teratas(c *fiber.Ctx) error {
 func (h *MarketHandler) DaftarSaham(c *fiber.Ctx) error {
 	saham, meta := h.market.DaftarSaham(c.Context())
 	return c.JSON(fiber.Map{"stocks": saham, "meta": meta})
+}
+
+func (h *MarketHandler) Indeks(c *fiber.Ctx) error {
+	seri, err := h.market.Indeks(c.Context(), c.Params("code"))
+	if err != nil {
+		return sectorsError(c, err)
+	}
+	return c.JSON(seri)
+}
+
+func (h *MarketHandler) ArusAsing(c *fiber.Ctx) error {
+	ringkasan, err := h.market.ArusAsing(c.Context())
+	if err != nil {
+		return sectorsError(c, err)
+	}
+	return c.JSON(ringkasan)
 }
 
 func (h *MarketHandler) Credits(c *fiber.Ctx) error {
