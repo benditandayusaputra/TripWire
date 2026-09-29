@@ -7,21 +7,38 @@ import (
 	"errors"
 	"log"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/benditandayusaputra/tripwire/api/internal/model"
 	"github.com/benditandayusaputra/tripwire/api/internal/repository"
 	"github.com/benditandayusaputra/tripwire/api/pkg/webpush"
 )
 
-const batasDispatch = 15 * time.Second
+const (
+	batasDispatch       = 15 * time.Second
+	batasHalamanNotif   = 30
+	maksHalamanNotif    = 100
+	jumlahHariAktivitas = 30
+	batasEmitenNotif    = 50
+)
+
+var (
+	ErrPushNonaktif = errors.New("service: web push belum dikonfigurasi")
+
+	statusNotifikasi = []string{"", "unread", "read"}
+	tierNotifikasi   = []string{"", "critical", "high", "moderate", "low"}
+)
 
 type NotificationService struct {
 	notifikasi  *repository.NotificationRepository
 	langganan   *repository.PushRepository
 	hub         *StreamHub
 	pengirim    *webpush.Pengirim
+	tickers     *TickerService
 	izinkanHTTP bool
 }
 
@@ -30,6 +47,7 @@ func NewNotificationService(
 	langganan *repository.PushRepository,
 	hub *StreamHub,
 	pengirim *webpush.Pengirim,
+	tickers *TickerService,
 	izinkanHTTP bool,
 ) *NotificationService {
 	return &NotificationService{
@@ -37,6 +55,7 @@ func NewNotificationService(
 		langganan:   langganan,
 		hub:         hub,
 		pengirim:    pengirim,
+		tickers:     tickers,
 		izinkanHTTP: izinkanHTTP,
 	}
 }
@@ -136,12 +155,9 @@ func (s *NotificationService) Dispatch(ctx context.Context, insight *Insight) (H
 		hasil.Penerima++
 		ringkasan := ringkasInsight(insight, tersimpan.ID)
 
-		if s.hub.Online(userID) {
-			s.hub.SegarkanPresence(ctx, userID)
-			if s.hub.Kirim(userID, StreamEvent{Type: "insight", Data: ringkasan}) {
-				hasil.ViaSSE++
-				continue
-			}
+		if s.hub.Antar(ctx, userID, StreamEvent{Type: "insight", Data: ringkasan}) {
+			hasil.ViaSSE++
+			continue
 		}
 
 		if s.kirimPush(ctx, userID, ringkasan) {
@@ -153,15 +169,6 @@ func (s *NotificationService) Dispatch(ctx context.Context, insight *Insight) (H
 }
 
 func (s *NotificationService) kirimPush(ctx context.Context, userID string, ringkasan RingkasanInsight) bool {
-	if !s.pengirim.Aktif() {
-		return false
-	}
-
-	daftar, err := s.langganan.UntukUser(ctx, userID)
-	if err != nil || len(daftar) == 0 {
-		return false
-	}
-
 	payload, err := json.Marshal(map[string]any{
 		"title": "TripWire: insight baru " + ringkasan.Ticker,
 		"body":  pesanRingkas(ringkasan),
@@ -172,10 +179,24 @@ func (s *NotificationService) kirimPush(ctx context.Context, userID string, ring
 		return false
 	}
 
+	_, terkirim := s.kirimKeSemua(ctx, userID, payload)
+	return terkirim > 0
+}
+
+func (s *NotificationService) kirimKeSemua(ctx context.Context, userID string, payload []byte) (int, int) {
+	if !s.pengirim.Aktif() {
+		return 0, 0
+	}
+
+	daftar, err := s.langganan.UntukUser(ctx, userID)
+	if err != nil || len(daftar) == 0 {
+		return 0, 0
+	}
+
 	kirimCtx, batal := context.WithTimeout(ctx, batasDispatch)
 	defer batal()
 
-	terkirim := false
+	terkirim := 0
 	for _, item := range daftar {
 		err := s.pengirim.Kirim(kirimCtx, webpush.Langganan{
 			Endpoint:  item.Endpoint,
@@ -185,7 +206,7 @@ func (s *NotificationService) kirimPush(ctx context.Context, userID string, ring
 
 		switch {
 		case err == nil:
-			terkirim = true
+			terkirim++
 		case errors.Is(err, webpush.ErrLanggananHilang):
 			if err := s.langganan.HapusEndpoint(context.WithoutCancel(ctx), item.Endpoint); err != nil {
 				log.Printf("notifikasi: bersihkan langganan mati gagal: %v", err)
@@ -195,7 +216,7 @@ func (s *NotificationService) kirimPush(ctx context.Context, userID string, ring
 		}
 	}
 
-	return terkirim
+	return len(daftar), terkirim
 }
 
 func ringkasInsight(insight *Insight, notificationID string) RingkasanInsight {
@@ -235,29 +256,193 @@ func pesanRingkas(ringkasan RingkasanInsight) string {
 	return nama + ", insight baru tersedia, informasi analisis bukan rekomendasi beli jual"
 }
 
-func (s *NotificationService) Riwayat(ctx context.Context, userID string, limit int) ([]model.Notification, int, error) {
-	daftar, err := s.notifikasi.Riwayat(ctx, userID, limit)
-	if err != nil {
-		return nil, 0, err
+type FilterNotifikasi = repository.FilterNotifikasi
+
+type HalamanNotifikasi struct {
+	Daftar []model.Notification
+	Belum  int
+	Kursor string
+}
+
+func (s *NotificationService) Riwayat(ctx context.Context, userID string, filter FilterNotifikasi) (*HalamanNotifikasi, error) {
+	filter.Status = strings.ToLower(strings.TrimSpace(filter.Status))
+	filter.Jenis = strings.ToLower(strings.TrimSpace(filter.Jenis))
+	filter.Tier = strings.ToLower(strings.TrimSpace(filter.Tier))
+	filter.Ticker = s.tickers.Normalize(filter.Ticker)
+	filter.Kursor = strings.TrimSpace(filter.Kursor)
+
+	v := newValidationError()
+	if !slices.Contains(statusNotifikasi, filter.Status) {
+		v.add("status", "Status notifikasi tidak dikenal")
+	}
+	if filter.Jenis != "" && filter.Jenis != InsightRedFlag && filter.Jenis != InsightMarketIntelligence {
+		v.add("type", "Jenis insight tidak dikenal")
+	}
+	if !slices.Contains(tierNotifikasi, filter.Tier) {
+		v.add("tier", "Tingkat risiko tidak dikenal")
+	}
+	if filter.Kursor != "" && !idValid(filter.Kursor) {
+		v.add("before", "Penanda halaman tidak valid")
+	}
+	if err := v.orNil(); err != nil {
+		return nil, err
 	}
 
-	belum, err := s.notifikasi.BelumDibaca(ctx, userID)
+	batas := filter.Batas
+	if batas <= 0 || batas > maksHalamanNotif {
+		batas = batasHalamanNotif
+	}
+	filter.Batas = batas + 1
+
+	daftar, err := s.notifikasi.Riwayat(ctx, userID, filter)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	return daftar, belum, nil
+	halaman := &HalamanNotifikasi{Daftar: daftar}
+	if len(daftar) > batas {
+		halaman.Daftar = daftar[:batas]
+		halaman.Kursor = daftar[batas-1].ID
+	}
+	for i := range halaman.Daftar {
+		halaman.Daftar[i].CompanyName = s.namaEmiten(halaman.Daftar[i].Ticker)
+	}
+
+	halaman.Belum, err = s.notifikasi.BelumDibaca(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return halaman, nil
+}
+
+type RingkasanNotifikasi struct {
+	model.NotificationSummary
+	Harian    []model.NotificationDay    `json:"daily"`
+	Emiten    []model.NotificationTicker `json:"tickers"`
+	Puncak    *model.NotificationPeak    `json:"peak_30_days"`
+	Perangkat int                        `json:"push_devices"`
+	PushAktif bool                       `json:"push_enabled"`
+	Online    bool                       `json:"online"`
+}
+
+func (s *NotificationService) Ringkasan(ctx context.Context, userID string) (*RingkasanNotifikasi, error) {
+	dasar, err := s.notifikasi.Ringkasan(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	harian, err := s.notifikasi.Harian(ctx, userID, jumlahHariAktivitas)
+	if err != nil {
+		return nil, err
+	}
+
+	emiten, err := s.notifikasi.PerEmiten(ctx, userID, batasEmitenNotif)
+	if err != nil {
+		return nil, err
+	}
+	for i := range emiten {
+		emiten[i].CompanyName = s.namaEmiten(emiten[i].Ticker)
+	}
+
+	puncak, err := s.notifikasi.Puncak(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	perangkat, err := s.langganan.UntukUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RingkasanNotifikasi{
+		NotificationSummary: *dasar,
+		Harian:              harian,
+		Emiten:              emiten,
+		Puncak:              puncak,
+		Perangkat:           len(perangkat),
+		PushAktif:           s.pengirim.Aktif(),
+		Online:              s.hub.Online(userID),
+	}, nil
+}
+
+func (s *NotificationService) namaEmiten(ticker string) string {
+	if emiten, err := s.tickers.Lookup(ticker); err == nil {
+		return emiten.Name
+	}
+	return ""
 }
 
 func (s *NotificationService) TandaiDibaca(ctx context.Context, userID, id string) (*model.Notification, error) {
-	notifikasi, err := s.notifikasi.TandaiDibaca(ctx, userID, id)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return nil, ErrTidakDitemukan
-		}
-		return nil, err
+	return ubahSatu(id, func() (*model.Notification, error) {
+		return s.notifikasi.TandaiDibaca(ctx, userID, id)
+	})
+}
+
+func (s *NotificationService) TandaiBelumDibaca(ctx context.Context, userID, id string) (*model.Notification, error) {
+	return ubahSatu(id, func() (*model.Notification, error) {
+		return s.notifikasi.TandaiBelumDibaca(ctx, userID, id)
+	})
+}
+
+func (s *NotificationService) Hapus(ctx context.Context, userID, id string) error {
+	_, err := ubahSatu(id, func() (*model.Notification, error) {
+		return nil, s.notifikasi.Hapus(ctx, userID, id)
+	})
+	return err
+}
+
+func ubahSatu(id string, ubah func() (*model.Notification, error)) (*model.Notification, error) {
+	if !idValid(id) {
+		return nil, ErrTidakDitemukan
 	}
-	return notifikasi, nil
+
+	notifikasi, err := ubah()
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil, ErrTidakDitemukan
+	}
+	return notifikasi, err
+}
+
+func (s *NotificationService) TandaiSemuaDibaca(ctx context.Context, userID string) (int64, error) {
+	return s.notifikasi.TandaiSemuaDibaca(ctx, userID)
+}
+
+func (s *NotificationService) HapusDibaca(ctx context.Context, userID string) (int64, error) {
+	return s.notifikasi.HapusDibaca(ctx, userID)
+}
+
+func idValid(id string) bool {
+	_, err := uuid.Parse(id)
+	return err == nil
+}
+
+type HasilUjiPush struct {
+	Perangkat int `json:"devices"`
+	Terkirim  int `json:"delivered"`
+}
+
+func (s *NotificationService) KirimUji(ctx context.Context, userID string) (HasilUjiPush, error) {
+	if !s.pengirim.Aktif() {
+		return HasilUjiPush{}, ErrPushNonaktif
+	}
+
+	payload, err := json.Marshal(map[string]any{
+		"title": "TripWire: notifikasi uji",
+		"body":  "Notifikasi push di perangkat ini sudah berfungsi. Insight baru dari watchlist akan tampil seperti ini.",
+		"url":   "/notifications",
+		"tag":   "tripwire-uji",
+	})
+	if err != nil {
+		return HasilUjiPush{}, err
+	}
+
+	perangkat, terkirim := s.kirimKeSemua(ctx, userID, payload)
+	return HasilUjiPush{Perangkat: perangkat, Terkirim: terkirim}, nil
+}
+
+func (s *NotificationService) Perangkat(ctx context.Context, userID string) ([]model.PushSubscription, error) {
+	return s.langganan.UntukUser(ctx, userID)
 }
 
 func (s *NotificationService) Berlangganan(ctx context.Context, userID string, masukan LanggananPush) (*model.PushSubscription, error) {
