@@ -2,6 +2,7 @@
 	import { Search, ShieldCheck, ShieldX } from 'lucide-svelte';
 	import DisclaimerBar from '$lib/components/DisclaimerBar.svelte';
 	import SkorBadge from '$lib/components/SkorBadge.svelte';
+	import Preferensi from '$lib/components/Preferensi.svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
 	import { formatTanggal } from '$lib/insight';
 
@@ -58,7 +59,10 @@
 <div class="mx-auto max-w-3xl px-6 py-8">
 	<header class="flex items-center justify-between">
 		<Wordmark />
-		<a href="/login" class="tw-ghost text-[14px]">Masuk</a>
+		<div class="flex items-center gap-2">
+			<Preferensi />
+			<a href="/login" class="tw-ghost text-[14px]">Masuk</a>
+		</div>
 	</header>
 
 	<main class="space-y-7 py-12">

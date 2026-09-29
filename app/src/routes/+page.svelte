@@ -15,6 +15,7 @@
 	import DisclaimerBar from '$lib/components/DisclaimerBar.svelte';
 	import Logo from '$lib/components/Logo.svelte';
 	import SignatureBadge from '$lib/components/SignatureBadge.svelte';
+	import Preferensi from '$lib/components/Preferensi.svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
 	import ReplayTerminal from '$lib/components/beranda/ReplayTerminal.svelte';
 	import SkorGauge from '$lib/components/beranda/SkorGauge.svelte';
@@ -62,7 +63,10 @@
 		{ hari: 30, skor: 91, hash: 'c04a 6e18 d7f5', sebelumnya: '7c1e 9a2f 03bd' }
 	];
 
-	const desimal = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+	const desimal = new Intl.NumberFormat('id-ID', {
+		minimumFractionDigits: 1,
+		maximumFractionDigits: 1
+	});
 	const tglRantai = (hari: number) =>
 		tanggal[hari].toLocaleDateString('id-ID', {
 			day: 'numeric',
@@ -89,9 +93,12 @@
 			<a href="#cara-kerja" class="tautan-nav">Cara kerja</a>
 			<a href="#skor" class="tautan-nav">Red Flag Score</a>
 			<a href="#intelijen" class="tautan-nav">Market Intelligence</a>
-			<a href="/verify-insight" data-testid="nav-verifikasi" class="tautan-nav">Verifikasi insight</a>
+			<a href="/verify-insight" data-testid="nav-verifikasi" class="tautan-nav"
+				>Verifikasi insight</a
+			>
 		</nav>
 		<div class="flex items-center gap-2">
+			<Preferensi />
 			<a href="/login" class="tw-ghost px-3.5 py-2 text-[14px]">Masuk</a>
 			<a href="/register" class="tw-primary px-4 py-2 text-[14px]">Daftar</a>
 		</div>
@@ -107,10 +114,13 @@
 			<div class="space-y-7 lg:col-span-5">
 				<h1 class="judul-hero text-ink masuk">Red flag saham terdeteksi sebelum jadi berita.</h1>
 
-				<p class="text-secondary masuk max-w-xl text-[17px] leading-relaxed sm:text-[18px]" style="--urut:1">
-					TripWire memantau saham IDX pilihanmu setiap hari. Transaksi orang dalam, perubahan pemegang
-					saham besar, dan riwayat suspensi digabung jadi satu skor risiko, lalu kamu dikabari begitu
-					skornya melewati batas.
+				<p
+					class="text-secondary masuk max-w-xl text-[17px] leading-relaxed sm:text-[18px]"
+					style="--urut:1"
+				>
+					TripWire memantau saham IDX pilihanmu setiap hari. Transaksi orang dalam, perubahan
+					pemegang saham besar, dan riwayat suspensi digabung jadi satu skor risiko, lalu kamu
+					dikabari begitu skornya melewati batas.
 				</p>
 
 				<div class="masuk grid gap-3 sm:flex sm:flex-wrap" style="--urut:2">
@@ -121,7 +131,10 @@
 					<a href="#cara-kerja" class="tw-ghost px-5 py-3">Lihat cara kerjanya</a>
 				</div>
 
-				<ul class="masuk text-secondary flex flex-wrap gap-x-5 gap-y-2.5 text-[14px]" style="--urut:3">
+				<ul
+					class="masuk text-secondary flex flex-wrap gap-x-5 gap-y-2.5 text-[14px]"
+					style="--urut:3"
+				>
 					<li class="flex items-center gap-2">
 						<Radar class="text-diamond-300 size-4 flex-none" aria-hidden="true" />
 						Lebih dari 950 emiten IDX
@@ -140,8 +153,9 @@
 			<div class="masuk min-w-0 space-y-3 lg:col-span-7" style="--urut:2">
 				<ReplayTerminal />
 				<p class="text-muted px-1 text-[12.5px] leading-relaxed">
-					Simulasi dengan emiten fiktif. Urutan skornya dihitung dengan formula Red Flag Score yang sama
-					dengan yang dipakai TripWire. Arahkan kursor atau sentuh grafik untuk melihat angka per hari.
+					Simulasi dengan emiten fiktif. Urutan skornya dihitung dengan formula Red Flag Score yang
+					sama dengan yang dipakai TripWire. Arahkan kursor atau sentuh grafik untuk melihat angka
+					per hari.
 				</p>
 			</div>
 		</div>
@@ -164,7 +178,11 @@
 		</div>
 	</section>
 
-	<section id="cara-kerja" class="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28" {@attach terlihat}>
+	<section
+		id="cara-kerja"
+		class="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28"
+		{@attach terlihat}
+	>
 		<div class="max-w-2xl space-y-4">
 			<h2 class="judul-seksi text-ink muncul">Pasang sekali, TripWire berjaga setiap hari.</h2>
 			<p class="text-secondary muncul text-[17px] leading-relaxed" style="--urut:1">
@@ -199,8 +217,8 @@
 					<span class="nomor">1</span>
 					<h3 class="tw-heading text-ink">Pilih saham yang mau dipantau</h3>
 					<p class="tw-caption">
-						Cari kode emiten, tambahkan ke watchlist, lalu atur jadwal pengecekan: harian, mingguan, atau
-						begitu ada kejadian baru.
+						Cari kode emiten, tambahkan ke watchlist, lalu atur jadwal pengecekan: harian, mingguan,
+						atau begitu ada kejadian baru.
 					</p>
 				</div>
 			</li>
@@ -214,10 +232,12 @@
 							<span class="lajur">
 								<span
 									class="isi"
-									style="width:{Math.max(item.nilai, 8)}%; background:{tierDariSkor(item.nilai).color}"
+									style="width:{Math.max(item.nilai, 8)}%; background:{tierDariSkor(item.nilai)
+										.color}"
 								></span>
 							</span>
-							<span class="tw-data text-ink w-7 flex-none text-right text-[12px]">{item.nilai}</span>
+							<span class="tw-data text-ink w-7 flex-none text-right text-[12px]">{item.nilai}</span
+							>
 						</div>
 					{/each}
 					<p class="text-muted flex items-center gap-1.5 pt-1 text-[11.5px]">
@@ -241,10 +261,15 @@
 						<div class="flex items-center gap-2.5">
 							<Logo size={26} cincin={false} />
 							<span class="text-ink text-[13px] font-semibold">TripWire</span>
-							<BellRing class="lonceng-notif text-diamond-300 ml-auto size-3.5" aria-hidden="true" />
+							<BellRing
+								class="lonceng-notif text-diamond-300 ml-auto size-3.5"
+								aria-hidden="true"
+							/>
 							<span class="tw-data text-muted text-[11px]">07.02</span>
 						</div>
-						<p class="text-ink mt-2 text-[13px] leading-snug font-medium">{TICKER} menyentuh skor 91, Kritis</p>
+						<p class="text-ink mt-2 text-[13px] leading-snug font-medium">
+							{TICKER} menyentuh skor 91, Kritis
+						</p>
 						<p class="text-secondary mt-0.5 text-[12px] leading-snug">
 							Lima orang dalam menjual dalam 30 hari dan kepemilikan berubah 8 poin.
 						</p>
@@ -254,8 +279,8 @@
 					<span class="nomor">3</span>
 					<h3 class="tw-heading text-ink">Notifikasi masuk begitu skor melewati batas</h3>
 					<p class="tw-caption">
-						Kabar sampai ke browser dan HP kamu lengkap dengan alasannya. Buka untuk melihat angka dan
-						sumber datanya satu per satu.
+						Kabar sampai ke browser dan HP kamu lengkap dengan alasannya. Buka untuk melihat angka
+						dan sumber datanya satu per satu.
 					</p>
 				</div>
 			</li>
@@ -263,14 +288,18 @@
 	</section>
 
 	<section id="skor" class="border-line bg-base/40 border-y" {@attach terlihat}>
-		<div class="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:py-28">
+		<div
+			class="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:py-28"
+		>
 			<div class="space-y-8">
 				<div class="space-y-4">
-					<h2 class="judul-seksi text-ink muncul">Tiga sinyal tata kelola, satu skor 0 sampai 100.</h2>
+					<h2 class="judul-seksi text-ink muncul">
+						Tiga sinyal tata kelola, satu skor 0 sampai 100.
+					</h2>
 					<p class="text-secondary muncul text-[17px] leading-relaxed" style="--urut:1">
 						Sinyal ini biasanya tersebar di tempat berbeda. TripWire menggabungkannya, lalu menambah
-						bobot kalau beberapa sinyal muncul berdekatan, karena pola seperti itu yang sering mendahului
-						masalah.
+						bobot kalau beberapa sinyal muncul berdekatan, karena pola seperti itu yang sering
+						mendahului masalah.
 					</p>
 				</div>
 
@@ -291,10 +320,13 @@
 									<span class="lajur">
 										<span
 											class="isi"
-											style="width:{Math.max(item.nilai, 4)}%; background:{tierDariSkor(item.nilai).color}"
+											style="width:{Math.max(item.nilai, 4)}%; background:{tierDariSkor(item.nilai)
+												.color}"
 										></span>
 									</span>
-									<span class="tw-data text-secondary flex-none text-[12px]">{TICKER} {item.nilai}</span>
+									<span class="tw-data text-secondary flex-none text-[12px]"
+										>{TICKER} {item.nilai}</span
+									>
 								</div>
 							</div>
 						</li>
@@ -302,8 +334,8 @@
 				</ul>
 
 				<p class="text-muted muncul text-[13px] leading-relaxed" style="--urut:5">
-					Skor menunjukkan pola, bukan vonis. Setiap insight tetap berisi fakta: apa yang terjadi, kapan,
-					dan dari data mana.
+					Skor menunjukkan pola, bukan vonis. Setiap insight tetap berisi fakta: apa yang terjadi,
+					kapan, dan dari data mana.
 				</p>
 			</div>
 
@@ -317,24 +349,35 @@
 		</div>
 	</section>
 
-	<section id="intelijen" class="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28" {@attach terlihat}>
+	<section
+		id="intelijen"
+		class="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28"
+		{@attach terlihat}
+	>
 		<div class="max-w-2xl space-y-4">
-			<h2 class="judul-seksi text-ink muncul">Bandingkan dengan emiten sejenis, bukan cuma harganya.</h2>
+			<h2 class="judul-seksi text-ink muncul">
+				Bandingkan dengan emiten sejenis, bukan cuma harganya.
+			</h2>
 			<p class="text-secondary muncul text-[17px] leading-relaxed" style="--urut:1">
-				Valuasi dan pertumbuhan dibandingkan dengan rata rata subsektornya. Di atas atau di bawah rata
-				rata bukan penilaian baik buruk, hanya konteks supaya kamu tidak membaca angka sendirian.
+				Valuasi dan pertumbuhan dibandingkan dengan rata rata subsektornya. Di atas atau di bawah
+				rata rata bukan penilaian baik buruk, hanya konteks supaya kamu tidak membaca angka
+				sendirian.
 			</p>
 		</div>
 
 		<div class="mt-12 grid gap-5 lg:grid-cols-12">
 			<article class="panel muncul lg:col-span-7" style="--urut:2">
 				<div class="flex flex-wrap items-baseline justify-between gap-2">
-					<h3 class="text-ink text-[16px] font-semibold">Valuasi {TICKER} dibanding rata rata subsektor</h3>
+					<h3 class="text-ink text-[16px] font-semibold">
+						Valuasi {TICKER} dibanding rata rata subsektor
+					</h3>
 					<span class="text-muted text-[12px]">Contoh</span>
 				</div>
 
 				<div class="mt-6 space-y-1">
-					<div class="text-muted grid grid-cols-[88px_1fr] gap-4 text-[11.5px] sm:grid-cols-[120px_1fr]">
+					<div
+						class="text-muted grid grid-cols-[88px_1fr] gap-4 text-[11.5px] sm:grid-cols-[120px_1fr]"
+					>
 						<span></span>
 						<div class="relative flex justify-between">
 							<span>di bawah</span>
@@ -344,7 +387,9 @@
 					</div>
 					{#each valuasi as item, urutan (item.nama)}
 						{@const lebarBar = Math.min(Math.abs(item.selisih), 40) * 1.25}
-						<div class="baris-valuasi grid grid-cols-[88px_1fr] items-center gap-4 sm:grid-cols-[120px_1fr]">
+						<div
+							class="baris-valuasi grid grid-cols-[88px_1fr] items-center gap-4 sm:grid-cols-[120px_1fr]"
+						>
 							<div>
 								<p class="text-ink text-[14px] font-medium">{item.nama}</p>
 								<p class="tw-data text-muted text-[11.5px]">
@@ -400,8 +445,8 @@
 					</div>
 				</div>
 				<p class="tw-caption mt-4">
-					Produksi, harga komoditas, dan umur cadangan dibaca jadi skor eksposur komoditas. Izin tambang
-					yang berakhir dalam 12 bulan ikut ditandai.
+					Produksi, harga komoditas, dan umur cadangan dibaca jadi skor eksposur komoditas. Izin
+					tambang yang berakhir dalam 12 bulan ikut ditandai.
 				</p>
 
 				<div class="radar mt-6">
@@ -412,7 +457,9 @@
 							<span class="rel-izin">
 								<span class="penanda-izin" style="left:{(item.bulan / 36) * 100}%">
 									<span class="berlian" class:dekat={item.bulan <= 12}></span>
-									<span class="label-izin tw-data" class:dekat={item.bulan <= 12}>{item.bulan} bln</span>
+									<span class="label-izin tw-data" class:dekat={item.bulan <= 12}
+										>{item.bulan} bln</span
+									>
 								</span>
 							</span>
 						</div>
@@ -438,13 +485,17 @@
 	</section>
 
 	<section id="verifikasi" class="border-line bg-base/40 border-y" {@attach terlihat}>
-		<div class="mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-12 lg:px-8 lg:py-28">
+		<div
+			class="mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-12 lg:px-8 lg:py-28"
+		>
 			<div class="space-y-5 lg:col-span-5">
-				<h2 class="judul-seksi text-ink muncul">Setiap insight bersegel digital. Siapa pun bisa mengeceknya.</h2>
+				<h2 class="judul-seksi text-ink muncul">
+					Setiap insight bersegel digital. Siapa pun bisa mengeceknya.
+				</h2>
 				<p class="text-secondary muncul text-[17px] leading-relaxed" style="--urut:1">
 					Begitu dibuat, setiap insight ditandatangani dengan Ed25519 dan dirantai ke insight
-					sebelumnya. Satu huruf saja diubah, tanda tangannya tidak cocok lagi. Halaman verifikasi bisa
-					dibuka tanpa akun.
+					sebelumnya. Satu huruf saja diubah, tanda tangannya tidak cocok lagi. Halaman verifikasi
+					bisa dibuka tanpa akun.
 				</p>
 				<a href="/verify-insight" class="tw-ghost muncul" style="--urut:2">
 					<FileCheck2 class="size-4" aria-hidden="true" />
@@ -492,14 +543,18 @@
 	</section>
 
 	<section class="mx-auto max-w-7xl space-y-6 px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
-		<div class="panel-cta relative isolate overflow-hidden rounded-3xl px-6 py-14 text-center sm:px-12 sm:py-16">
+		<div
+			class="panel-cta relative isolate overflow-hidden rounded-3xl px-6 py-14 text-center sm:px-12 sm:py-16"
+		>
 			<div class="kawat-cta" aria-hidden="true">
 				<Logo size={56} />
 			</div>
-			<h2 class="judul-seksi text-ink mx-auto mt-8 max-w-2xl">Pasang TripWire di saham pilihanmu.</h2>
+			<h2 class="judul-seksi text-ink mx-auto mt-8 max-w-2xl">
+				Pasang TripWire di saham pilihanmu.
+			</h2>
 			<p class="text-secondary mx-auto mt-4 max-w-xl text-[17px] leading-relaxed">
-				Daftar gratis, tambahkan saham ke watchlist, dan tentukan batas skornya. Sisanya TripWire yang
-				mengecek setiap hari.
+				Daftar gratis, tambahkan saham ke watchlist, dan tentukan batas skornya. Sisanya TripWire
+				yang mengecek setiap hari.
 			</p>
 			<div class="mt-8 flex flex-wrap justify-center gap-3">
 				<a href="/register" class="tw-primary px-6 py-3">Buat akun gratis</a>
@@ -518,14 +573,20 @@
 		<div class="max-w-sm space-y-3">
 			<Wordmark size="sm" />
 			<p class="text-muted text-[13px] leading-relaxed">
-				Red flag detector dan market intelligence untuk saham IDX. Dibuat untuk Sectors Hackathon 2026.
+				Red flag detector dan market intelligence untuk saham IDX. Dibuat untuk Sectors Hackathon
+				2026.
 			</p>
 		</div>
-		<nav class="text-secondary flex flex-wrap gap-x-6 gap-y-2 text-[14px]" aria-label="Tautan bawah">
+		<nav
+			class="text-secondary flex flex-wrap gap-x-6 gap-y-2 text-[14px]"
+			aria-label="Tautan bawah"
+		>
 			<a href="/login" class="tautan-kaki">Masuk</a>
 			<a href="/register" class="tautan-kaki">Daftar</a>
 			<a href="/verify-insight" class="tautan-kaki">Verifikasi insight</a>
-			<a href="https://sectors.app" class="tautan-kaki" rel="noopener noreferrer" target="_blank">Data dari Sectors</a>
+			<a href="https://sectors.app" class="tautan-kaki" rel="noopener noreferrer" target="_blank"
+				>Data dari Sectors</a
+			>
 		</nav>
 	</div>
 </footer>

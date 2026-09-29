@@ -11,27 +11,27 @@
 	--font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 	--font-display: 'Sora Variable', 'Sora', system-ui, sans-serif;
 
-	--color-void: #080b12;
-	--color-base: #0d1220;
-	--color-raised: #141c2e;
-	--color-line: #1e2a42;
-	--color-muted: #8493ae;
-	--color-secondary: #9aa9c4;
-	--color-ink: #eaf0fa;
+	--color-void: light-dark(#eef2f7, #080b12);
+	--color-base: light-dark(#f6f8fb, #0d1220);
+	--color-raised: light-dark(#ffffff, #141c2e);
+	--color-line: light-dark(#d5dde9, #1e2a42);
+	--color-muted: light-dark(#5c6982, #8493ae);
+	--color-secondary: light-dark(#3f4c66, #9aa9c4);
+	--color-ink: light-dark(#0b1424, #eaf0fa);
 
-	--color-diamond-900: #0f2540;
-	--color-diamond-700: #1b4a8c;
-	--color-diamond-500: #4a9eff;
-	--color-diamond-300: #8fd0ff;
-	--color-diamond-100: #d6ecff;
+	--color-diamond-900: light-dark(#e3eefc, #0f2540);
+	--color-diamond-700: light-dark(#a9cbf3, #1b4a8c);
+	--color-diamond-500: light-dark(#3d8ef5, #4a9eff);
+	--color-diamond-300: light-dark(#1b62c7, #8fd0ff);
+	--color-diamond-100: light-dark(#0c3470, #d6ecff);
 
-	--color-tier-low: #3ee0b8;
-	--color-tier-moderate: #f5c544;
-	--color-tier-high: #ff8a3d;
-	--color-tier-critical: #ff4d6a;
+	--color-tier-low: light-dark(#077e62, #3ee0b8);
+	--color-tier-moderate: light-dark(#946200, #f5c544);
+	--color-tier-high: light-dark(#b54f0c, #ff8a3d);
+	--color-tier-critical: light-dark(#d11f45, #ff4d6a);
 
-	--color-naik: #1faf7a;
-	--color-turun: #f53e36;
+	--color-naik: light-dark(#077f50, #1faf7a);
+	--color-turun: light-dark(#d12c24, #f53e36);
 
 	--radius-glass-sm: 8px;
 	--radius-glass: 14px;
@@ -40,11 +40,23 @@
 }
 
 :root {
-	--edge: rgba(180, 205, 255, 0.13);
-	--edge-soft: rgba(180, 205, 255, 0.1);
-	--edge-strong: rgba(180, 205, 255, 0.2);
+	--kilau: light-dark(#0c2040, #b4cdff);
+	--cahaya: light-dark(#0c2040, #ffffff);
+	--bayang: light-dark(rgba(16, 32, 64, 0.2), #000);
+	--tirai: light-dark(rgba(15, 23, 42, 0.4), rgba(5, 8, 14, 0.74));
+	--edge: color-mix(in srgb, var(--kilau) 13%, transparent);
+	--edge-soft: color-mix(in srgb, var(--kilau) 10%, transparent);
+	--edge-strong: color-mix(in srgb, var(--kilau) 20%, transparent);
 	color-scheme: dark;
 	scroll-padding-top: 88px;
+}
+
+:root[data-tema='light'] {
+	color-scheme: light;
+}
+
+:root[data-tema='system'] {
+	color-scheme: light dark;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -118,7 +130,12 @@ body {
 	font-weight: 500;
 	letter-spacing: 0.14em;
 	text-transform: uppercase;
-	color: #7b8ca8;
+	color: light-dark(#5c6982, #7b8ca8);
+}
+
+@utility tw-gelap {
+	color-scheme: dark;
+	color: var(--color-ink);
 }
 
 @utility tw-data {
@@ -129,7 +146,11 @@ body {
 @utility tw-glass {
 	border: 1px solid var(--edge-soft);
 	border-radius: var(--radius-glass);
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+	background: linear-gradient(
+		180deg,
+		light-dark(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.04)),
+		light-dark(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.02))
+	);
 	backdrop-filter: blur(18px);
 	-webkit-backdrop-filter: blur(18px);
 }
@@ -137,7 +158,12 @@ body {
 @utility tw-card {
 	border: 1px solid var(--edge);
 	border-radius: var(--radius-glass-lg);
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
+	background: linear-gradient(
+		180deg,
+		light-dark(rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.06)),
+		light-dark(rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.025))
+	);
+	box-shadow: 0 12px 32px -24px light-dark(rgba(16, 32, 64, 0.25), transparent);
 	backdrop-filter: blur(24px);
 	-webkit-backdrop-filter: blur(24px);
 }
@@ -145,7 +171,11 @@ body {
 @utility tw-sheet {
 	border: 1px solid var(--edge-strong);
 	border-radius: var(--radius-glass-xl);
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04));
+	background: linear-gradient(
+		180deg,
+		light-dark(rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.11)),
+		light-dark(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.04))
+	);
 	backdrop-filter: blur(34px);
 	-webkit-backdrop-filter: blur(34px);
 }
@@ -154,7 +184,7 @@ body {
 	width: 100%;
 	border: 1px solid var(--edge);
 	border-radius: var(--radius-glass);
-	background: rgba(8, 11, 18, 0.55);
+	background: light-dark(#ffffff, rgba(8, 11, 18, 0.55));
 	padding: 11px 14px;
 	font-size: 15px;
 	color: var(--color-ink);
@@ -251,8 +281,18 @@ button:disabled {
 	filter: invert(1) hue-rotate(200deg) brightness(0.72) contrast(0.95) saturate(0.35);
 }
 
+:root[data-tema='light'] .leaflet-tile-pane {
+	filter: none;
+}
+
+@media (prefers-color-scheme: light) {
+	:root[data-tema='system'] .leaflet-tile-pane {
+		filter: none;
+	}
+}
+
 .leaflet-control-attribution {
-	background: rgba(8, 11, 18, 0.72) !important;
+	background: color-mix(in srgb, var(--color-void) 72%, transparent) !important;
 	color: var(--color-muted) !important;
 	font-size: 9px !important;
 }
@@ -271,7 +311,7 @@ button:disabled {
 .leaflet-popup-tip {
 	background: var(--color-raised) !important;
 	color: var(--color-ink) !important;
-	box-shadow: 0 18px 40px -20px #000 !important;
+	box-shadow: 0 18px 40px -20px var(--bayang) !important;
 }
 
 .siap:not(.terlihat) .muncul {

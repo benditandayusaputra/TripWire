@@ -2,15 +2,17 @@
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
 	import Mark from './Mark.svelte';
+	import Preferensi from './Preferensi.svelte';
 	import PanelPasar from './auth/PanelPasar.svelte';
+	import { t } from '$lib/bahasa.svelte';
 
 	let { title, subtitle, children }: { title: string; subtitle: string; children: Snippet } =
 		$props();
 
-	const pilihan = [
-		{ href: '/login', label: 'Masuk' },
-		{ href: '/register', label: 'Daftar' }
-	];
+	const pilihan = $derived([
+		{ href: '/login', label: t('Masuk', 'Log in') },
+		{ href: '/register', label: t('Daftar', 'Sign up') }
+	]);
 </script>
 
 <div class="flex min-h-dvh flex-col lg:grid lg:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)]">
@@ -18,13 +20,16 @@
 		class="lembar relative z-10 order-2 -mt-7 flex flex-1 justify-center px-5 pt-7 pb-10 sm:px-8 lg:mt-0 lg:items-center lg:px-12 lg:py-14"
 	>
 		<div class="w-full max-w-100 space-y-7">
-			<nav aria-label="Pilih masuk atau daftar" class="saklar">
-				{#each pilihan as item (item.href)}
-					<a href={item.href} aria-current={page.url.pathname === item.href ? 'page' : undefined}>
-						{item.label}
-					</a>
-				{/each}
-			</nav>
+			<div class="flex items-center gap-2">
+				<nav aria-label={t('Pilih masuk atau daftar', 'Choose log in or sign up')} class="saklar">
+					{#each pilihan as item (item.href)}
+						<a href={item.href} aria-current={page.url.pathname === item.href ? 'page' : undefined}>
+							{item.label}
+						</a>
+					{/each}
+				</nav>
+				<Preferensi />
+			</div>
 
 			<header class="space-y-1.5">
 				<h1 class="tw-title text-ink">{title}</h1>
@@ -35,7 +40,10 @@
 
 			<p class="text-muted flex items-center gap-2.5 text-[12.5px]">
 				<Mark size={7} color="var(--color-tier-moderate)" />
-				Informasi dan analisis, bukan rekomendasi beli atau jual.
+				{t(
+					'Informasi dan analisis, bukan rekomendasi beli atau jual.',
+					'Information and analysis, not a recommendation to buy or sell.'
+				)}
 			</p>
 		</div>
 	</main>
@@ -64,11 +72,12 @@
 
 	.saklar {
 		display: grid;
+		flex: 1;
 		grid-template-columns: 1fr 1fr;
 		gap: 4px;
 		border: 1px solid var(--edge);
 		border-radius: 14px;
-		background: rgba(8, 11, 18, 0.6);
+		background: color-mix(in srgb, var(--color-void) 60%, transparent);
 		padding: 4px;
 	}
 
@@ -93,6 +102,6 @@
 		color: var(--color-ink);
 		box-shadow:
 			inset 0 0 0 1px var(--edge-strong),
-			0 8px 18px -12px #000;
+			0 8px 18px -12px var(--bayang);
 	}
 </style>

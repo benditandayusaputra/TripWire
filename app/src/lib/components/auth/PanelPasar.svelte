@@ -62,7 +62,7 @@
 
 <section
 	aria-label="Contoh peringatan TripWire dengan emiten fiktif"
-	class="panggung relative isolate order-1 flex h-60 flex-col overflow-hidden sm:h-72 lg:sticky lg:top-0 lg:h-dvh"
+	class="panggung tw-gelap relative isolate order-1 flex h-60 flex-col overflow-hidden sm:h-72 lg:sticky lg:top-0 lg:h-dvh"
 >
 	<img
 		src="/foto/skyline-jakarta-1600.webp"
