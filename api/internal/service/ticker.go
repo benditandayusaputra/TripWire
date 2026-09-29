@@ -129,6 +129,12 @@ func (s *TickerService) Search(query string, limit int) []Ticker {
 	return hasil
 }
 
+func (s *TickerService) Semua() []Ticker {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return append([]Ticker(nil), s.ordered...)
+}
+
 func (s *TickerService) Total() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

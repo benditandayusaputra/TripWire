@@ -69,12 +69,27 @@ export type Tren = { tutup: number[]; tanggal: string };
 
 export type Penutupan = { harga: number; ubah: number | null; tanggal: string };
 
-export type SahamTeratas = {
+export type SahamPasar = {
 	ticker: string;
 	company_name: string;
-	last_close_price: number;
+	sector?: string;
+	last_close_price: number | null;
 	daily_close_change: number | null;
 	market_cap: number | null;
+};
+
+export const NAMA_SEKTOR: Record<string, string> = {
+	Financials: 'Keuangan',
+	'Consumer Non-Cyclicals': 'Konsumen primer',
+	Energy: 'Energi',
+	'Basic Materials': 'Barang baku',
+	Infrastructures: 'Infrastruktur',
+	'Consumer Cyclicals': 'Konsumen nonprimer',
+	'Properties & Real Estate': 'Properti',
+	Healthcare: 'Kesehatan',
+	Technology: 'Teknologi',
+	Industrials: 'Perindustrian',
+	'Transportation & Logistic': 'Transportasi'
 };
 
 export type JenisPeristiwa = 'jual' | 'beli' | 'kepemilikan' | 'suspensi';
@@ -236,6 +251,8 @@ export function peristiwaDari(insight: Insight | undefined): Peristiwa[] {
 	}
 	return hasil.sort((a, b) => (a.tanggal < b.tanggal ? 1 : -1));
 }
+
+export type TabPanel = 'harga' | 'risiko' | 'pemantauan';
 
 export type KunciUrut = 'skor' | 'ubah' | 'kapitalisasi' | 'kode';
 

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { akunBaru, jadikanAdmin, masukLewatBrowser } from './helpers/akun';
+import { akunBaru, jadikanAdmin, lewatiTur, masukLewatBrowser } from './helpers/akun';
 import { isiCaptcha } from './helpers/captcha';
+import { tambahSaham } from './helpers/watchlist';
 
 async function masukSebagai(page: import('@playwright/test').Page, email: string, password: string) {
 	await page.goto('/login');
@@ -88,9 +89,9 @@ test.describe('Fase 13: panel admin dan kontrol aksesnya', () => {
 		jadikanAdmin(akun.email);
 		await masukSebagai(page, akun.email, akun.password);
 
+		await lewatiTur(page);
 		await page.goto('/watchlist');
-		await page.getByLabel('Cari saham').fill('ANTM');
-		await page.getByTestId('tambah-ticker').click();
+		await tambahSaham(page, 'ANTM');
 
 		const kondisi = page.getByTestId('panel-emiten').getByTestId('kondisi');
 		await expect(kondisi).toHaveAttribute('data-condition-type', 'daily');

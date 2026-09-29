@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { API_URL, masukLewatBrowser } from './helpers/akun';
+import { tambahSaham } from './helpers/watchlist';
 
 function tangkapGalatKonsol(page: Page) {
 	const galat: string[] = [];
@@ -14,8 +15,7 @@ function tangkapGalatKonsol(page: Page) {
 
 async function siapkanInsight(page: Page, ticker: string, jenis = 'red-flag') {
 	await page.goto('/watchlist');
-	await page.getByLabel('Cari saham').fill(ticker);
-	await page.getByTestId('tambah-ticker').click();
+	await tambahSaham(page, ticker);
 	await expect(page.getByTestId('watchlist-item').filter({ hasText: ticker })).toBeVisible();
 
 	const hasil = await page.evaluate(async (alamat) => {
