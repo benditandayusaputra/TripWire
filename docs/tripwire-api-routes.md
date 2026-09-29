@@ -63,7 +63,8 @@ Akses: **Publik** (gak perlu login) · **User** (butuh access token valid) · **
 |---|---|---|---|
 | GET | /watchlist | User | List saham yang dipantau, plus `quotes` per ticker (harga penutupan, perubahan harian, kapitalisasi, rentang 52 minggu, indeks) dari salinan laporan emiten, tanpa memanggil Sectors |
 | GET | /watchlist/overview | User | Ringkasan risiko per ticker dari `insight_events` (Red Flag terakhir beserta sub skor dan pengali pola silang, skor sebelumnya, riwayat 40 skor terakhir, insight Market Intelligence terakhir, jumlah insight) dan jadwal jaga: waktu scan terakhir, scan berikutnya, dan cek berikutnya per kondisi aktif. Tidak memanggil Sectors |
-| GET | /watchlist/:id/prices | User (owner) | Harga harian 90 hari (open, high, low, close, volume) dari Sectors `/daily/`, 1 credit per emiten per hari, dilayani cache setelahnya |
+| GET | /watchlist/:id/prices | User (owner) | Harga harian 90 hari (open, high, low, close, volume) dari Sectors `/daily/`, 1 credit per emiten per hari, dilayani cache setelahnya. Halaman watchlist memanggilnya untuk setiap baris, dipakai sebagai garis tren sebulan dan harga penutupan emiten yang belum dipindai |
+| GET | /market/top | User | Sepuluh saham berkapitalisasi terbesar dari screener Sectors `/companies/` (kode, nama, harga penutupan, perubahan harian, kapitalisasi), 1 credit lalu dilayani cache. Dipakai sebagai saran saham di watchlist |
 | POST | /watchlist | User | Tambah ticker baru |
 | PATCH | /watchlist/:id | User (owner) | Ubah data_display_pref |
 | DELETE | /watchlist/:id | User (owner) | Hapus dari watchlist |

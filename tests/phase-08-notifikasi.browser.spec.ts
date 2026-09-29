@@ -45,7 +45,7 @@ test.describe("Fase 8: insight baru muncul realtime tanpa muat ulang", () => {
 
     await page.getByTestId("nav-watchlist").click();
     await expect(page).toHaveURL(/\/watchlist/);
-    await page.getByLabel("Kode emiten").fill("BBRI");
+    await page.getByLabel("Cari saham").fill("BBRI");
     await page.getByTestId("tambah-ticker").click();
     await expect(
       page.getByTestId("watchlist-item").filter({ hasText: "BBRI" }),

@@ -46,6 +46,7 @@
 					<a
 						href={item.href}
 						data-testid="nav-{item.href.slice(1)}"
+						data-tur={item.href === '/notifications' ? 'kabar' : undefined}
 						aria-current={aktif(item.href) ? 'page' : undefined}
 						class="rounded-glass flex items-center gap-2 px-3 py-1.5 text-[13.5px] font-medium transition {aktif(
 							item.href
@@ -129,6 +130,7 @@
 				<li class="flex-1">
 					<a
 						href={item.href}
+						data-tur={item.href === '/notifications' ? 'kabar' : undefined}
 						aria-current={aktif(item.href) ? 'page' : undefined}
 						class="flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition {aktif(
 							item.href
