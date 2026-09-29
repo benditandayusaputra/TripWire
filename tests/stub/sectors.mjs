@@ -659,6 +659,54 @@ createServer((req, res) => {
 		});
 	}
 
+	const cocokIndeks = path.match(/^\/index-daily\/([a-z0-9]+)\/$/i);
+	if (cocokIndeks) {
+		const kode = cocokIndeks[1].toLowerCase();
+		const dasar = { ihsg: 7100, lq45: 820, idx30: 430 }[kode];
+		if (!dasar) {
+			return balas(res, 404, { error: 'index tidak dikenal' });
+		}
+		const mulai = url.searchParams.get('start') ?? hariLalu(30);
+		const seri = [];
+		for (let lalu = 120; lalu >= 1; lalu -= 1) {
+			const tanggal = hariLalu(lalu);
+			const hari = new Date(`${tanggal}T00:00:00Z`).getUTCDay();
+			if (tanggal < mulai || hari === 0 || hari === 6) continue;
+			const urut = 120 - lalu;
+			seri.push({
+				index_code: kode.toUpperCase(),
+				date: tanggal,
+				price: Math.round(dasar * (1 + 0.03 * Math.sin(urut / 6) + 0.0006 * urut) * 100) / 100
+			});
+		}
+		return balas(res, 200, seri);
+	}
+
+	if (path === '/foreign-flow/') {
+		const urutan = url.searchParams.get('order_by') ?? '-net_foreign_inflow';
+		const turun = urutan.startsWith('-');
+		const daftar = [
+			['ANTM', 294.6, 377.7],
+			['BBCA', 182.4, 510.2],
+			['TLKM', 96.1, 140.8],
+			['ADRO', 12.5, 40.2],
+			['ITMG', 3.2, 8.4],
+			['PTBA', -8.7, 21.3],
+			['MDKA', -45.3, 30.1],
+			['INCO', -120.8, 60.4],
+			['BBRI', -210.5, 330.9]
+		]
+			.map(([kode, bersih, beli]) => ({
+				symbol: `${kode}.JK`,
+				date: hariLalu(1),
+				net_foreign_inflow: bersih * 1_000_000_000,
+				foreign_buy_idr: beli * 1_000_000_000,
+				foreign_sell_idr: (beli - bersih) * 1_000_000_000
+			}))
+			.sort((a, b) => (turun ? -1 : 1) * (a.net_foreign_inflow - b.net_foreign_inflow));
+		return balas(res, 200, halaman(daftar, url));
+	}
+
 	const cocokHarian = path.match(/^\/daily\/([a-z0-9.]+)\/$/i);
 	if (cocokHarian) {
 		const mulai = url.searchParams.get('start') ?? hariLalu(30);

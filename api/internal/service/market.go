@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/benditandayusaputra/tripwire/api/pkg/sectorsclient"
 )
@@ -19,7 +20,12 @@ const (
 	batasHalamanUniverse = 200
 	maksHalamanUniverse  = 10
 	jumlahTeratas        = 10
+	jumlahArusAsing      = 10
+	biayaIndeks          = 1
+	biayaArusAsing       = 1
 )
+
+var labelIndeks = map[string]string{"ihsg": "IHSG", "lq45": "LQ45", "idx30": "IDX30"}
 
 type MarketMeta struct {
 	Cached           bool  `json:"cached"`
@@ -58,6 +64,32 @@ type SahamPasar struct {
 	Harga           *float64 `json:"last_close_price"`
 	PerubahanHarian *float64 `json:"daily_close_change"`
 	Kapitalisasi    *float64 `json:"market_cap"`
+}
+
+type TitikIndeks struct {
+	Tanggal string  `json:"date"`
+	Nilai   float64 `json:"price"`
+}
+
+type SeriIndeks struct {
+	Kode string        `json:"code"`
+	Seri []TitikIndeks `json:"series"`
+	Meta MarketMeta    `json:"meta"`
+}
+
+type ArusAsing struct {
+	Ticker string  `json:"ticker"`
+	Nama   string  `json:"company_name"`
+	Bersih float64 `json:"net_foreign_inflow"`
+	Beli   float64 `json:"foreign_buy_idr"`
+	Jual   float64 `json:"foreign_sell_idr"`
+}
+
+type RingkasanAsing struct {
+	Tanggal string      `json:"date"`
+	Beli    []ArusAsing `json:"top_buy"`
+	Jual    []ArusAsing `json:"top_sell"`
+	Meta    MarketMeta  `json:"meta"`
 }
 
 type MarketService struct {
@@ -202,6 +234,111 @@ func kapitalisasi(saham SahamPasar) float64 {
 		return -1
 	}
 	return *saham.Kapitalisasi
+}
+
+func (s *MarketService) Indeks(ctx context.Context, mentah string) (*SeriIndeks, error) {
+	kode := strings.ToLower(strings.TrimSpace(mentah))
+	label, dikenal := labelIndeks[kode]
+	if !dikenal {
+		v := newValidationError()
+		v.add("code", "Indeks tidak tersedia, pilih IHSG, LQ45, atau IDX30")
+		return nil, v
+	}
+
+	mulai := time.Now().In(zonaJakarta()).AddDate(0, 0, -hariRiwayatHarga).Format(formatTanggalIDX)
+	hasil, err := s.client.Get(ctx, fmt.Sprintf("/index-daily/%s/?start=%s", kode, mulai), 0, biayaIndeks)
+	if err != nil {
+		return nil, err
+	}
+
+	seri, err := uraiIndeks(hasil.Data)
+	if err != nil {
+		return nil, fmt.Errorf("%w: indeks %s tidak terbaca", sectorsclient.ErrUpstreamGagal, label)
+	}
+	return &SeriIndeks{Kode: label, Seri: seri, Meta: s.meta(ctx, hasil)}, nil
+}
+
+func uraiIndeks(data json.RawMessage) ([]TitikIndeks, error) {
+	var mentah []struct {
+		Tanggal string         `json:"date"`
+		Nilai   angkaFleksibel `json:"price"`
+	}
+	if err := json.Unmarshal(data, &mentah); err != nil {
+		return nil, err
+	}
+
+	seri := make([]TitikIndeks, 0, len(mentah))
+	for _, baris := range mentah {
+		if len(baris.Tanggal) < len(formatTanggalIDX) || !baris.Nilai.Ada || baris.Nilai.Nilai <= 0 {
+			continue
+		}
+		seri = append(seri, TitikIndeks{Tanggal: baris.Tanggal[:len(formatTanggalIDX)], Nilai: baris.Nilai.Nilai})
+	}
+	sort.Slice(seri, func(i, j int) bool { return seri[i].Tanggal < seri[j].Tanggal })
+	return seri, nil
+}
+
+func (s *MarketService) ArusAsing(ctx context.Context) (*RingkasanAsing, error) {
+	beli, tanggal, _, err := s.halamanAsing(ctx, "-net_foreign_inflow")
+	if err != nil {
+		return nil, err
+	}
+	jual, tanggalJual, hasil, err := s.halamanAsing(ctx, "net_foreign_inflow")
+	if err != nil {
+		return nil, err
+	}
+
+	ringkasan := &RingkasanAsing{Tanggal: max(tanggal, tanggalJual), Beli: []ArusAsing{}, Jual: []ArusAsing{}, Meta: s.meta(ctx, hasil)}
+	for _, satu := range beli {
+		if satu.Bersih > 0 {
+			ringkasan.Beli = append(ringkasan.Beli, satu)
+		}
+	}
+	for _, satu := range jual {
+		if satu.Bersih < 0 {
+			ringkasan.Jual = append(ringkasan.Jual, satu)
+		}
+	}
+	return ringkasan, nil
+}
+
+func (s *MarketService) halamanAsing(ctx context.Context, urutan string) ([]ArusAsing, string, *sectorsclient.Hasil, error) {
+	kueri := url.Values{"limit": {strconv.Itoa(jumlahArusAsing)}, "order_by": {urutan}}
+	hasil, err := s.client.Get(ctx, "/foreign-flow/?"+kueri.Encode(), 0, biayaArusAsing)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	var isi struct {
+		Results []struct {
+			Symbol  string         `json:"symbol"`
+			Tanggal string         `json:"date"`
+			Bersih  angkaFleksibel `json:"net_foreign_inflow"`
+			Beli    angkaFleksibel `json:"foreign_buy_idr"`
+			Jual    angkaFleksibel `json:"foreign_sell_idr"`
+		} `json:"results"`
+	}
+	if err := json.Unmarshal(hasil.Data, &isi); err != nil {
+		return nil, "", nil, fmt.Errorf("%w: arus dana asing tidak terbaca", sectorsclient.ErrUpstreamGagal)
+	}
+
+	arus := make([]ArusAsing, 0, len(isi.Results))
+	tanggal := ""
+	for _, baris := range isi.Results {
+		ticker, err := s.tickers.Lookup(baris.Symbol)
+		if err != nil || !baris.Bersih.Ada {
+			continue
+		}
+		tanggal = max(tanggal, baris.Tanggal)
+		arus = append(arus, ArusAsing{
+			Ticker: ticker.Code,
+			Nama:   ticker.Name,
+			Bersih: baris.Bersih.Nilai,
+			Beli:   baris.Beli.Nilai,
+			Jual:   baris.Jual.Nilai,
+		})
+	}
+	return arus, tanggal, hasil, nil
 }
 
 func (s *MarketService) Kutipan(ctx context.Context, kode []string) map[string]Kutipan {
