@@ -94,6 +94,46 @@ test.describe("Fase 8: insight baru muncul realtime tanpa muat ulang", () => {
     await expect(page.getByTestId("notifikasi-riwayat")).toContainText("BBRI");
   });
 
+  test("dashboard menerima insight baru lewat SSE tanpa muat ulang", async ({
+    page,
+    request,
+  }) => {
+    await masukLewatBrowser(page, "sse-dashboard");
+
+    await page.goto("/watchlist");
+    await tambahSaham(page, "BBRI");
+    await expect(
+      page.getByTestId("watchlist-item").filter({ hasText: "BBRI" }),
+    ).toBeVisible();
+
+    await page.goto("/dashboard");
+    await expect(page.getByTestId("status-live")).toHaveAttribute(
+      "data-terhubung",
+      "true",
+    );
+    await page.evaluate(() => {
+      (window as unknown as { penandaHalaman: string }).penandaHalaman =
+        "belum-dimuat-ulang";
+    });
+
+    const { sesi } = await sesiMasuk(request, "sse-dashboard-pemicu");
+    await new Promise((selesai) => setTimeout(selesai, TTL_CACHE_MS + 400));
+    const dipicu = await sesi.kirim("get", "/insights/red-flag/BBRI");
+    expect(dipicu.status(), await dipicu.text()).toBe(200);
+
+    await expect(page.getByTestId("kabar-insight")).toContainText("BBRI", {
+      timeout: 10_000,
+    });
+    await expect(
+      page.getByTestId("insight-card").filter({ hasText: "BBRI" }).first(),
+    ).toBeVisible();
+
+    const penanda = await page.evaluate(
+      () => (window as unknown as { penandaHalaman?: string }).penandaHalaman,
+    );
+    expect(penanda).toBe("belum-dimuat-ulang");
+  });
+
   test("presence dilepas dari Redis setelah koneksi stream ditutup", async ({
     page,
   }) => {
@@ -110,7 +150,7 @@ test.describe("Fase 8: insight baru muncul realtime tanpa muat ulang", () => {
       .poll(() => redisAda(`presence:${userID}`), { timeout: 5000 })
       .toBe(true);
 
-    await page.goto("/dashboard");
+    await page.goto("/account");
     await expect
       .poll(() => redisAda(`presence:${userID}`), {
         timeout: 20_000,
