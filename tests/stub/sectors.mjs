@@ -508,7 +508,27 @@ createServer((req, res) => {
 	panggilanUpstream += 1;
 
 	if (path === '/companies/') {
-		return balas(res, 200, halaman(emiten, url));
+		if (url.searchParams.get('include_query_values') !== 'true') {
+			return balas(res, 200, halaman(emiten, url));
+		}
+		const berisi = emiten
+			.map(({ symbol, company_name }) => {
+				const kode = kodeDari(symbol);
+				const [kemarin, terakhir] = hargaHarian(kode, hariLalu(7)).slice(-2);
+				const overview = laporan[kode]?.overview;
+				return {
+					symbol,
+					company_name: `PT ${company_name}`,
+					query_values: {
+						symbol,
+						last_close_price: terakhir.close,
+						daily_close_change: overview?.daily_close_change ?? terakhir.close / kemarin.close - 1,
+						market_cap: overview?.market_cap ?? terakhir.market_cap
+					}
+				};
+			})
+			.sort((a, b) => b.query_values.market_cap - a.query_values.market_cap);
+		return balas(res, 200, halaman(berisi, url));
 	}
 
 	const cocokLaporan = path.match(/^\/company\/report\/([a-z0-9.]+)\/$/i);

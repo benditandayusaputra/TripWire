@@ -4,45 +4,156 @@
 	import { fly } from 'svelte/transition';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { navigating } from '$app/state';
-	import { BellRing, Database, Plus, Radar, ShieldCheck, TriangleAlert } from 'lucide-svelte';
+	import { BellRing, CircleHelp, Plus, TriangleAlert } from 'lucide-svelte';
 	import DisclaimerBar from '$lib/components/DisclaimerBar.svelte';
+	import BarisSaham from '$lib/components/watchlist/BarisSaham.svelte';
 	import CariEmiten from '$lib/components/watchlist/CariEmiten.svelte';
 	import PanelEmiten from '$lib/components/watchlist/PanelEmiten.svelte';
 	import RingkasanPantauan from '$lib/components/watchlist/RingkasanPantauan.svelte';
+	import SaranSaham from '$lib/components/watchlist/SaranSaham.svelte';
 	import TabelWatchlist from '$lib/components/watchlist/TabelWatchlist.svelte';
+	import TurWatchlist, { type LangkahTur } from '$lib/components/watchlist/TurWatchlist.svelte';
+	import { HARI_NOTIFIKASI, lilin, skorPada } from '$lib/components/beranda/simulasi';
 	import { emiten } from '$lib/emiten';
 	import { presenceStore } from '$lib/stores/presenceStore.svelte';
 	import { tierDariSkor } from '$lib/skor';
-	import { BATAS_WATCHLIST, type Baris } from '$lib/watchlist';
+	import {
+		BATAS_WATCHLIST,
+		HARI_TREN,
+		penutupanTerbaru,
+		type Baris,
+		type SahamTeratas,
+		type Tren
+	} from '$lib/watchlist';
 
 	let { data, form } = $props();
+
+	const KUNCI_TUR = 'tripwire:tur-watchlist';
+
+	const LANGKAH_TUR: LangkahTur[] = [
+		{
+			judul: 'Ini watchlist kamu',
+			isi: 'Daftar saham yang kamu minta TripWire jaga. Setiap hari TripWire membaca data saham ini dari Sectors dan mencari tanda bahaya, misalnya orang dalam yang ramai menjual atau saham yang pernah dihentikan bursa.'
+		},
+		{
+			target: '[data-tur="cari"]',
+			judul: 'Tambah saham dari sini',
+			isi: 'Ketik kode atau nama perusahaan, misalnya BBCA atau Telkom, lalu pilih dari daftar. Saat kolom masih kosong, daftarnya berisi saham berkapitalisasi terbesar di BEI.'
+		},
+		{
+			target: '[data-tur="baris"]',
+			judul: 'Cara membaca satu baris',
+			isi: 'Dari kiri: kode dan nama saham, garis harga sebulan terakhir, lalu harga penutupan dan perubahannya. Hijau dengan ▲ berarti naik, merah dengan ▼ berarti turun.'
+		},
+		{
+			target: '[data-tur="skor"]',
+			judul: 'Lingkaran ini Red Flag Score',
+			isi: 'Skor 0 sampai 100 dari tiga sinyal tata kelola. Makin tinggi, makin banyak tanda bahaya: Rendah sampai 30, Sedang sampai 60, Tinggi sampai 85, lalu Kritis. Ikon jam pasir berarti saham itu belum dipindai.'
+		},
+		{
+			target: '[data-tur="saran"]',
+			judul: 'Belum tahu mulai dari mana?',
+			isi: 'Ini saham dengan kapitalisasi terbesar di BEI menurut Sectors. Tekan Pantau dan saham itu langsung masuk watchlist dengan cek harian.'
+		},
+		{
+			target: '[data-tur="detail"]',
+			judul: 'Detail setiap saham',
+			isi: 'Pilih satu baris untuk melihat grafik tiga bulan, alasan di balik skornya, dan mengatur kapan TripWire memeriksa serta mengabarimu.'
+		},
+		{
+			target: '[data-tur="kabar"]',
+			judul: 'Kabar datang ke sini',
+			isi: 'Begitu skor melewati batas yang kamu atur, notifikasi masuk ke menu ini lengkap dengan alasannya. Notifikasi push ke HP bisa dinyalakan di halaman Notifikasi.'
+		}
+	];
+
+	const contohSeri = lilin
+		.slice(0, HARI_NOTIFIKASI + 1)
+		.flatMap((bar) => (bar ? [bar.tutup] : []))
+		.slice(-HARI_TREN);
+	const contohPenutupan = {
+		harga: contohSeri[contohSeri.length - 1],
+		ubah: contohSeri[contohSeri.length - 1] / contohSeri[contohSeri.length - 2] - 1,
+		tanggal: ''
+	};
 
 	let sekarang = $state(Date.now());
 	let kabar = $state<{ ticker: string; skor: number | null } | null>(null);
 	let terakhirTerbaca = presenceStore.insightBaru[0]?.notification_id;
 	let jedaKabar: ReturnType<typeof setTimeout> | undefined;
+	let tur = $state<ReturnType<typeof TurWatchlist>>();
+	let turBuka = $state(false);
+	let tren = $state<Record<string, Tren>>({});
+	let trenSiap = $state(false);
+	let teratas = $state<SahamTeratas[]>([]);
+	let teratasSiap = $state(false);
 
 	const baris = $derived<Baris[]>(
-		data.items.map((item) => ({
-			item,
-			kutipan: data.quotes[item.ticker] ?? null,
-			risiko: data.risk[item.ticker] ?? null,
-			skor: data.risk[item.ticker]?.red_flag?.score ?? null,
-			ubah: data.quotes[item.ticker]?.daily_close_change ?? null,
-			aktif: item.conditions.filter((kondisi) => kondisi.is_active).length
-		}))
+		data.items.map((item) => {
+			const kutipan = data.quotes[item.ticker] ?? null;
+			const trenEmiten = tren[item.ticker] ?? null;
+			const penutupan = penutupanTerbaru(kutipan, trenEmiten);
+			return {
+				item,
+				kutipan,
+				penutupan,
+				tren: trenEmiten?.tutup ?? null,
+				risiko: data.risk[item.ticker] ?? null,
+				skor: data.risk[item.ticker]?.red_flag?.score ?? null,
+				ubah: penutupan?.ubah ?? null,
+				aktif: item.conditions.filter((kondisi) => kondisi.is_active).length
+			};
+		})
 	);
 	const terpilih = $derived(baris.find((b) => b.item.ticker === data.kode) ?? null);
 	const dipantau = $derived(data.items.map((item) => item.ticker));
-	const populer = $derived(emiten.filter(([kode]) => !dipantau.includes(kode)).slice(0, 8));
+	const cadangan = $derived(emiten.filter(([kode]) => !dipantau.includes(kode)).slice(0, 8));
 	const penuh = $derived(data.items.length >= BATAS_WATCHLIST);
+
+	$effect(() => {
+		let batal = false;
+		Promise.resolve(data.tren).then((peta) => {
+			if (batal) return;
+			tren = peta ?? {};
+			trenSiap = true;
+		});
+		return () => (batal = true);
+	});
+
+	$effect(() => {
+		let batal = false;
+		Promise.resolve(data.teratas).then((daftar) => {
+			if (batal) return;
+			teratas = daftar ?? [];
+			teratasSiap = true;
+		});
+		return () => (batal = true);
+	});
+
+	function sudahTur() {
+		try {
+			return localStorage.getItem(KUNCI_TUR) !== null;
+		} catch {
+			return true;
+		}
+	}
+
+	function tandaiTur() {
+		try {
+			localStorage.setItem(KUNCI_TUR, new Date().toISOString());
+		} catch {
+			return;
+		}
+	}
 
 	onMount(() => {
 		const detak = setInterval(() => (sekarang = Date.now()), 30_000);
+		const jedaTur = sudahTur() || data.dipilih ? undefined : setTimeout(() => tur?.mulai(), 450);
 		presenceStore.sambung();
 		return () => {
 			clearInterval(detak);
 			clearTimeout(jedaKabar);
+			clearTimeout(jedaTur);
 			presenceStore.putus();
 		};
 	});
@@ -66,6 +177,7 @@
 	}
 
 	function pintasan(event: KeyboardEvent) {
+		if (turBuka) return;
 		const target = event.target as HTMLElement;
 		const mengetik =
 			['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable;
@@ -84,17 +196,25 @@
 
 <svelte:window onkeydown={pintasan} />
 
-<section class="space-y-6">
+<section class="space-y-5">
 	<header class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-		<div class="space-y-1.5">
-			<p class="tw-overline">Watchlist</p>
-			<h1 class="tw-title text-ink">Emiten yang kamu pantau</h1>
-			<p class="text-secondary max-w-2xl text-[14px]">
-				Harga penutupan dan kapitalisasi dibaca dari Sectors, skor risiko dari pemindaian TripWire.
-				Pilih satu emiten untuk melihat grafik, sinyal tata kelola, dan jadwal pengecekannya.
+		<div class="max-w-2xl space-y-1.5">
+			<h1 class="tw-title text-ink">Watchlist</h1>
+			<p class="text-secondary text-[14px] leading-relaxed">
+				Saham yang kamu minta TripWire jaga. Harganya dari Sectors, dan setiap saham dipindai
+				otomatis untuk mencari tanda bahaya tata kelola sebelum terlihat di harga.
 			</p>
 		</div>
-		<div class="flex flex-wrap items-center gap-3">
+		<div class="flex flex-wrap items-center gap-2.5">
+			<button
+				type="button"
+				data-testid="mulai-tur"
+				class="tw-ghost px-3 py-1.5 text-[13px]"
+				onclick={() => tur?.mulai()}
+			>
+				<CircleHelp class="size-4" aria-hidden="true" />
+				Cara pakai
+			</button>
 			<p
 				data-testid="status-langsung"
 				data-terhubung={presenceStore.terhubung}
@@ -104,20 +224,10 @@
 				<span class="titik" aria-hidden="true"></span>
 				{presenceStore.terhubung ? 'Pembaruan langsung' : 'Menyambungkan'}
 			</p>
-			<div
-				class="slot"
-				aria-label="{data.items.length} dari {BATAS_WATCHLIST} slot watchlist terpakai"
-			>
-				<p class="flex items-baseline justify-between gap-6">
-					<span class="tw-overline">Slot</span>
-					<span class="tw-data text-ink text-[14px]">
-						{data.items.length} <span class="text-muted">/ {BATAS_WATCHLIST}</span>
-					</span>
-				</p>
-				<span class="lajur-slot"
-					><span style="width:{(data.items.length / BATAS_WATCHLIST) * 100}%"></span></span
-				>
-			</div>
+			<p class="slot" title="Batas watchlist {BATAS_WATCHLIST} saham">
+				<span class="tw-data text-ink">{data.items.length}</span>
+				<span class="text-muted">dari {BATAS_WATCHLIST} saham</span>
+			</p>
 		</div>
 	</header>
 
@@ -140,13 +250,18 @@
 		</p>
 	{/if}
 
-	<div class="tw-card relative z-20 p-4 sm:p-5">
-		<CariEmiten {dipantau} {penuh} galat={form?.aksi === 'tambah' ? (form?.error ?? '') : ''} />
-		<p class="text-muted mt-2.5 hidden text-[12px] sm:block">
-			Tekan <kbd class="tw-data border-line rounded border px-1 text-[11px]">/</kbd> untuk langsung
-			mencari.
-			{penuh ? 'Watchlist sudah penuh, hapus satu emiten untuk menambah yang baru.' : ''}
-		</p>
+	<div class="tw-card relative z-20 p-3 sm:p-4">
+		<CariEmiten
+			{dipantau}
+			{penuh}
+			populer={teratas}
+			galat={form?.aksi === 'tambah' ? (form?.error ?? '') : ''}
+		/>
+		{#if penuh}
+			<p class="text-muted mt-2.5 text-[12px]">
+				Watchlist sudah penuh, hapus satu saham untuk menambah yang baru.
+			</p>
+		{/if}
 	</div>
 
 	{#if form?.aksi === 'hapus' && form?.error}
@@ -157,46 +272,81 @@
 	{/if}
 
 	{#if data.items.length === 0}
-		<div class="kosong">
-			<div class="max-w-xl space-y-3">
-				<span class="ikon-kosong"><Radar class="size-5" aria-hidden="true" /></span>
-				<h2 class="tw-heading text-ink">Mulai dari satu emiten</h2>
-				<p data-testid="watchlist-kosong" class="text-secondary text-[14px] leading-relaxed">
-					Belum ada emiten yang dipantau. Cari kode emiten di atas, atau pilih salah satu di bawah.
-					TripWire langsung memasang jadwal cek harian supaya emiten itu ikut dipindai.
-				</p>
+		<section class="kosong" aria-labelledby="judul-kosong">
+			<div class="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+				<div class="space-y-2.5">
+					<h2 id="judul-kosong" class="tw-heading text-ink">Watchlist kamu masih kosong</h2>
+					<p
+						data-testid="watchlist-kosong"
+						class="text-secondary max-w-md text-[14px] leading-relaxed"
+					>
+						Tambahkan saham pertama lewat kolom cari, atau pilih dari daftar di bawah. TripWire
+						langsung mengambil harganya dari Sectors dan memasang cek harian supaya tanda bahayanya
+						ikut dipindai.
+					</p>
+				</div>
+
+				<figure class="contoh">
+					<figcaption class="text-muted flex items-center justify-between gap-3 px-1 text-[12px]">
+						<span>Begini satu baris nanti terlihat</span>
+						<span class="tw-data text-[11px]">contoh, emiten fiktif</span>
+					</figcaption>
+					<div class="mt-2">
+						<BarisSaham
+							kode="SIMU"
+							nama="Simulasi Utama Tbk."
+							tren={contohSeri}
+							penutupan={contohPenutupan}
+							skor={skorPada(HARI_NOTIFIKASI)}
+							tur
+						/>
+					</div>
+					<ul class="keterangan">
+						<li>Garis harga sebulan</li>
+						<li>Harga penutupan dan perubahannya</li>
+						<li>Red Flag Score 0 sampai 100</li>
+					</ul>
+				</figure>
 			</div>
 
-			<div class="mt-5 flex flex-wrap gap-2">
-				{#each populer as [kode, nama] (kode)}
-					<form method="POST" action="?/tambah" use:enhance>
-						<input type="hidden" name="ticker" value={kode} />
-						<input type="hidden" name="pantau_harian" value="on" />
-						<button type="submit" class="chip-populer" title="Pantau {nama}">
-							<Plus class="size-3" aria-hidden="true" />
-							<span class="tw-data text-ink font-semibold">{kode}</span>
-							<span class="text-muted hidden sm:inline">{nama}</span>
-						</button>
-					</form>
-				{/each}
+			<div class="mt-7" data-tur="saran">
+				<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+					<h3 class="text-ink text-[15px] font-medium">Mulai dari saham terbesar di BEI</h3>
+					<p class="text-muted text-[12px]">Harga penutupan dan kapitalisasi pasar dari Sectors</p>
+				</div>
+				<div class="mt-2">
+					{#if !teratasSiap}
+						<ul class="grid gap-x-6 sm:grid-cols-2" aria-label="Memuat saran saham">
+							{#each [0, 1, 2, 3, 4, 5] as urutan (urutan)}
+								<li class="kerangka-saran"><span></span><span></span><span></span></li>
+							{/each}
+						</ul>
+					{:else if teratas.length}
+						<SaranSaham saham={teratas} {dipantau} {penuh} />
+					{:else}
+						<div class="flex flex-wrap gap-2 pt-2">
+							{#each cadangan as [kode, nama] (kode)}
+								<form method="POST" action="?/tambah" use:enhance>
+									<input type="hidden" name="ticker" value={kode} />
+									<input type="hidden" name="pantau_harian" value="on" />
+									<button type="submit" class="chip-cadangan" title="Pantau {nama}">
+										<Plus class="size-3" aria-hidden="true" />
+										<span class="tw-data text-ink font-semibold">{kode}</span>
+										<span class="text-muted hidden sm:inline">{nama}</span>
+									</button>
+								</form>
+							{/each}
+						</div>
+					{/if}
+				</div>
 			</div>
-
-			<ol class="mt-7 grid gap-3 sm:grid-cols-3">
-				{#each [{ ikon: Database, judul: 'Data dari Sectors', teks: 'Laporan emiten, transaksi orang dalam, dan riwayat suspensi diambil otomatis.' }, { ikon: ShieldCheck, judul: 'Skor 0 sampai 100', teks: 'Tiga sinyal tata kelola digabung jadi Red Flag Score yang bisa dicek sumbernya.' }, { ikon: BellRing, judul: 'Kabar saat melewati batas', teks: 'Atur kondisi pemicu per emiten, notifikasi datang lengkap dengan alasannya.' }] as langkah (langkah.judul)}
-					<li class="langkah">
-						<langkah.ikon class="text-diamond-300 size-4" aria-hidden="true" />
-						<p class="text-ink mt-2 text-[14px] font-medium">{langkah.judul}</p>
-						<p class="tw-caption mt-1">{langkah.teks}</p>
-					</li>
-				{/each}
-			</ol>
-		</div>
+		</section>
 	{:else}
 		<RingkasanPantauan {baris} jadwal={data.schedule} {sekarang} />
 
 		<div class="grid items-start gap-5 lg:grid-cols-12">
 			<div class="min-w-0 lg:col-span-5">
-				<TabelWatchlist {baris} terpilih={data.kode} />
+				<TabelWatchlist {baris} terpilih={data.kode} memuat={!trenSiap} />
 			</div>
 
 			<div class="min-w-0 lg:col-span-7">
@@ -206,6 +356,7 @@
 							<PanelEmiten
 								item={terpilih.item}
 								kutipan={terpilih.kutipan}
+								penutupan={terpilih.penutupan}
 								risiko={terpilih.risiko}
 								jadwal={data.schedule}
 								harga={data.harga}
@@ -222,6 +373,8 @@
 
 	<DisclaimerBar />
 </section>
+
+<TurWatchlist bind:this={tur} bind:buka={turBuka} langkah={LANGKAH_TUR} onselesai={tandaiTur} />
 
 <style>
 	.langsung {
@@ -261,6 +414,16 @@
 		}
 	}
 
+	.slot {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 6px;
+		border: 1px solid var(--edge-soft);
+		border-radius: 999px;
+		padding: 5px 12px;
+		font-size: 12px;
+	}
+
 	.kabar {
 		display: flex;
 		align-items: center;
@@ -273,51 +436,80 @@
 		color: var(--color-secondary);
 	}
 
-	.slot {
-		min-width: 12rem;
-		border: 1px solid var(--edge-soft);
-		border-radius: 14px;
-		background: rgba(255, 255, 255, 0.025);
-		padding: 10px 14px;
-	}
-
-	.lajur-slot {
-		display: block;
-		height: 4px;
-		margin-top: 8px;
-		overflow: hidden;
-		border-radius: 999px;
-		background: rgba(180, 205, 255, 0.1);
-	}
-
-	.lajur-slot span {
-		display: block;
-		height: 100%;
-		border-radius: 999px;
-		background: var(--color-diamond-500);
-	}
-
 	.kosong {
 		border: 1px solid var(--edge);
 		border-radius: 20px;
 		background:
-			radial-gradient(600px 240px at 20% 0%, rgba(74, 158, 255, 0.12), transparent 70%),
+			radial-gradient(700px 260px at 85% 0%, rgba(74, 158, 255, 0.1), transparent 70%),
 			var(--color-base);
-		padding: 28px;
+		padding: 22px 18px;
 	}
 
-	.ikon-kosong {
+	@media (min-width: 640px) {
+		.kosong {
+			padding: 28px;
+		}
+	}
+
+	.contoh {
+		border: 1px solid var(--edge);
+		border-radius: 18px;
+		background: rgba(8, 11, 18, 0.5);
+		padding: 12px 10px 14px;
+	}
+
+	.keterangan {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px 16px;
+		margin-top: 10px;
+		padding-inline: 6px;
+		font-size: 11.5px;
+		color: var(--color-muted);
+	}
+
+	.keterangan li {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.keterangan li::before {
+		content: '';
+		width: 5px;
+		height: 5px;
+		border-radius: 999px;
+		background: var(--color-diamond-300);
+	}
+
+	.kerangka-saran {
 		display: grid;
-		width: 40px;
-		height: 40px;
-		place-items: center;
-		border: 1px solid var(--color-diamond-700);
-		border-radius: 12px;
-		background: var(--color-diamond-900);
-		color: var(--color-diamond-300);
+		grid-template-columns: 36px minmax(0, 1fr) 70px;
+		align-items: center;
+		gap: 12px;
+		border-bottom: 1px solid var(--edge-soft);
+		padding: 12px 2px;
 	}
 
-	.chip-populer {
+	.kerangka-saran span {
+		height: 14px;
+		border-radius: 6px;
+		background: rgba(180, 205, 255, 0.08);
+		animation: denyut-kerangka 1.4s ease-in-out infinite;
+	}
+
+	.kerangka-saran span:first-child {
+		height: 36px;
+		border-radius: 11px;
+	}
+
+	@keyframes denyut-kerangka {
+		50% {
+			opacity: 0.45;
+		}
+	}
+
+	.chip-cadangan {
 		display: inline-flex;
 		align-items: center;
 		gap: 7px;
@@ -328,23 +520,14 @@
 		color: var(--color-diamond-300);
 		transition:
 			border-color 0.2s ease,
-			background 0.2s ease,
-			transform 0.2s ease;
+			background 0.2s ease;
 	}
 
 	@media (hover: hover) {
-		.chip-populer:hover {
+		.chip-cadangan:hover {
 			border-color: var(--color-diamond-500);
 			background: rgba(74, 158, 255, 0.08);
-			transform: translateY(-2px);
 		}
-	}
-
-	.langkah {
-		border: 1px solid var(--edge-soft);
-		border-radius: 14px;
-		background: rgba(255, 255, 255, 0.02);
-		padding: 14px 16px;
 	}
 
 	.wadah-panel {
