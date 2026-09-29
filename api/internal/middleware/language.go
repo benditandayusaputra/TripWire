@@ -103,6 +103,7 @@ var kamusInggris = map[string]string{
 	"Format email tidak valid":                                               "Email format is invalid",
 	"Format permintaan tidak valid":                                          "The request format is invalid",
 	"Halaman tidak ditemukan":                                                "Page not found",
+	"Indeks tidak tersedia, pilih IHSG, LQ45, atau IDX30":                    "Index not available, choose IHSG, LQ45, or IDX30",
 	"Isi berkas tidak cocok dengan tipe yang diklaim":                        "The file content does not match its stated type",
 	"Isi permintaan memuat markup yang tidak diizinkan":                      "The request contains markup that is not allowed",
 	"Jenis insight tidak dikenal":                                            "Unknown insight type",
