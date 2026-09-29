@@ -6,6 +6,7 @@
 		type EmitenDipantau,
 		type KondisiPeringatan
 	} from '$lib/api/notifications';
+	import { t } from '$lib/bahasa.svelte';
 
 	let { emiten }: { emiten: EmitenDipantau[] } = $props();
 
@@ -20,7 +21,10 @@
 			await ubahKondisiPeringatan(item.id, kondisi.id, !kondisi.is_active);
 			await invalidateAll();
 		} catch (err) {
-			galat = err instanceof Error ? err.message : 'Kondisi gagal diubah.';
+			galat =
+				err instanceof Error
+					? err.message
+					: t('Kondisi gagal diubah.', "Couldn't update the condition.");
 		} finally {
 			mengubah = '';
 		}
@@ -59,7 +63,12 @@
 						{/each}
 					</ul>
 				{:else}
-					<p class="text-muted text-[12px]">Belum ada kondisi, semua insight dikirim.</p>
+					<p class="text-muted text-[12px]">
+						{t(
+							'Belum ada kondisi, semua insight dikirim.',
+							'No conditions yet, so every insight is sent.'
+						)}
+					</p>
 				{/if}
 			</li>
 		{/each}
@@ -69,7 +78,10 @@
 	{/if}
 {:else}
 	<p class="text-muted text-[12.5px]">
-		Belum ada saham di watchlist, jadi belum ada yang dipantau.
+		{t(
+			'Belum ada saham di watchlist, jadi belum ada yang dipantau.',
+			'No stocks on your watchlist yet, so nothing is being monitored.'
+		)}
 	</p>
 {/if}
 

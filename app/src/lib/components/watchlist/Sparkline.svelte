@@ -58,7 +58,7 @@
 	}
 
 	.dasar {
-		stroke: rgba(180, 205, 255, 0.22);
+		stroke: color-mix(in srgb, var(--kilau) 22%, transparent);
 		stroke-dasharray: 2 3;
 		vector-effect: non-scaling-stroke;
 	}

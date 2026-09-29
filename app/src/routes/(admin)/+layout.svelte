@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { ArrowLeft, LogOut, ShieldCheck } from 'lucide-svelte';
+	import Preferensi from '$lib/components/Preferensi.svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
+	import { t } from '$lib/bahasa.svelte';
 
 	let { data, children } = $props();
 </script>
@@ -19,9 +21,11 @@
 			</div>
 
 			<div class="flex items-center gap-3">
+				<Preferensi />
+
 				<a href="/dashboard" class="tw-ghost px-3 py-1.5 text-[13px]">
 					<ArrowLeft class="size-3.5" aria-hidden="true" />
-					Aplikasi
+					{t('Aplikasi', 'App')}
 				</a>
 
 				<span data-testid="current-user" class="tw-data text-muted hidden text-[12px] md:inline">
@@ -35,7 +39,7 @@
 						class="tw-ghost px-3 py-1.5 text-[13px]"
 					>
 						<LogOut class="size-3.5" aria-hidden="true" />
-						Keluar
+						{t('Keluar', 'Log out')}
 					</button>
 				</form>
 			</div>

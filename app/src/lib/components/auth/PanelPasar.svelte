@@ -13,6 +13,7 @@
 	} from '$lib/components/beranda/simulasi';
 	import { emiten } from '$lib/emiten';
 	import { tierDariSkor } from '$lib/skor';
+	import { bahasa, lokal, t } from '$lib/bahasa.svelte';
 
 	const HARI = HARI_NOTIFIKASI + 4;
 	const data = lilin.slice(0, HARI) as Lilin[];
@@ -51,18 +52,19 @@
 	const tutupAkhir = data[HARI - 1].tutup;
 	const selisih = ((tutupAkhir - tutupAwal) / tutupAwal) * 100;
 
-	const angka = new Intl.NumberFormat('id-ID');
-	const persen = new Intl.NumberFormat('id-ID', {
-		minimumFractionDigits: 1,
-		maximumFractionDigits: 1
-	});
+	const angka = (nilai: number) => nilai.toLocaleString(lokal());
+	const persen = (nilai: number) =>
+		nilai.toLocaleString(lokal(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 	const tgl = (hari: number) =>
-		tanggal[hari].toLocaleDateString('id-ID', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+		tanggal[hari].toLocaleDateString(lokal(), { day: 'numeric', month: 'short', timeZone: 'UTC' });
 </script>
 
 <section
-	aria-label="Contoh peringatan TripWire dengan emiten fiktif"
-	class="panggung relative isolate order-1 flex h-60 flex-col overflow-hidden sm:h-72 lg:sticky lg:top-0 lg:h-dvh"
+	aria-label={t(
+		'Contoh peringatan TripWire dengan emiten fiktif',
+		'Example TripWire alert with a fictional company'
+	)}
+	class="panggung tw-gelap relative isolate order-1 flex h-60 flex-col overflow-hidden sm:h-72 lg:sticky lg:top-0 lg:h-dvh"
 >
 	<img
 		src="/foto/skyline-jakarta-1600.webp"
@@ -79,7 +81,10 @@
 		<Wordmark />
 
 		<p class="judul text-ink mt-14 hidden max-w-lg lg:block">
-			Red flag saham terdeteksi sebelum jadi berita.
+			{t(
+				'Red flag saham terdeteksi sebelum jadi berita.',
+				'Stock red flags spotted before they make the news.'
+			)}
 		</p>
 
 		<div class="relative mt-4 max-w-sm lg:my-auto lg:max-w-160 lg:pt-10">
@@ -91,12 +96,12 @@
 						>
 							{TICKER}
 						</span>
-						<span class="text-muted text-[12.5px]">Emiten fiktif</span>
+						<span class="text-muted text-[12.5px]">{t('Emiten fiktif', 'Fictional company')}</span>
 					</span>
 					<span class="tw-data mt-1.5 flex items-baseline gap-2.5">
-						<span class="text-ink text-[26px] leading-none">{angka.format(tutupAkhir)}</span>
-						<span class="text-naik text-[13px]">▲ {persen.format(selisih)}%</span>
-						<span class="text-muted text-[12px]">sejak {tgl(0)}</span>
+						<span class="text-ink text-[26px] leading-none">{angka(tutupAkhir)}</span>
+						<span class="text-naik text-[13px]">▲ {persen(selisih)}%</span>
+						<span class="text-muted text-[12px]">{t(`sejak ${tgl(0)}`, `since ${tgl(0)}`)}</span>
 					</span>
 				</figcaption>
 
@@ -108,8 +113,14 @@
 						aria-labelledby="judul-grafik-masuk"
 					>
 						<title id="judul-grafik-masuk">
-							Harga {TICKER} naik {persen.format(selisih)} persen dalam {HARI} hari bursa, sementara Red
-							Flag Score naik dari {segmen[0].nilai} ke {skorAkhir} dan melewati batas notifikasi {BATAS}.
+							{#if bahasa() === 'en'}
+								{TICKER} price rose {persen(selisih)} percent over {HARI} trading days, while the Red
+								Flag Score climbed from {segmen[0].nilai} to {skorAkhir} and crossed the alert threshold
+								of {BATAS}.
+							{:else}
+								Harga {TICKER} naik {persen(selisih)} persen dalam {HARI} hari bursa, sementara Red Flag
+								Score naik dari {segmen[0].nilai} ke {skorAkhir} dan melewati batas notifikasi {BATAS}.
+							{/if}
 						</title>
 
 						{#each [1200, 1300] as nilai (nilai)}
@@ -120,8 +131,7 @@
 								y2={yHarga(nilai)}
 								class="kisi"
 							/>
-							<text x={LEBAR - KANAN + 8} y={yHarga(nilai) + 3.5} class="label"
-								>{angka.format(nilai)}</text
+							<text x={LEBAR - KANAN + 8} y={yHarga(nilai) + 3.5} class="label">{angka(nilai)}</text
 							>
 						{/each}
 
@@ -177,7 +187,7 @@
 
 				<p class="flex items-baseline gap-3 border-t border-(--edge-soft) px-5 py-3 text-[13px]">
 					<span class="tw-data text-diamond-300 flex-none">{tgl(HARI_NOTIFIKASI)}</span>
-					<span class="text-secondary">{kejadianPada(HARI_NOTIFIKASI).teks}</span>
+					<span class="text-secondary">{t(...kejadianPada(HARI_NOTIFIKASI).teks)}</span>
 				</p>
 			</figure>
 
@@ -186,13 +196,19 @@
 				<div class="min-w-0 flex-1">
 					<p class="flex items-baseline justify-between gap-3">
 						<span class="text-ink text-[13px] font-medium">TripWire</span>
-						<span class="text-muted text-[11.5px]">baru saja</span>
+						<span class="text-muted text-[11.5px]">{t('baru saja', 'just now')}</span>
 					</p>
 					<p class="text-ink text-[13.5px] leading-snug font-semibold">
-						{TICKER} menyentuh skor {skorAkhir}, {tierDariSkor(skorAkhir).label}
+						{t(
+							`${TICKER} menyentuh skor ${skorAkhir}, ${tierDariSkor(skorAkhir).label}`,
+							`${TICKER} hit a score of ${skorAkhir}, ${tierDariSkor(skorAkhir).label}`
+						)}
 					</p>
 					<p class="text-secondary mt-0.5 hidden text-[12.5px] leading-snug sm:block">
-						Lima orang dalam menjual dalam 30 hari dan kepemilikan berubah 8 poin.
+						{t(
+							'Lima orang dalam menjual dalam 30 hari dan kepemilikan berubah 8 poin.',
+							'Five insiders sold within 30 days and ownership shifted by 8 points.'
+						)}
 					</p>
 				</div>
 			</div>

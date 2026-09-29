@@ -2,6 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { BellOff, BellRing, MonitorSmartphone, Radio, Send, X } from 'lucide-svelte';
 	import { cabutPerangkat, kirimPushUji, type PerangkatPush } from '$lib/api/notifications';
+	import { t } from '$lib/bahasa.svelte';
 	import { formatTanggalSaja } from '$lib/insight';
 	import { namaPerangkat } from '$lib/notifikasi';
 	import { pushStore } from '$lib/pwa.svelte';
@@ -30,10 +31,16 @@
 		try {
 			const hasil = await kirimPushUji();
 			pesanUji = hasil.devices
-				? `Notifikasi uji terkirim ke ${hasil.delivered} dari ${hasil.devices} perangkat.`
-				: 'Belum ada perangkat yang berlangganan.';
+				? t(
+						`Notifikasi uji terkirim ke ${hasil.delivered} dari ${hasil.devices} perangkat.`,
+						`Test alert sent to ${hasil.delivered} of ${hasil.devices} ${hasil.devices === 1 ? 'device' : 'devices'}.`
+					)
+				: t('Belum ada perangkat yang berlangganan.', 'No devices are subscribed yet.');
 		} catch (galat) {
-			pesanUji = galat instanceof Error ? galat.message : 'Notifikasi uji gagal dikirim.';
+			pesanUji =
+				galat instanceof Error
+					? galat.message
+					: t('Notifikasi uji gagal dikirim.', "Couldn't send the test alert.");
 		} finally {
 			menguji = false;
 		}
@@ -59,11 +66,18 @@
 			aria-hidden="true"
 		/>
 		<div class="min-w-0 flex-1">
-			<p class="text-ink text-[13.5px] font-medium">Langsung di aplikasi</p>
-			<p class="tw-caption">Insight baru muncul di halaman ini tanpa muat ulang.</p>
+			<p class="text-ink text-[13.5px] font-medium">
+				{t('Langsung di aplikasi', 'Live in the app')}
+			</p>
+			<p class="tw-caption">
+				{t(
+					'Insight baru muncul di halaman ini tanpa muat ulang.',
+					'New insights show up on this page without reloading.'
+				)}
+			</p>
 		</div>
 		<span class="tw-data text-[11px] {presenceStore.terhubung ? 'text-tier-low' : 'text-muted'}">
-			{presenceStore.terhubung ? 'AKTIF' : 'MENYAMBUNG'}
+			{presenceStore.terhubung ? t('AKTIF', 'ACTIVE') : t('MENYAMBUNG', 'CONNECTING')}
 		</span>
 	</div>
 
@@ -75,20 +89,36 @@
 		{/if}
 		<div class="min-w-0 flex-1 space-y-2.5">
 			<div>
-				<p class="text-ink text-[13.5px] font-medium">Push di perangkat ini</p>
+				<p class="text-ink text-[13.5px] font-medium">
+					{t('Push di perangkat ini', 'Push on this device')}
+				</p>
 				<p data-testid="status-push" class="tw-caption">
 					{#if !pushStore.didukung}
-						Browser ini tidak mendukung Web Push.
+						{t('Browser ini tidak mendukung Web Push.', "This browser doesn't support Web Push.")}
 					{:else if pushStore.berlangganan}
-						Aktif, insight baru dikirim meski aplikasi sedang tertutup.
+						{t(
+							'Aktif, insight baru dikirim meski aplikasi sedang tertutup.',
+							'On. New insights are sent even when the app is closed.'
+						)}
 					{:else if pushStore.izin === 'denied'}
-						Izin diblokir di pengaturan browser.
+						{t(
+							'Izin diblokir di pengaturan browser.',
+							'Permission is blocked in your browser settings.'
+						)}
 					{:else}
-						Belum aktif, insight baru hanya tampil saat halaman ini terbuka.
+						{t(
+							'Belum aktif, insight baru hanya tampil saat halaman ini terbuka.',
+							'Off. New insights only show up while this page is open.'
+						)}
 					{/if}
 				</p>
 				{#if !pushServer}
-					<p class="text-muted mt-1 text-[12px]">Server belum dikonfigurasi untuk Web Push.</p>
+					<p class="text-muted mt-1 text-[12px]">
+						{t(
+							'Server belum dikonfigurasi untuk Web Push.',
+							"The server isn't set up for Web Push yet."
+						)}
+					</p>
 				{/if}
 			</div>
 
@@ -102,7 +132,7 @@
 						onclick={aktifkan}
 					>
 						<BellRing class="size-3.5" aria-hidden="true" />
-						{pushStore.sibuk ? 'Memproses' : 'Aktifkan push'}
+						{pushStore.sibuk ? t('Memproses', 'Processing') : t('Aktifkan push', 'Turn on push')}
 					</button>
 				{:else if pushStore.berlangganan}
 					<button
@@ -113,7 +143,7 @@
 						onclick={uji}
 					>
 						<Send class="size-3.5" aria-hidden="true" />
-						{menguji ? 'Mengirim' : 'Kirim uji'}
+						{menguji ? t('Mengirim', 'Sending') : t('Kirim uji', 'Send test')}
 					</button>
 					<button
 						type="button"
@@ -123,7 +153,7 @@
 						onclick={matikan}
 					>
 						<BellOff class="size-3.5" aria-hidden="true" />
-						Matikan
+						{t('Matikan', 'Turn off')}
 					</button>
 				{/if}
 			</div>
@@ -139,7 +169,7 @@
 	<div class="border-line space-y-2 border-t pt-4">
 		<p class="tw-overline flex items-center gap-2">
 			<MonitorSmartphone class="size-3.5" aria-hidden="true" />
-			Perangkat terdaftar
+			{t('Perangkat terdaftar', 'Registered devices')}
 			<span data-testid="jumlah-perangkat" class="text-secondary ml-auto">{perangkat.length}</span>
 		</p>
 
@@ -151,18 +181,24 @@
 							<p class="text-ink truncate text-[13px]">
 								{namaPerangkat(item.endpoint)}
 								{#if item.endpoint === pushStore.endpoint}
-									<span class="tw-data text-diamond-300 ml-1 text-[10.5px]">PERANGKAT INI</span>
+									<span class="tw-data text-diamond-300 ml-1 text-[10.5px]"
+										>{t('PERANGKAT INI', 'THIS DEVICE')}</span
+									>
 								{/if}
 							</p>
 							<p class="tw-data text-muted text-[11px]">
-								sejak {formatTanggalSaja(item.created_at)}
+								{t('sejak', 'since')}
+								{formatTanggalSaja(item.created_at)}
 							</p>
 						</div>
 						<button
 							type="button"
 							data-testid="cabut-perangkat"
 							class="cabut"
-							aria-label="Cabut {namaPerangkat(item.endpoint)}"
+							aria-label={t(
+								`Cabut ${namaPerangkat(item.endpoint)}`,
+								`Remove ${namaPerangkat(item.endpoint)}`
+							)}
 							disabled={mencabut === item.id}
 							onclick={() => cabut(item)}
 						>
@@ -172,7 +208,9 @@
 				{/each}
 			</ul>
 		{:else}
-			<p class="text-muted text-[12.5px]">Belum ada perangkat yang menerima push.</p>
+			<p class="text-muted text-[12.5px]">
+				{t('Belum ada perangkat yang menerima push.', 'No devices are receiving push yet.')}
+			</p>
 		{/if}
 	</div>
 </div>
@@ -209,7 +247,7 @@
 
 	@media (hover: hover) {
 		.cabut:not(:disabled):hover {
-			background: rgba(255, 255, 255, 0.06);
+			background: color-mix(in srgb, var(--cahaya) 6%, transparent);
 			color: var(--color-ink);
 		}
 	}

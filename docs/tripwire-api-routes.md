@@ -131,6 +131,15 @@ langsung dikirimi web push.
 | POST | /admin/system/trigger-scan | Admin | Jalanin scheduler manual, buat testing |
 | GET | /admin/users | Admin | List user, buat debugging |
 
+## Bahasa pesan
+
+Pesan untuk pengguna ditulis dalam bahasa Indonesia. Kalau permintaan membawa cookie `tw_bahasa=en`
+(diset frontend dan ikut diteruskan lewat `panggilApi` maupun proxy `/api`), middleware `Language` yang
+dipasang paling luar menerjemahkan string `error` dan `message` di level teratas balasan JSON serta
+setiap nilai string di objek `fields` lewat kamus di `api/internal/middleware/language.go`. Kode status,
+kunci lain seperti `reason`, balasan non JSON, dan stream SSE tidak diubah. String yang belum ada di
+kamus dikirim apa adanya dalam bahasa Indonesia, jadi pesan baru perlu ikut ditambahkan ke kamus.
+
 ## Catatan implementasi
 - Endpoint dengan **User (owner)** wajib filter `WHERE user_id = ?` di query, balas 404 (bukan 403) kalau resource ada tapi bukan milik pemanggil.
 - Endpoint di grup Admin dipasangin middleware `RequireAdmin` di atas `RequireAuth`, bukan pengecekan manual per handler.

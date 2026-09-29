@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { panggilApi, pesanGalat } from '$lib/server/api';
+import { teks } from '$lib/bahasa.svelte';
 import type { Actions, PageServerLoad } from './$types';
 
 type Status = {
@@ -34,7 +35,7 @@ export const load: PageServerLoad = async ({ request, cookies }) => {
 };
 
 export const actions: Actions = {
-	mulai: async ({ request, cookies }) => {
+	mulai: async ({ request, cookies, locals }) => {
 		const { response, payload } = await panggilApi(
 			'/auth/totp/setup',
 			{ method: 'POST', headers: csrfHeader(cookies) },
@@ -44,14 +45,17 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'mulai',
-				error: pesanGalat(payload, 'Gagal menyiapkan dua faktor')
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal menyiapkan dua faktor', 'Could not set up two-factor')
+				)
 			});
 		}
 
 		return { aksi: 'mulai', setup: payload?.setup };
 	},
 
-	konfirmasi: async ({ request, cookies }) => {
+	konfirmasi: async ({ request, cookies, locals }) => {
 		const form = await request.formData();
 		const code = String(form.get('code') ?? '');
 		const setupSerialized = String(form.get('setup') ?? '');
@@ -65,7 +69,10 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'konfirmasi',
-				error: pesanGalat(payload, 'Kode verifikasi ditolak'),
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Kode verifikasi ditolak', 'Verification code rejected')
+				),
 				fields: (payload?.fields ?? {}) as Record<string, string>,
 				setup: setupSerialized ? JSON.parse(setupSerialized) : undefined
 			});
@@ -74,7 +81,7 @@ export const actions: Actions = {
 		return { aksi: 'konfirmasi', backupCodes: (payload?.backup_codes ?? []) as string[] };
 	},
 
-	matikan: async ({ request, cookies }) => {
+	matikan: async ({ request, cookies, locals }) => {
 		const form = await request.formData();
 		const password = String(form.get('password') ?? '');
 
@@ -87,7 +94,10 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'matikan',
-				error: pesanGalat(payload, 'Gagal mematikan dua faktor'),
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal mematikan dua faktor', 'Could not turn off two-factor')
+				),
 				fields: (payload?.fields ?? {}) as Record<string, string>
 			});
 		}
@@ -95,7 +105,7 @@ export const actions: Actions = {
 		return { aksi: 'matikan', sukses: true };
 	},
 
-	kodeBaru: async ({ request, cookies }) => {
+	kodeBaru: async ({ request, cookies, locals }) => {
 		const { response, payload } = await panggilApi(
 			'/auth/totp/backup-codes',
 			{ headers: csrfHeader(cookies) },
@@ -105,7 +115,14 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'kodeBaru',
-				error: pesanGalat(payload, 'Gagal membuat kode cadangan baru')
+				error: pesanGalat(
+					payload,
+					teks(
+						locals.bahasa,
+						'Gagal membuat kode cadangan baru',
+						'Could not generate new backup codes'
+					)
+				)
 			});
 		}
 

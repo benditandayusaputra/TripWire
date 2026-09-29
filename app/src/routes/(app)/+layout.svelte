@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
 	import { Bell, LayoutGrid, ListChecks, LogOut, ShieldCheck, UserRound } from 'lucide-svelte';
+	import Preferensi from '$lib/components/Preferensi.svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
+	import { t } from '$lib/bahasa.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
 
 	let { data, children } = $props();
@@ -10,12 +12,12 @@
 		authStore.set(data.user);
 	});
 
-	const menu = [
-		{ href: '/dashboard', label: 'Beranda', icon: LayoutGrid },
+	const menu = $derived([
+		{ href: '/dashboard', label: t('Beranda', 'Home'), icon: LayoutGrid },
 		{ href: '/watchlist', label: 'Watchlist', icon: ListChecks },
-		{ href: '/notifications', label: 'Notifikasi', icon: Bell },
-		{ href: '/account', label: 'Akun', icon: UserRound }
-	];
+		{ href: '/notifications', label: t('Notifikasi', 'Alerts'), icon: Bell },
+		{ href: '/account', label: t('Akun', 'Account'), icon: UserRound }
+	]);
 
 	const inisial = $derived(
 		(data.user?.full_name ?? '')
@@ -61,7 +63,9 @@
 								data-testid="lencana-notifikasi"
 								class="tw-data bg-diamond-500 min-w-5 rounded-full px-1.5 text-center text-[10.5px] leading-5 font-semibold text-[#04101f]"
 							>
-								{data.unread > 99 ? '99+' : data.unread}<span class="sr-only"> belum dibaca</span>
+								{data.unread > 99 ? '99+' : data.unread}<span class="sr-only">
+									{t('belum dibaca', 'unread')}</span
+								>
 							</span>
 						{/if}
 					</a>
@@ -69,6 +73,8 @@
 			</nav>
 
 			<div class="flex items-center gap-3">
+				<Preferensi />
+
 				{#if data.user?.role === 'admin'}
 					<a
 						href="/admin"
@@ -103,11 +109,11 @@
 					<button
 						type="submit"
 						data-testid="logout-button"
-						aria-label="Keluar dari akun"
+						aria-label={t('Keluar dari akun', 'Log out of your account')}
 						class="tw-ghost px-3 py-1.5 text-[13px]"
 					>
 						<LogOut class="size-3.5" aria-hidden="true" />
-						Keluar
+						{t('Keluar', 'Log out')}
 					</button>
 				</form>
 			</div>
@@ -144,7 +150,9 @@
 								<span
 									class="tw-data bg-diamond-500 absolute -top-1.5 -right-2.5 min-w-4 rounded-full px-1 text-center text-[9.5px] leading-4 font-semibold text-[#04101f]"
 								>
-									{data.unread > 99 ? '99+' : data.unread}<span class="sr-only"> belum dibaca</span>
+									{data.unread > 99 ? '99+' : data.unread}<span class="sr-only">
+										{t('belum dibaca', 'unread')}</span
+									>
 								</span>
 							{/if}
 						</span>
