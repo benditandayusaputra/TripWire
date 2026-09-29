@@ -26,13 +26,18 @@ function laporanDasar({
 	subIndustry,
 	publik,
 	lain = [],
-	harga = [1500, 0.004, 1200, 1800, 44, 60, []]
+	harga = [1500, 0.004, 1200, 1800, 44, 60, []],
+	profil = {},
+	kepemilikan = {},
+	direksi = [],
+	sahamDireksi = null
 }) {
 	const [penutupan, ubah, rendah, tinggi, triliun, peringkat, indices] = harga;
 	return {
 		symbol,
 		company_name: nama,
 		overview: {
+			...profil,
 			listing_board: 'Main',
 			sector,
 			sub_sector: subSector,
@@ -53,10 +58,51 @@ function laporanDasar({
 		financials: { historical_financials: [] },
 		ownership: {
 			major_shareholders: pemegang([...lain, ['Public', publik]]),
-			top_transactions: null
+			top_transactions: null,
+			...kepemilikan
+		},
+		management: {
+			key_executives: direksi.map(([name, position]) => ({ name, position })),
+			executives_shareholdings: sahamDireksi
 		}
 	};
 }
+
+const KATEGORI_INVESTOR = [
+	'individual',
+	'mutual_fund',
+	'pension_fund',
+	'insurance',
+	'corporate',
+	'financial_institutions',
+	'securities_companies',
+	'foundation',
+	'other'
+];
+
+function komposisiBulan(hari, lokal, asing, pemegangSaham, perubahan) {
+	const baris = {
+		date: hariLalu(hari),
+		shares_number: 24_030_764_725,
+		numbers_of_shareholders: pemegangSaham,
+		change_in_shareholders: perubahan
+	};
+	KATEGORI_INVESTOR.forEach((nama, urutan) => {
+		baris[`${nama}_l`] = lokal[urutan] ?? 0;
+		baris[`${nama}_f`] = asing[urutan] ?? 0;
+	});
+	baris.total_l = lokal.reduce((jumlah, nilai) => jumlah + nilai, 0);
+	baris.total_f = asing.reduce((jumlah, nilai) => jumlah + nilai, 0);
+	return baris;
+}
+
+const komposisi = {
+	ANTM: [
+		komposisiBulan(62, [4_000_000_000, 900_000_000], [2_500_000_000, 1_100_000_000], 500_000, 8_000),
+		komposisiBulan(31, [4_200_000_000, 1_000_000_000, 300_000_000], [2_400_000_000, 900_000_000], 512_345, 12_345)
+	],
+	TLKM: []
+};
 
 const laporan = {
 	ANTM: laporanDasar({
@@ -68,7 +114,42 @@ const laporan = {
 		subIndustry: 'Diversified Metals & Minerals',
 		publik: 35,
 		lain: [['Inalum (Persero)', 65]],
-		harga: [3230, -0.0122, 2450, 4970, 77.6, 27, ['LQ45', 'IDX30']]
+		harga: [3230, -0.0122, 2450, 4970, 77.6, 27, ['LQ45', 'IDX30']],
+		profil: {
+			address: 'Gedung Uji Tambang\r\nJalan Contoh No. 1\r\nJakarta 12530',
+			website: 'www.aneka-tambang.test',
+			phone: '021-0000000',
+			email: 'ir@aneka-tambang.test',
+			employee_num: 2750,
+			listing_date: '1997-11-27',
+			affiliates: ['Grup Afiliasi Uji']
+		},
+		kepemilikan: {
+			top_transactions: {
+				date: hariLalu(40),
+				top_buyers: [{ name: 'Dana Pensiun Uji', changeAmount: 12_500_000 }],
+				top_sellers: [{ name: 'Manajer Investasi Uji', changeAmount: -8_000_000 }]
+			},
+			institutional_transaction_flow: [
+				{ date: hariLalu(40), net_transaction: 4_500_000 },
+				{ date: hariLalu(70), net_transaction: -2_000_000 }
+			],
+			whale_investors: ['Investor Kakap Uji'],
+			conglomerates_group: ['Grup BUMN Uji']
+		},
+		direksi: [
+			['Direktur Utama Uji', 'President Director'],
+			['Direktur Keuangan Uji', 'Director'],
+			['Komisaris Utama Uji', 'President Commissioner']
+		],
+		sahamDireksi: [
+			{
+				name: 'Direktur Keuangan Uji',
+				position: 'Director',
+				share_amount: 244_000,
+				share_percentage: 0.00001
+			}
+		]
 	}),
 	PTBA: laporanDasar({
 		symbol: 'PTBA.JK',
@@ -79,7 +160,8 @@ const laporan = {
 		subIndustry: 'Coal Production',
 		publik: 40,
 		lain: [['MIND ID', 60]],
-		harga: [2650, 0.0076, 2300, 3100, 30.5, 45, ['LQ45']]
+		harga: [2650, 0.0076, 2300, 3100, 30.5, 45, ['LQ45']],
+		profil: { website: 'javascript:alert(1)' }
 	}),
 	MDKA: laporanDasar({
 		symbol: 'MDKA.JK',
@@ -552,6 +634,17 @@ createServer((req, res) => {
 		const hasil = { symbol: data.symbol, company_name: data.company_name };
 		for (const nama of bagian) hasil[nama] = data[nama] ?? null;
 		return balas(res, 200, hasil);
+	}
+
+	const cocokKomposisi = path.match(/^\/company\/shareholders-composition\/([a-z0-9.]+)\/$/i);
+	if (cocokKomposisi) {
+		const kode = kodeDari(cocokKomposisi[1]);
+		if (!komposisi[kode]) {
+			return balas(res, 404, {
+				error: `Symbol '${kode}.JK' not found in shareholders composition data.`
+			});
+		}
+		return balas(res, 200, { symbol: `${kode}.JK`, year: tahunIni, data: komposisi[kode] });
 	}
 
 	if (path === '/suspensions/') {

@@ -7,7 +7,9 @@ TripWire memakai v2 dengan base URL `https://api.sectors.app/v2` dan header `Aut
 
 | Kebutuhan | Endpoint | Biaya | Cache |
 |---|---|---|---|
-| Laporan emiten (dipakai Red Flag, Market Intelligence, dan `/market/:ticker`) | `/company/report/{symbol}/?sections=overview,valuation,financials,ownership` | 4 | `SECTORS_CACHE_TTL` |
+| Laporan emiten (dipakai Red Flag, Market Intelligence, `/market/:ticker`, dan profil saham) | `/company/report/{symbol}/?sections=overview,valuation,financials,ownership` | 4 | `SECTORS_CACHE_TTL` |
+| Direksi dan saham milik direksi untuk profil saham | `/company/report/{symbol}/?sections=management` | 1 | 7 hari |
+| Komposisi investor lokal dan asing per bulan untuk profil saham | `/company/shareholders-composition/{symbol}/` | 1 | 7 hari |
 | Histori suspend | `/suspensions/?symbol={symbol}&limit=30` | 1 | `SECTORS_CACHE_TTL` |
 | Filing insider dan pemegang saham mayor | `/filings/?symbol={symbol}&start={90 hari lalu}&limit=30` | 1 | `SECTORS_CACHE_TTL` |
 | Pertumbuhan rata rata subsektor | `/subsector/report/{slug}/?sections=growth` | 1 | 7 hari |

@@ -18,8 +18,10 @@ async function tambah(page: Page, ticker: string) {
 
 async function bukaTab(page: Page, nama: 'Harga' | 'Risiko' | 'Pemantauan') {
 	const tab = page.getByTestId('panel-emiten').getByRole('tab', { name: new RegExp(nama) });
-	await tab.click();
-	await expect(tab).toHaveAttribute('aria-selected', 'true');
+	await expect(async () => {
+		await tab.click();
+		await expect(tab).toHaveAttribute('aria-selected', 'true', { timeout: 1000 });
+	}).toPass();
 }
 
 async function siap(page: Page) {
