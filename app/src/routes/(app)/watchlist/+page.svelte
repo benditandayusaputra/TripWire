@@ -4,11 +4,11 @@
 	import { fly } from 'svelte/transition';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { navigating } from '$app/state';
-	import { BellRing, CircleHelp, Plus, TriangleAlert } from 'lucide-svelte';
+	import { BellRing, CircleHelp, List, Plus, TriangleAlert } from 'lucide-svelte';
 	import DisclaimerBar from '$lib/components/DisclaimerBar.svelte';
 	import BarisSaham from '$lib/components/watchlist/BarisSaham.svelte';
-	import CariEmiten from '$lib/components/watchlist/CariEmiten.svelte';
 	import PanelEmiten from '$lib/components/watchlist/PanelEmiten.svelte';
+	import PilihSaham from '$lib/components/watchlist/PilihSaham.svelte';
 	import RingkasanPantauan from '$lib/components/watchlist/RingkasanPantauan.svelte';
 	import SaranSaham from '$lib/components/watchlist/SaranSaham.svelte';
 	import TabelWatchlist from '$lib/components/watchlist/TabelWatchlist.svelte';
@@ -22,7 +22,8 @@
 		HARI_TREN,
 		penutupanTerbaru,
 		type Baris,
-		type SahamTeratas,
+		type SahamPasar,
+		type TabPanel,
 		type Tren
 	} from '$lib/watchlist';
 
@@ -38,7 +39,7 @@
 		{
 			target: '[data-tur="cari"]',
 			judul: 'Tambah saham dari sini',
-			isi: 'Ketik kode atau nama perusahaan, misalnya BBCA atau Telkom, lalu pilih dari daftar. Saat kolom masih kosong, daftarnya berisi saham berkapitalisasi terbesar di BEI.'
+			isi: 'Klik untuk membuka daftar semua saham BEI lengkap dengan harga dari Sectors. Cari lewat kode atau nama, saring per sektor, lalu tekan Pantau. Beberapa saham bisa ditambah sekaligus.'
 		},
 		{
 			target: '[data-tur="baris"]',
@@ -58,7 +59,7 @@
 		{
 			target: '[data-tur="detail"]',
 			judul: 'Detail setiap saham',
-			isi: 'Pilih satu baris untuk melihat grafik tiga bulan, alasan di balik skornya, dan mengatur kapan TripWire memeriksa serta mengabarimu.'
+			isi: 'Pilih satu baris untuk melihat detailnya. Tab Harga berisi grafik tiga bulan, tab Risiko berisi alasan di balik skor, dan tab Pemantauan untuk mengatur kapan TripWire memeriksa serta mengabarimu.'
 		},
 		{
 			target: '[data-tur="kabar"]',
@@ -82,10 +83,12 @@
 	let terakhirTerbaca = presenceStore.insightBaru[0]?.notification_id;
 	let jedaKabar: ReturnType<typeof setTimeout> | undefined;
 	let tur = $state<ReturnType<typeof TurWatchlist>>();
+	let pemilih = $state<ReturnType<typeof PilihSaham>>();
+	let tabPanel = $state<TabPanel>('harga');
 	let turBuka = $state(false);
 	let tren = $state<Record<string, Tren>>({});
 	let trenSiap = $state(false);
-	let teratas = $state<SahamTeratas[]>([]);
+	let teratas = $state<SahamPasar[]>([]);
 	let teratasSiap = $state(false);
 
 	const baris = $derived<Baris[]>(
@@ -176,14 +179,18 @@
 		}
 	}
 
+	function setelahPilih(terakhir: string | null) {
+		if (terakhir) goto(`/watchlist?emiten=${terakhir}`, { noScroll: true });
+	}
+
 	function pintasan(event: KeyboardEvent) {
-		if (turBuka) return;
+		if (turBuka || document.querySelector('dialog[open]')) return;
 		const target = event.target as HTMLElement;
 		const mengetik =
 			['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable;
 		if (event.key === '/' && !mengetik) {
 			event.preventDefault();
-			document.getElementById('ticker')?.focus();
+			pemilih?.buka();
 		} else if (event.key === 'Escape' && data.dipilih && !mengetik) {
 			goto('/watchlist', { noScroll: true });
 		}
@@ -250,19 +257,13 @@
 		</p>
 	{/if}
 
-	<div class="tw-card relative z-20 p-3 sm:p-4">
-		<CariEmiten
-			{dipantau}
-			{penuh}
-			populer={teratas}
-			galat={form?.aksi === 'tambah' ? (form?.error ?? '') : ''}
-		/>
-		{#if penuh}
-			<p class="text-muted mt-2.5 text-[12px]">
-				Watchlist sudah penuh, hapus satu saham untuk menambah yang baru.
-			</p>
-		{/if}
-	</div>
+	<PilihSaham
+		bind:this={pemilih}
+		{dipantau}
+		{penuh}
+		galat={form?.aksi === 'tambah' ? (form?.error ?? '') : ''}
+		onselesai={setelahPilih}
+	/>
 
 	{#if form?.aksi === 'hapus' && form?.error}
 		<p role="alert" class="text-tier-critical flex items-center gap-2 text-[13px]">
@@ -310,9 +311,22 @@
 			</div>
 
 			<div class="mt-7" data-tur="saran">
-				<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-					<h3 class="text-ink text-[15px] font-medium">Mulai dari saham terbesar di BEI</h3>
-					<p class="text-muted text-[12px]">Harga penutupan dan kapitalisasi pasar dari Sectors</p>
+				<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+					<div>
+						<h3 class="text-ink text-[15px] font-medium">Mulai dari saham terbesar di BEI</h3>
+						<p class="text-muted text-[12px]">
+							Harga penutupan dan kapitalisasi pasar dari Sectors
+						</p>
+					</div>
+					<button
+						type="button"
+						data-testid="lihat-semua-saham"
+						class="tw-ghost px-3 py-1.5 text-[13px]"
+						onclick={() => pemilih?.buka()}
+					>
+						<List class="size-4" aria-hidden="true" />
+						Lihat semua saham
+					</button>
 				</div>
 				<div class="mt-2">
 					{#if !teratasSiap}
@@ -342,11 +356,10 @@
 			</div>
 		</section>
 	{:else}
-		<RingkasanPantauan {baris} jadwal={data.schedule} {sekarang} />
-
 		<div class="grid items-start gap-5 lg:grid-cols-12">
-			<div class="min-w-0 lg:col-span-5">
+			<div class="min-w-0 space-y-5 lg:col-span-5">
 				<TabelWatchlist {baris} terpilih={data.kode} memuat={!trenSiap} />
+				<RingkasanPantauan {baris} jadwal={data.schedule} {sekarang} />
 			</div>
 
 			<div class="min-w-0 lg:col-span-7">
@@ -363,6 +376,7 @@
 								insights={data.insights}
 								galatKondisi={form?.aksi === 'kondisi' ? (form?.error ?? '') : ''}
 								galatTampilan={form?.aksi === 'tampilan' ? (form?.error ?? '') : ''}
+								bind:tab={tabPanel}
 							/>
 						</div>
 					{/key}
