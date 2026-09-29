@@ -1,5 +1,6 @@
 import type { Insight } from '$lib/insight';
 import { labelTransaksi, formatRingkas } from '$lib/insight';
+import { lokal, t } from '$lib/bahasa.svelte';
 
 export type Kondisi = {
 	id: string;
@@ -78,19 +79,32 @@ export type SahamPasar = {
 	market_cap: number | null;
 };
 
-export const NAMA_SEKTOR: Record<string, string> = {
-	Financials: 'Keuangan',
-	'Consumer Non-Cyclicals': 'Konsumen primer',
-	Energy: 'Energi',
-	'Basic Materials': 'Barang baku',
-	Infrastructures: 'Infrastruktur',
-	'Consumer Cyclicals': 'Konsumen nonprimer',
-	'Properties & Real Estate': 'Properti',
-	Healthcare: 'Kesehatan',
-	Technology: 'Teknologi',
-	Industrials: 'Perindustrian',
-	'Transportation & Logistic': 'Transportasi'
-};
+function dwibahasa<T extends Record<string, string> | string[]>(
+	wadah: T,
+	pasangan: Record<string, [string, string]> | [string, string][]
+): T {
+	for (const [kunci, [id, en]] of Object.entries(pasangan)) {
+		Object.defineProperty(wadah, kunci, { get: () => t(id, en), enumerable: true });
+	}
+	return wadah;
+}
+
+export const NAMA_SEKTOR = dwibahasa<Record<string, string>>(
+	{},
+	{
+		Financials: ['Keuangan', 'Financials'],
+		'Consumer Non-Cyclicals': ['Konsumen primer', 'Consumer Non-Cyclicals'],
+		Energy: ['Energi', 'Energy'],
+		'Basic Materials': ['Barang baku', 'Basic Materials'],
+		Infrastructures: ['Infrastruktur', 'Infrastructures'],
+		'Consumer Cyclicals': ['Konsumen nonprimer', 'Consumer Cyclicals'],
+		'Properties & Real Estate': ['Properti', 'Properties & Real Estate'],
+		Healthcare: ['Kesehatan', 'Healthcare'],
+		Technology: ['Teknologi', 'Technology'],
+		Industrials: ['Perindustrian', 'Industrials'],
+		'Transportation & Logistic': ['Transportasi', 'Transportation & Logistics']
+	}
+);
 
 export type JenisPeristiwa = 'jual' | 'beli' | 'kepemilikan' | 'suspensi';
 
@@ -134,36 +148,51 @@ export function ronaEmiten(kode: string) {
 	return 195 + ([...kode].reduce((jumlah, huruf) => jumlah * 31 + huruf.charCodeAt(0), 7) % 130);
 }
 
-export const NAMA_KONDISI: Record<string, string> = {
-	daily: 'Harian',
-	weekly: 'Mingguan',
-	recent_event: 'Kejadian terbaru',
-	geopolitical: 'Geopolitik',
-	periodic_custom: 'Berkala, atur sendiri'
-};
+export const NAMA_KONDISI = dwibahasa<Record<string, string>>(
+	{},
+	{
+		daily: ['Harian', 'Daily'],
+		weekly: ['Mingguan', 'Weekly'],
+		recent_event: ['Kejadian terbaru', 'Recent events'],
+		geopolitical: ['Geopolitik', 'Geopolitical'],
+		periodic_custom: ['Berkala, atur sendiri', 'Custom interval']
+	}
+);
 
-export const NAMA_HARI = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+export const NAMA_HARI = dwibahasa<string[]>(
+	[],
+	[
+		['', ''],
+		['Senin', 'Monday'],
+		['Selasa', 'Tuesday'],
+		['Rabu', 'Wednesday'],
+		['Kamis', 'Thursday'],
+		['Jumat', 'Friday'],
+		['Sabtu', 'Saturday'],
+		['Minggu', 'Sunday']
+	]
+);
 
-export const NAMA_SINYAL: Record<string, string> = {
-	insider_clustering: 'Transaksi orang dalam',
-	ownership_change: 'Perubahan kepemilikan',
-	suspension: 'Riwayat suspensi'
-};
+export const NAMA_SINYAL = dwibahasa<Record<string, string>>(
+	{},
+	{
+		insider_clustering: ['Transaksi orang dalam', 'Insider transactions'],
+		ownership_change: ['Perubahan kepemilikan', 'Ownership changes'],
+		suspension: ['Riwayat suspensi', 'Suspension history']
+	}
+);
 
-const angka = new Intl.NumberFormat('id-ID');
-const persen = new Intl.NumberFormat('id-ID', {
-	minimumFractionDigits: 2,
-	maximumFractionDigits: 2
-});
+const persen = (nilai: number) =>
+	nilai.toLocaleString(lokal(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const formatHarga = (nilai: number | null | undefined) =>
-	nilai === null || nilai === undefined ? '-' : angka.format(nilai);
+	nilai === null || nilai === undefined ? '-' : nilai.toLocaleString(lokal());
 
 export function formatUbah(pecahan: number | null | undefined) {
 	if (pecahan === null || pecahan === undefined) return { teks: '-', arah: 0 };
 	const arah = pecahan > 0 ? 1 : pecahan < 0 ? -1 : 0;
 	const simbol = arah > 0 ? '▲' : arah < 0 ? '▼' : '■';
-	return { teks: `${simbol} ${persen.format(Math.abs(pecahan * 100))}%`, arah };
+	return { teks: `${simbol} ${persen(Math.abs(pecahan * 100))}%`, arah };
 }
 
 export const formatRupiah = (nilai: number | null | undefined) =>
@@ -173,7 +202,7 @@ export const tanggalWib = (iso: string) =>
 	new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
 
 export function tanggalPendek(tanggal: string) {
-	return new Date(`${tanggal.slice(0, 10)}T00:00:00Z`).toLocaleDateString('id-ID', {
+	return new Date(`${tanggal.slice(0, 10)}T00:00:00Z`).toLocaleDateString(lokal(), {
 		day: 'numeric',
 		month: 'short',
 		timeZone: 'UTC'
@@ -182,10 +211,11 @@ export function tanggalPendek(tanggal: string) {
 
 export function jamCek(iso: string) {
 	return new Date(iso)
-		.toLocaleString('id-ID', {
+		.toLocaleString(lokal(), {
 			weekday: 'short',
 			hour: '2-digit',
 			minute: '2-digit',
+			hourCycle: 'h23',
 			timeZone: 'Asia/Jakarta'
 		})
 		.replace(',', '');
@@ -193,22 +223,29 @@ export function jamCek(iso: string) {
 
 export function hitungMundur(iso: string, sekarang: number) {
 	const menit = Math.max(0, Math.round((new Date(iso).getTime() - sekarang) / 60000));
-	if (menit < 1) return 'sebentar lagi';
-	if (menit < 60) return `${menit} mnt lagi`;
+	if (menit < 1) return t('sebentar lagi', 'any moment now');
+	if (menit < 60) return t(`${menit} mnt lagi`, `in ${menit} min`);
 	const jam = Math.floor(menit / 60);
-	if (jam < 24) return `${jam} jam ${menit % 60} mnt lagi`;
-	return `${Math.round(jam / 24)} hari lagi`;
+	if (jam < 24) return t(`${jam} jam ${menit % 60} mnt lagi`, `in ${jam} hr ${menit % 60} min`);
+	const hari = Math.round(jam / 24);
+	return t(`${hari} hari lagi`, `in ${hari} ${hari === 1 ? 'day' : 'days'}`);
 }
 
 export function detailKondisi(kondisi: Kondisi) {
 	const { config } = kondisi;
 	if (kondisi.condition_type === 'periodic_custom' && config?.interval_hours) {
-		return `tiap ${config.interval_hours} jam`;
+		const jam = config.interval_hours;
+		return t(`tiap ${jam} jam`, `every ${jam} ${jam === 1 ? 'hour' : 'hours'}`);
 	}
 	if (kondisi.condition_type === 'weekly' && config?.weekday) {
-		return `tiap ${NAMA_HARI[config.weekday] ?? ''}`.trim();
+		return t(
+			`tiap ${NAMA_HARI[config.weekday] ?? ''}`,
+			`every ${NAMA_HARI[config.weekday] ?? ''}`
+		).trim();
 	}
-	if (config?.min_score !== undefined) return `skor minimal ${config.min_score}`;
+	if (config?.min_score !== undefined) {
+		return t(`skor minimal ${config.min_score}`, `minimum score ${config.min_score}`);
+	}
 	return '';
 }
 
@@ -230,23 +267,32 @@ export function peristiwaDari(insight: Insight | undefined): Peristiwa[] {
 			tanggal: tanggalWib(satu.date),
 			jenis: jual ? 'jual' : 'beli',
 			teks: `${satu.holder_name} ${labelTransaksi(satu.transaction_type)}${
-				satu.transaction_value ? ` senilai ${formatRupiah(satu.transaction_value)}` : ''
+				satu.transaction_value
+					? t(' senilai ', ' worth ') + formatRupiah(satu.transaction_value)
+					: ''
 			}`
 		});
 	}
 	for (const satu of data.ownership_changes ?? []) {
-		const arah = satu.delta_pp > 0 ? 'naik' : 'turun';
+		const arah = satu.delta_pp > 0 ? t('naik', 'up') : t('turun', 'down');
+		const poin = persen(Math.abs(satu.delta_pp));
 		hasil.push({
 			tanggal: tanggalWib(satu.last_date),
 			jenis: 'kepemilikan',
-			teks: `Porsi ${satu.holder_name} ${arah} ${persen.format(Math.abs(satu.delta_pp))} poin`
+			teks: t(
+				`Porsi ${satu.holder_name} ${arah} ${poin} poin`,
+				`Stake of ${satu.holder_name} ${arah} ${poin} points`
+			)
 		});
 	}
 	for (const satu of data.suspensions ?? []) {
 		hasil.push({
 			tanggal: tanggalWib(satu.date),
 			jenis: 'suspensi',
-			teks: `Perdagangan dihentikan bursa: ${satu.reason}`
+			teks: t(
+				`Perdagangan dihentikan bursa: ${satu.reason}`,
+				`Trading suspended by the exchange: ${satu.reason}`
+			)
 		});
 	}
 	return hasil.sort((a, b) => (a.tanggal < b.tanggal ? 1 : -1));

@@ -1,3 +1,5 @@
+import { t } from '$lib/bahasa.svelte';
+
 export type Tier = 'low' | 'moderate' | 'high' | 'critical';
 
 type TierInfo = {
@@ -13,8 +15,12 @@ type TierInfo = {
 const TIER: Record<Tier, TierInfo> = {
 	low: {
 		tier: 'low',
-		label: 'Rendah',
-		range: '0 sampai 30',
+		get label() {
+			return t('Rendah', 'Low');
+		},
+		get range() {
+			return t('0 sampai 30', '0 to 30');
+		},
 		color: 'var(--color-tier-low)',
 		text: 'text-tier-low',
 		border: 'border-tier-low/35',
@@ -22,8 +28,12 @@ const TIER: Record<Tier, TierInfo> = {
 	},
 	moderate: {
 		tier: 'moderate',
-		label: 'Sedang',
-		range: '31 sampai 60',
+		get label() {
+			return t('Sedang', 'Moderate');
+		},
+		get range() {
+			return t('31 sampai 60', '31 to 60');
+		},
 		color: 'var(--color-tier-moderate)',
 		text: 'text-tier-moderate',
 		border: 'border-tier-moderate/35',
@@ -31,8 +41,12 @@ const TIER: Record<Tier, TierInfo> = {
 	},
 	high: {
 		tier: 'high',
-		label: 'Tinggi',
-		range: '61 sampai 85',
+		get label() {
+			return t('Tinggi', 'High');
+		},
+		get range() {
+			return t('61 sampai 85', '61 to 85');
+		},
 		color: 'var(--color-tier-high)',
 		text: 'text-tier-high',
 		border: 'border-tier-high/35',
@@ -40,8 +54,12 @@ const TIER: Record<Tier, TierInfo> = {
 	},
 	critical: {
 		tier: 'critical',
-		label: 'Kritis',
-		range: '86 sampai 100',
+		get label() {
+			return t('Kritis', 'Critical');
+		},
+		get range() {
+			return t('86 sampai 100', '86 to 100');
+		},
 		color: 'var(--color-tier-critical)',
 		text: 'text-tier-critical',
 		border: 'border-tier-critical/35',

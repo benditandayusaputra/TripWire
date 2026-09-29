@@ -14,6 +14,7 @@
 	import LogoEmiten from './LogoEmiten.svelte';
 	import { request } from '$lib/api/client';
 	import { saatTerlihat } from '$lib/terlihat';
+	import { t } from '$lib/bahasa.svelte';
 	import {
 		NAMA_SEKTOR,
 		formatHarga,
@@ -37,18 +38,18 @@
 	type Urutan = 'kapitalisasi' | 'naik' | 'turun' | 'kode';
 
 	const LANGKAH = 60;
-	const URUTAN: { nilai: Urutan; label: string }[] = [
-		{ nilai: 'kapitalisasi', label: 'Terbesar' },
-		{ nilai: 'naik', label: 'Naik tertinggi' },
-		{ nilai: 'turun', label: 'Turun terdalam' },
-		{ nilai: 'kode', label: 'Kode A-Z' }
-	];
+	const URUTAN = $derived<{ nilai: Urutan; label: string }[]>([
+		{ nilai: 'kapitalisasi', label: t('Terbesar', 'Largest') },
+		{ nilai: 'naik', label: t('Naik tertinggi', 'Top gainers') },
+		{ nilai: 'turun', label: t('Turun terdalam', 'Top losers') },
+		{ nilai: 'kode', label: t('Kode A-Z', 'Ticker A-Z') }
+	]);
 
 	let dialog = $state<HTMLDialogElement>();
 	let kolom = $state<HTMLInputElement>();
 	let formTambah = $state<HTMLFormElement>();
 	let daftar = $state<SahamPasar[] | null>(null);
-	let galatMuat = $state('');
+	let galatMuat = $state(false);
 	let kata = $state('');
 	let sektor = $state('semua');
 	let urut = $state<Urutan>('kapitalisasi');
@@ -92,17 +93,18 @@
 			.sort((a, b) => peringkat(a) - peringkat(b) || banding[urut](a, b));
 	});
 	const tampil = $derived(saring.slice(0, batas));
+	const sisa = $derived(Math.min(LANGKAH, saring.length - batas));
 	const tanpaHarga = $derived(
 		Boolean(daftar?.length) && !daftar?.some((satu) => satu.last_close_price)
 	);
 
 	async function muat() {
 		if (daftar) return;
-		galatMuat = '';
+		galatMuat = false;
 		try {
 			daftar = (await request<{ stocks: SahamPasar[] }>('/market/stocks')).stocks ?? [];
 		} catch {
-			galatMuat = 'Daftar saham belum bisa dimuat. Tutup lalu buka lagi sebentar kemudian.';
+			galatMuat = true;
 		}
 	}
 
@@ -161,13 +163,17 @@
 	>
 		<Search class="text-muted size-4 flex-none" aria-hidden="true" />
 		<span class="min-w-0 flex-1 truncate text-left">
-			<span class="text-ink font-medium">Cari atau pilih saham</span>
-			<span class="text-muted hidden sm:inline"> dari daftar lengkap BEI</span>
+			<span class="text-ink font-medium"
+				>{t('Cari atau pilih saham', 'Search or pick a stock')}</span
+			>
+			<span class="text-muted hidden sm:inline"
+				>{t(' dari daftar lengkap BEI', ' from the full IDX list')}</span
+			>
 		</span>
 		<kbd class="pintasan" aria-hidden="true">/</kbd>
 		<span class="tambah-cta">
 			<Plus class="size-4" aria-hidden="true" />
-			<span class="hidden sm:inline">Tambah saham</span>
+			<span class="hidden sm:inline">{t('Tambah saham', 'Add stock')}</span>
 		</span>
 	</button>
 	{#if galat}
@@ -182,7 +188,10 @@
 	{/if}
 	{#if penuh}
 		<p class="text-muted mt-2.5 text-[12px]">
-			Watchlist sudah penuh, hapus satu saham untuk menambah yang baru.
+			{t(
+				'Watchlist sudah penuh, hapus satu saham untuk menambah yang baru.',
+				'Your watchlist is full. Remove a stock to add a new one.'
+			)}
 		</p>
 	{/if}
 </div>
@@ -200,19 +209,33 @@
 	<div class="isi">
 		<header class="flex items-start justify-between gap-3 px-5 pt-5">
 			<div class="min-w-0">
-				<h2 id="judul-pilih" class="tw-heading text-ink">Tambah saham ke watchlist</h2>
+				<h2 id="judul-pilih" class="tw-heading text-ink">
+					{t('Tambah saham ke watchlist', 'Add stocks to your watchlist')}
+				</h2>
 				<p class="text-muted mt-0.5 text-[12.5px]">
-					{daftar ? `${daftar.length} emiten BEI` : 'Memuat daftar emiten'}, harga penutupan dan
-					kapitalisasi dari Sectors
+					{daftar
+						? t(
+								`${daftar.length} emiten BEI`,
+								`${daftar.length} IDX ${daftar.length === 1 ? 'stock' : 'stocks'}`
+							)
+						: t('Memuat daftar emiten', 'Loading the stock list')}{t(
+						', harga penutupan dan kapitalisasi dari Sectors',
+						', closing prices and market cap from Sectors'
+					)}
 				</p>
 			</div>
-			<button type="button" class="tombol-tutup" onclick={tutup} aria-label="Tutup daftar saham">
+			<button
+				type="button"
+				class="tombol-tutup"
+				onclick={tutup}
+				aria-label={t('Tutup daftar saham', 'Close stock list')}
+			>
 				<X class="size-4" aria-hidden="true" />
 			</button>
 		</header>
 
 		<div class="px-5 pt-4">
-			<label for="cari-saham" class="sr-only">Cari saham</label>
+			<label for="cari-saham" class="sr-only">{t('Cari saham', 'Search stocks')}</label>
 			<div class="relative">
 				<Search
 					class="text-muted pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2"
@@ -224,7 +247,7 @@
 					id="cari-saham"
 					oninput={ubahSaringan}
 					onkeydown={tombol}
-					placeholder="Cari kode atau nama saham"
+					placeholder={t('Cari kode atau nama saham', 'Search by ticker or company name')}
 					autocomplete="off"
 					spellcheck="false"
 					role="combobox"
@@ -238,14 +261,14 @@
 		</div>
 
 		<div class="saringan">
-			<div class="chip-gulir" role="group" aria-label="Saring sektor">
+			<div class="chip-gulir" role="group" aria-label={t('Saring sektor', 'Filter by sector')}>
 				<button
 					type="button"
 					class="chip"
 					aria-pressed={sektor === 'semua'}
 					onclick={() => ((sektor = 'semua'), ubahSaringan())}
 				>
-					Semua
+					{t('Semua', 'All')}
 				</button>
 				{#each sektorAda as [nama, jumlah] (nama)}
 					<button
@@ -261,7 +284,7 @@
 				{/each}
 			</div>
 			<label class="relative flex-none">
-				<span class="sr-only">Urutkan daftar saham</span>
+				<span class="sr-only">{t('Urutkan daftar saham', 'Sort stock list')}</span>
 				<ArrowDownUp
 					class="text-muted pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2"
 					aria-hidden="true"
@@ -278,9 +301,19 @@
 			</label>
 		</div>
 
-		<div class="daftar" id="daftar-pilih" role="listbox" aria-label="Daftar saham BEI">
+		<div
+			class="daftar"
+			id="daftar-pilih"
+			role="listbox"
+			aria-label={t('Daftar saham BEI', 'IDX stock list')}
+		>
 			{#if galatMuat}
-				<p class="kosong">{galatMuat}</p>
+				<p class="kosong">
+					{t(
+						'Daftar saham belum bisa dimuat. Tutup lalu buka lagi sebentar kemudian.',
+						'The stock list could not be loaded. Close this and open it again in a moment.'
+					)}
+				</p>
 			{:else if !daftar}
 				{#each [0, 1, 2, 3, 4, 5, 6] as urutan (urutan)}
 					<div class="kerangka" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -288,12 +321,18 @@
 			{:else if !tampil.length}
 				<p class="kosong" data-testid="pilih-kosong">
 					<SearchX class="text-muted mx-auto mb-2 size-5" aria-hidden="true" />
-					Tidak ada saham dengan kode atau nama "{kata.trim()}" di BEI.
+					{t(
+						`Tidak ada saham dengan kode atau nama "${kata.trim()}" di BEI.`,
+						`No IDX stock matches the ticker or name "${kata.trim()}".`
+					)}
 				</p>
 			{:else}
 				{#if tanpaHarga}
 					<p class="text-muted px-5 pt-2 pb-1 text-[12px]">
-						Harga dari Sectors sedang tidak tersedia, saham tetap bisa ditambahkan.
+						{t(
+							'Harga dari Sectors sedang tidak tersedia, saham tetap bisa ditambahkan.',
+							'Prices from Sectors are unavailable right now, but you can still add stocks.'
+						)}
 					</p>
 				{/if}
 				{#each tampil as satu, urutan (satu.ticker)}
@@ -342,7 +381,9 @@
 							{:else}
 								<Plus class="size-3.5" aria-hidden="true" />
 							{/if}
-							<span class="hidden sm:inline">{dipilih ? 'Dipantau' : 'Pantau'}</span>
+							<span class="hidden sm:inline"
+								>{dipilih ? t('Dipantau', 'Watching') : t('Pantau', 'Watch')}</span
+							>
 						</span>
 					</div>
 				{/each}
@@ -357,7 +398,10 @@
 								class="text-diamond-300 text-[13px] font-medium"
 								onclick={() => (batas += LANGKAH)}
 							>
-								Tampilkan {Math.min(LANGKAH, saring.length - batas)} saham lagi
+								{t(
+									`Tampilkan ${sisa} saham lagi`,
+									`Show ${sisa} more ${sisa === 1 ? 'stock' : 'stocks'}`
+								)}
 							</button>
 						</div>
 					{/key}
@@ -368,7 +412,7 @@
 		<footer class="kaki">
 			<label class="text-secondary flex cursor-pointer items-center gap-2 text-[13px] select-none">
 				<input type="checkbox" bind:checked={harian} class="accent-diamond-500 size-4" />
-				Cek otomatis tiap hari
+				{t('Cek otomatis tiap hari', 'Check automatically every day')}
 			</label>
 			<div class="flex min-w-0 flex-1 items-center justify-end gap-3">
 				{#if galatTambah}
@@ -379,11 +423,14 @@
 						class="text-secondary truncate text-[12.5px]"
 						aria-live="polite"
 					>
-						{ditambah.join(', ')} masuk watchlist
+						{t(
+							`${ditambah.join(', ')} masuk watchlist`,
+							`${ditambah.join(', ')} added to your watchlist`
+						)}
 					</p>
 				{/if}
 				<button type="button" class="tw-primary px-4 py-2 text-[13.5px]" onclick={tutup}
-					>Selesai</button
+					>{t('Selesai', 'Done')}</button
 				>
 			</div>
 		</footer>
@@ -404,7 +451,9 @@
 					ditambah = [...ditambah, kode];
 					await update({ reset: false });
 				} else if (result.type === 'failure') {
-					galatTambah = String(result.data?.error ?? `Gagal menambah ${kode}`);
+					galatTambah = String(
+						result.data?.error ?? t(`Gagal menambah ${kode}`, `Could not add ${kode}`)
+					);
 				} else {
 					await update();
 				}
@@ -423,7 +472,11 @@
 	.pemicu-wadah {
 		border: 1px solid var(--edge);
 		border-radius: 20px;
-		background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--cahaya) 6%, transparent),
+			color-mix(in srgb, var(--cahaya) 2.5%, transparent)
+		);
 		padding: 10px;
 	}
 
@@ -434,7 +487,7 @@
 		gap: 10px;
 		border: 1px solid var(--edge);
 		border-radius: 14px;
-		background: rgba(8, 11, 18, 0.55);
+		background: color-mix(in srgb, var(--color-void) 55%, transparent);
 		padding: 7px 7px 7px 14px;
 		font-size: 14px;
 		transition:
@@ -493,10 +546,10 @@
 		overflow: hidden;
 		border: 1px solid var(--edge-strong);
 		border-radius: 22px;
-		background: linear-gradient(180deg, #121b2f, #0d1422);
+		background: linear-gradient(180deg, var(--color-raised), var(--color-base));
 		padding: 0;
 		color: var(--color-ink);
-		box-shadow: 0 40px 120px -30px #000;
+		box-shadow: 0 40px 120px -30px var(--bayang);
 	}
 
 	.modal[open] {
@@ -505,7 +558,7 @@
 	}
 
 	.modal::backdrop {
-		background: rgba(5, 8, 14, 0.72);
+		background: var(--tirai, rgba(5, 8, 14, 0.72));
 		backdrop-filter: blur(4px);
 	}
 
@@ -624,7 +677,7 @@
 	.sektor {
 		overflow: hidden;
 		border-radius: 999px;
-		background: rgba(154, 169, 196, 0.1);
+		background: color-mix(in srgb, var(--color-secondary) 10%, transparent);
 		padding: 0 7px;
 		font-size: 10.5px;
 		line-height: 17px;
@@ -636,7 +689,7 @@
 	.pil {
 		margin-top: 3px;
 		border-radius: 6px;
-		background: rgba(154, 169, 196, 0.1);
+		background: color-mix(in srgb, var(--color-secondary) 10%, transparent);
 		padding: 0 6px;
 		font-family: var(--font-mono);
 		font-size: 11.5px;
@@ -693,7 +746,7 @@
 	.kerangka span {
 		height: 14px;
 		border-radius: 6px;
-		background: rgba(180, 205, 255, 0.08);
+		background: color-mix(in srgb, var(--kilau) 8%, transparent);
 		animation: denyut-kerangka 1.4s ease-in-out infinite;
 	}
 
@@ -714,7 +767,7 @@
 		align-items: center;
 		gap: 10px 16px;
 		border-top: 1px solid var(--edge-soft);
-		background: rgba(8, 11, 18, 0.45);
+		background: color-mix(in srgb, var(--color-void) 45%, transparent);
 		padding: 12px 20px;
 	}
 </style>

@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { env } from '$env/dynamic/public';
+import { t } from '$lib/bahasa.svelte';
 
 export class HttpError extends Error {
 	constructor(
@@ -63,7 +64,7 @@ export async function request<T>(
 	if (!response.ok) {
 		const message =
 			(payload && typeof payload.error === 'string' && payload.error) ||
-			`Permintaan ke ${path} gagal`;
+			t(`Permintaan ke ${path} gagal`, `Request to ${path} failed`);
 		throw new HttpError(response.status, message, payload);
 	}
 

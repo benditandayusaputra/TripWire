@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { EmitenNotifikasi } from '$lib/api/notifications';
+	import { t } from '$lib/bahasa.svelte';
 	import { waktuRelatif } from '$lib/insight';
 	import { bulatkanSkor, tierDariSkor } from '$lib/skor';
 
@@ -44,11 +45,14 @@
 					<span class="flex items-center gap-2">
 						<span class="tw-data text-ink text-[13px] font-semibold">{satu.ticker}</span>
 						{#if satu.unread > 0}
-							<span class="titik-baru" aria-label="{satu.unread} belum dibaca"></span>
+							<span
+								class="titik-baru"
+								aria-label={t(`${satu.unread} belum dibaca`, `${satu.unread} unread`)}
+							></span>
 						{/if}
 					</span>
 					<span class="text-muted block truncate text-[11.5px]">
-						{satu.company_name || 'Emiten IDX'} · {waktuRelatif(satu.latest_at)}
+						{satu.company_name || t('Emiten IDX', 'IDX company')} · {waktuRelatif(satu.latest_at)}
 					</span>
 				</span>
 
@@ -73,13 +77,13 @@
 							<span class="kotak" style="background:{info.color}"></span>{info.label}
 						</span>
 					{:else}
-						<span class="text-muted text-[11px]">Intelijen</span>
+						<span class="text-muted text-[11px]">{t('Intelijen', 'Intel')}</span>
 					{/if}
 				</span>
 
 				<span
 					class="tw-data text-secondary w-8 flex-none text-right text-[12px]"
-					title="Notifikasi 30 hari"
+					title={t('Notifikasi 30 hari', 'Alerts in 30 days')}
 				>
 					{satu.recent_30_days}×
 				</span>
@@ -104,7 +108,7 @@
 
 	@media (hover: hover) {
 		.baris:hover {
-			background: rgba(255, 255, 255, 0.04);
+			background: color-mix(in srgb, var(--cahaya) 4%, transparent);
 		}
 	}
 

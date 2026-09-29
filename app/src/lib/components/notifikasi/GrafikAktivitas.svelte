@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { HariNotifikasi } from '$lib/api/notifications';
+	import { lokal, t } from '$lib/bahasa.svelte';
 	import { labelHari } from '$lib/notifikasi';
 
 	let { hari }: { hari: HariNotifikasi[] } = $props();
@@ -38,11 +39,11 @@
 	);
 
 	const rincian = [
-		['critical', 'Kritis', 'var(--color-tier-critical)'],
-		['high', 'Tinggi', 'var(--color-tier-high)'],
-		['moderate', 'Sedang', 'var(--color-tier-moderate)'],
-		['low', 'Rendah', 'var(--color-tier-low)'],
-		['market', 'Intelijen pasar', 'var(--color-secondary)']
+		['critical', 'Kritis', 'Critical', 'var(--color-tier-critical)'],
+		['high', 'Tinggi', 'High', 'var(--color-tier-high)'],
+		['moderate', 'Sedang', 'Moderate', 'var(--color-tier-moderate)'],
+		['low', 'Rendah', 'Low', 'var(--color-tier-low)'],
+		['market', 'Intelijen pasar', 'Market intelligence', 'var(--color-secondary)']
 	] as const;
 
 	const sorot = $derived(aktif === null ? null : batang[aktif]);
@@ -51,7 +52,7 @@
 	);
 
 	const tglPendek = (tanggal: string) =>
-		new Date(`${tanggal}T12:00:00+07:00`).toLocaleDateString('id-ID', {
+		new Date(`${tanggal}T12:00:00+07:00`).toLocaleDateString(lokal(), {
 			day: 'numeric',
 			month: 'short',
 			timeZone: 'Asia/Jakarta'
@@ -64,11 +65,14 @@
 			<span data-testid="aktivitas-total" class="tw-data text-ink text-[18px] font-medium"
 				>{total}</span
 			>
-			notifikasi dalam {hari.length} hari
+			{t(
+				`notifikasi dalam ${hari.length} hari`,
+				`${total === 1 ? 'alert' : 'alerts'} in ${hari.length} ${hari.length === 1 ? 'day' : 'days'}`
+			)}
 		</p>
 		<p class="text-muted flex items-center gap-1.5 text-[11.5px]">
 			<span class="titik-kritis" aria-hidden="true"></span>
-			Ada skor kritis
+			{t('Ada skor kritis', 'Critical score')}
 		</p>
 	</div>
 
@@ -79,7 +83,10 @@
 			viewBox="0 0 {w} {TINGGI}"
 			class="block overflow-visible"
 			role="img"
-			aria-label="Notifikasi per hari selama {hari.length} hari terakhir, total {total}, {kritis} berskor kritis"
+			aria-label={t(
+				`Notifikasi per hari selama ${hari.length} hari terakhir, total ${total}, ${kritis} berskor kritis`,
+				`Alerts per day over the last ${hari.length} days, ${total} total, ${kritis} with a critical score`
+			)}
 		>
 			<line x1="0" x2={w} y1={ATAS} y2={ATAS} class="kisi" />
 			<text x={w} y={ATAS - 5} text-anchor="end" class="label-sumbu">{puncak}</text>
@@ -106,19 +113,26 @@
 
 			{#if hari.length}
 				<text x="0" y={TINGGI - 5} class="label-sumbu">{tglPendek(hari[0].date)}</text>
-				<text x={w} y={TINGGI - 5} text-anchor="end" class="label-sumbu">Hari ini</text>
+				<text x={w} y={TINGGI - 5} text-anchor="end" class="label-sumbu"
+					>{t('Hari ini', 'Today')}</text
+				>
 			{/if}
 		</svg>
 
 		{#if sorot}
 			<div class="tip" style="left:{posisiTip}px; top:{Math.max(sorot.y - 14, 0)}px" role="status">
 				<p class="text-ink text-[12px] font-medium">{labelHari(sorot.date)}</p>
-				<p class="text-secondary tw-data mt-0.5 text-[11.5px]">{sorot.total} notifikasi</p>
-				{#each rincian as [kunci, label, warna] (kunci)}
+				<p class="text-secondary tw-data mt-0.5 text-[11.5px]">
+					{t(
+						`${sorot.total} notifikasi`,
+						`${sorot.total} ${sorot.total === 1 ? 'alert' : 'alerts'}`
+					)}
+				</p>
+				{#each rincian as [kunci, label, labelEn, warna] (kunci)}
 					{#if sorot[kunci] > 0}
 						<p class="text-secondary mt-1 flex items-center gap-1.5 text-[11.5px]">
 							<span class="kotak" style="background:{warna}"></span>
-							{label}
+							{t(label, labelEn)}
 							<span class="tw-data text-ink ml-auto pl-3">{sorot[kunci]}</span>
 						</p>
 					{/if}
@@ -129,11 +143,11 @@
 
 	<div class="sr-only">
 		<table>
-			<caption>Jumlah notifikasi per hari</caption>
+			<caption>{t('Jumlah notifikasi per hari', 'Alerts per day')}</caption>
 			<thead>
 				<tr
-					><th>Tanggal</th><th>Total</th><th>Kritis</th><th>Tinggi</th><th>Sedang</th><th>Rendah</th
-					><th>Intelijen pasar</th></tr
+					><th>{t('Tanggal', 'Date')}</th><th>Total</th
+					>{#each rincian as [kunci, label, labelEn] (kunci)}<th>{t(label, labelEn)}</th>{/each}</tr
 				>
 			</thead>
 			<tbody>
@@ -150,12 +164,12 @@
 
 <style>
 	.kisi {
-		stroke: rgba(180, 205, 255, 0.1);
+		stroke: color-mix(in srgb, var(--kilau) 10%, transparent);
 		stroke-width: 1;
 	}
 
 	.kisi.dasar {
-		stroke: rgba(180, 205, 255, 0.22);
+		stroke: color-mix(in srgb, var(--kilau) 22%, transparent);
 	}
 
 	.label-sumbu {
@@ -196,7 +210,7 @@
 		border-radius: 10px;
 		background: var(--color-raised);
 		padding: 8px 10px;
-		box-shadow: 0 16px 32px -16px #000;
+		box-shadow: 0 16px 32px -16px var(--bayang);
 		pointer-events: none;
 	}
 

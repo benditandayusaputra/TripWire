@@ -224,13 +224,13 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(page.getByTestId('avatar-inisial')).toBeVisible();
 
 		await page.getByLabel('Nama lengkap').fill('Nama Sudah Diubah');
-		await page.getByLabel('Tema').selectOption('light');
+		await page.getByLabel('Zona waktu').selectOption('Asia/Makassar');
 		await page.getByTestId('simpan-profil').click();
 
 		await expect(page.getByTestId('profil-tersimpan')).toBeVisible();
 		await page.reload();
 		await expect(page.getByLabel('Nama lengkap')).toHaveValue('Nama Sudah Diubah');
-		await expect(page.getByLabel('Tema')).toHaveValue('light');
+		await expect(page.getByLabel('Zona waktu')).toHaveValue('Asia/Makassar');
 
 		await page.getByTestId('tautan-sesi').click();
 		await expect(page).toHaveURL(/\/account\/sessions/);

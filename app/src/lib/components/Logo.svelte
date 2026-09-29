@@ -13,7 +13,7 @@
 	width={size}
 	height={size}
 	viewBox="0 0 64 64"
-	class="flex-none overflow-visible"
+	class="tw-gelap flex-none overflow-visible"
 	role={label ? 'img' : undefined}
 	aria-label={label || undefined}
 	aria-hidden={label ? undefined : 'true'}

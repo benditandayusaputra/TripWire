@@ -35,7 +35,14 @@ export default defineConfig(({ mode }) => {
 						'default-src': ['self'],
 						'script-src': ['self'],
 						'style-src': ['self', 'unsafe-inline'],
-						'img-src': ['self', 'data:', 'blob:', apiOrigin, 'https://tile.openstreetmap.org'],
+						'img-src': [
+							'self',
+							'data:',
+							'blob:',
+							apiOrigin,
+							'https://tile.openstreetmap.org',
+							'https://storage.googleapis.com/sectorsapp-sea/logo/' as SumberCSP
+						],
 						'font-src': ['self', 'data:'],
 						'connect-src': ['self', apiOrigin, ...sumberDev],
 						'worker-src': ['self'],

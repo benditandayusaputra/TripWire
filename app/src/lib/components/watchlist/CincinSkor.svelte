@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Hourglass } from 'lucide-svelte';
 	import { tierDariSkor } from '$lib/skor';
+	import { t } from '$lib/bahasa.svelte';
 
 	let { skor }: { skor: number | null } = $props();
 
@@ -15,8 +16,14 @@
 	data-tier={skor === null ? 'none' : info.tier}
 	style="--warna:{skor === null ? 'var(--color-muted)' : info.color}"
 	title={skor === null
-		? 'Belum dipindai, skor muncul setelah pemindaian berikutnya'
-		: `Red Flag Score ${Math.round(skor)} dari 100, ${info.label}`}
+		? t(
+				'Belum dipindai, skor muncul setelah pemindaian berikutnya',
+				'Not scanned yet. The score appears after the next scan'
+			)
+		: t(
+				`Red Flag Score ${Math.round(skor)} dari 100, ${info.label}`,
+				`Red Flag Score ${Math.round(skor)} out of 100, ${info.label}`
+			)}
 >
 	<svg viewBox="0 0 36 36" aria-hidden="true">
 		<circle cx="18" cy="18" r={JARI} class="jalur" class:putus={skor === null} />
@@ -32,7 +39,7 @@
 	</svg>
 	{#if skor === null}
 		<Hourglass class="text-muted size-3.5" aria-hidden="true" />
-		<span class="sr-only">Belum dipindai</span>
+		<span class="sr-only">{t('Belum dipindai', 'Not scanned yet')}</span>
 	{:else}
 		<span class="angka" aria-hidden="true">{Math.round(skor)}</span>
 		<span class="sr-only">Red Flag Score {Math.round(skor)}, {info.label}</span>

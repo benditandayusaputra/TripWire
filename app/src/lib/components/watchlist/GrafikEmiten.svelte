@@ -11,6 +11,7 @@
 		type Peristiwa
 	} from '$lib/watchlist';
 	import { formatRingkas } from '$lib/insight';
+	import { lokal, t } from '$lib/bahasa.svelte';
 
 	let {
 		kode,
@@ -31,10 +32,10 @@
 	const JALUR = 30;
 	const TINGGI_SKOR = 64;
 	const SUMBU = 22;
-	const RENTANG = [
-		{ kunci: '1B', label: '1 bulan', jumlah: 22 },
-		{ kunci: '3B', label: '3 bulan', jumlah: 999 }
-	];
+	const RENTANG = $derived([
+		{ kunci: '1B', teks: t('1B', '1M'), label: t('1 bulan', '1 month'), jumlah: 22 },
+		{ kunci: '3B', teks: t('3B', '3M'), label: t('3 bulan', '3 months'), jumlah: 999 }
+	]);
 	const URUTAN_JENIS: JenisPeristiwa[] = ['suspensi', 'jual', 'kepemilikan', 'beli'];
 	const IKON = { jual: UserMinus, beli: UserPlus, kepemilikan: ChartPie, suspensi: Ban };
 
@@ -140,7 +141,7 @@
 		const x = xBar(sorot);
 		return {
 			bar,
-			tanggal: new Date(`${bar.date}T00:00:00Z`).toLocaleDateString('id-ID', {
+			tanggal: new Date(`${bar.date}T00:00:00Z`).toLocaleDateString(lokal(), {
 				weekday: 'short',
 				day: 'numeric',
 				month: 'short',
@@ -159,7 +160,7 @@
 		const bar = tampil[i];
 		if (!bar) return '';
 		const skor = skorBar[i];
-		return `${tanggalPendek(bar.date)}, harga tutup ${formatHarga(bar.close)}${
+		return `${tanggalPendek(bar.date)}, ${t('harga tutup', 'closing price')} ${formatHarga(bar.close)}${
 			skor === null ? '' : `, Red Flag Score ${Math.round(skor)}`
 		}`;
 	});
@@ -207,17 +208,19 @@
 
 <figure data-testid="grafik-emiten" aria-labelledby="judul-grafik-{kode}" class="space-y-3">
 	<figcaption id="judul-grafik-{kode}" class="flex flex-wrap items-center justify-between gap-2">
-		<span class="tw-overline">Harga harian dan Red Flag Score</span>
+		<span class="tw-overline"
+			>{t('Harga harian dan Red Flag Score', 'Daily price and Red Flag Score')}</span
+		>
 		<span
 			class="bg-void/60 border-line inline-flex rounded-lg border p-0.5"
 			role="group"
-			aria-label="Rentang grafik"
+			aria-label={t('Rentang grafik', 'Chart range')}
 		>
 			{#each RENTANG as pilihan (pilihan.kunci)}
 				<button
 					type="button"
 					aria-pressed={rentang === pilihan.kunci}
-					aria-label="Tampilkan {pilihan.label}"
+					aria-label="{t('Tampilkan', 'Show')} {pilihan.label}"
 					onclick={() => {
 						rentang = pilihan.kunci;
 						sorot = null;
@@ -227,7 +230,7 @@
 						? 'bg-diamond-500/15 text-diamond-100'
 						: 'text-muted hover:text-ink'}"
 				>
-					{pilihan.kunci}
+					{pilihan.teks}
 				</button>
 			{/each}
 		</span>
@@ -368,7 +371,7 @@
 				/>
 			{:else}
 				<text x={PAD_KIRI + lebarPlot / 2} y={ySkor(46)} text-anchor="middle" class="label-sumbu">
-					Belum ada skor di rentang ini
+					{t('Belum ada skor di rentang ini', 'No score in this range yet')}
 				</text>
 			{/if}
 
@@ -427,7 +430,7 @@
 				<p class="mt-1 flex items-baseline gap-2">
 					<span class="tw-data text-ink text-[15px] font-medium">{formatHarga(info.bar.close)}</span
 					>
-					<span class="text-muted text-[11.5px]">tutup</span>
+					<span class="text-muted text-[11.5px]">{t('tutup', 'close')}</span>
 					{#if info.ubah}
 						<span
 							class="tw-data ml-auto text-[12px] {info.ubah.arah >= 0 ? 'text-naik' : 'text-turun'}"
@@ -437,22 +440,22 @@
 				</p>
 				<dl class="tw-data text-secondary mt-1.5 grid grid-cols-3 gap-x-2 text-[11px]">
 					<div>
-						<dt class="text-muted">Buka</dt>
+						<dt class="text-muted">{t('Buka', 'Open')}</dt>
 						<dd>{formatHarga(info.bar.open)}</dd>
 					</div>
 					<div>
-						<dt class="text-muted">Tinggi</dt>
+						<dt class="text-muted">{t('Tinggi', 'High')}</dt>
 						<dd>{formatHarga(info.bar.high)}</dd>
 					</div>
 					<div>
-						<dt class="text-muted">Rendah</dt>
+						<dt class="text-muted">{t('Rendah', 'Low')}</dt>
 						<dd>{formatHarga(info.bar.low)}</dd>
 					</div>
 				</dl>
 				{#if info.bar.volume}
 					<p class="text-muted mt-1 text-[11px]">
 						Volume <span class="tw-data text-secondary"
-							>{formatRingkas(info.bar.volume)} lembar</span
+							>{formatRingkas(info.bar.volume)} {t('lembar', 'shares')}</span
 						>
 					</p>
 				{/if}
@@ -474,7 +477,12 @@
 							<li>{satu.teks}</li>
 						{/each}
 						{#if info.peristiwa.length > 3}
-							<li class="text-muted">dan {info.peristiwa.length - 3} peristiwa lain</li>
+							<li class="text-muted">
+								{t(
+									`dan ${info.peristiwa.length - 3} peristiwa lain`,
+									`and ${info.peristiwa.length - 3} more ${info.peristiwa.length === 4 ? 'event' : 'events'}`
+								)}
+							</li>
 						{/if}
 					</ul>
 				{/if}
@@ -486,7 +494,10 @@
 			style="height:{atasSkor + TINGGI_SKOR}px; touch-action: pan-y"
 			role="slider"
 			tabindex="0"
-			aria-label="Telusuri grafik {kode} per hari bursa"
+			aria-label={t(
+				`Telusuri grafik ${kode} per hari bursa`,
+				`Explore the ${kode} chart by trading day`
+			)}
 			aria-valuemin={0}
 			aria-valuemax={akhir}
 			aria-valuenow={sorot ?? akhir}
@@ -501,21 +512,31 @@
 
 	<ul class="text-muted flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px]">
 		<li class="flex items-center gap-1.5">
-			<span class="contoh-naik"></span>Naik, candle berongga
+			<span class="contoh-naik"></span>{t('Naik, candle berongga', 'Up, hollow candle')}
 		</li>
-		<li class="flex items-center gap-1.5"><span class="contoh-turun"></span>Turun, candle padat</li>
 		<li class="flex items-center gap-1.5">
-			<span class="contoh-kawat" class:putus={tersentuh}></span>Batas notifikasi {batas}
+			<span class="contoh-turun"></span>{t('Turun, candle padat', 'Down, filled candle')}
+		</li>
+		<li class="flex items-center gap-1.5">
+			<span class="contoh-kawat" class:putus={tersentuh}></span>{t(
+				`Batas notifikasi ${batas}`,
+				`Alert threshold ${batas}`
+			)}
 		</li>
 		{#if tersembunyi}
-			<li>{tersembunyi} peristiwa lebih lama di luar rentang</li>
+			<li>
+				{t(
+					`${tersembunyi} peristiwa lebih lama di luar rentang`,
+					`${tersembunyi} older ${tersembunyi === 1 ? 'event' : 'events'} outside this range`
+				)}
+			</li>
 		{/if}
 	</ul>
 </figure>
 
 <style>
 	.grid-garis {
-		stroke: rgba(180, 205, 255, 0.07);
+		stroke: color-mix(in srgb, var(--kilau) 7%, transparent);
 	}
 
 	.label-sumbu,
@@ -548,7 +569,7 @@
 	}
 
 	.label-harga {
-		fill: #04101f;
+		fill: light-dark(#ffffff, #04101f);
 		font-weight: 600;
 	}
 
@@ -558,7 +579,7 @@
 
 	.tag-silang {
 		fill: var(--color-raised);
-		stroke: rgba(180, 205, 255, 0.3);
+		stroke: color-mix(in srgb, var(--kilau) 30%, transparent);
 	}
 
 	.lilin {
@@ -665,7 +686,7 @@
 	}
 
 	.silang {
-		stroke: rgba(214, 236, 255, 0.35);
+		stroke: color-mix(in srgb, var(--kilau) 35%, transparent);
 		stroke-width: 1;
 	}
 
@@ -683,7 +704,7 @@
 		height: 22px;
 		margin: -11px 0 0 -11px;
 		border-radius: 999px;
-		border: 1px solid rgba(180, 205, 255, 0.22);
+		border: 1px solid color-mix(in srgb, var(--kilau) 22%, transparent);
 		background: var(--color-raised);
 		color: var(--color-secondary);
 		pointer-events: none;
@@ -716,11 +737,11 @@
 		top: 8px;
 		z-index: 5;
 		width: 212px;
-		border: 1px solid rgba(180, 205, 255, 0.18);
+		border: 1px solid color-mix(in srgb, var(--kilau) 18%, transparent);
 		border-radius: 10px;
-		background: rgba(13, 18, 32, 0.96);
+		background: color-mix(in srgb, var(--color-base) 96%, transparent);
 		padding: 10px 12px;
-		box-shadow: 0 18px 40px -20px #000;
+		box-shadow: 0 18px 40px -20px var(--bayang);
 		pointer-events: none;
 	}
 
