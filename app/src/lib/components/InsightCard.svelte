@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ChevronRight } from 'lucide-svelte';
 	import SignatureBadge from './SignatureBadge.svelte';
 	import SkorBadge from './SkorBadge.svelte';
 	import { judulInsight, labelSubtype, waktuRelatif, type Insight } from '$lib/insight';
@@ -12,24 +13,31 @@
 	href="/insights/{insight.id}"
 	data-testid="insight-card"
 	data-ticker={insight.ticker}
-	class="tw-card hover:border-diamond-700 flex items-start gap-4 p-5 transition"
+	class="group hover:bg-ink/5 flex items-start gap-3.5 rounded-xl px-3 py-3 transition"
 >
-	<SkorBadge skor={insight.score} showLabel={false} />
+	<span class="w-13 flex-none pt-0.5">
+		<SkorBadge skor={insight.score} showLabel={false} />
+	</span>
 
-	<div class="min-w-0 flex-1 space-y-2">
-		<div class="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-			<span class="tw-data text-diamond-300 text-[15px] font-semibold tracking-wider">
-				{insight.ticker}
+	<span class="min-w-0 flex-1">
+		<span class="flex items-baseline gap-2">
+			<span class="tw-data text-ink text-[13.5px] font-semibold tracking-wide"
+				>{insight.ticker}</span
+			>
+			<span class="text-muted truncate text-[12.5px]">{insight.company_name}</span>
+			<span class="tw-data text-muted ml-auto flex-none text-[11px]">
+				{waktuRelatif(insight.generated_at)}
 			</span>
-			<span class="tw-caption">{insight.company_name}</span>
-			<span class="tw-overline ml-auto">{waktuRelatif(insight.generated_at)}</span>
-		</div>
-
-		<p class="text-ink text-[14.5px] leading-snug">{judul}</p>
-
-		<div class="flex flex-wrap items-center gap-3">
+		</span>
+		<span class="text-ink mt-1 block text-[14px] leading-snug">{judul}</span>
+		<span class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
 			<span class="tw-overline">{labelSubtype(insight.subtype)}</span>
 			<SignatureBadge />
-		</div>
-	</div>
+		</span>
+	</span>
+
+	<ChevronRight
+		class="text-muted group-hover:text-ink mt-1 size-4 flex-none transition group-hover:translate-x-0.5"
+		aria-hidden="true"
+	/>
 </a>
