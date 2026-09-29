@@ -2,6 +2,7 @@
 	import { slide } from 'svelte/transition';
 	import { ChevronRight, Mail, MailOpen, Trash2 } from 'lucide-svelte';
 	import type { Notifikasi } from '$lib/api/notifications';
+	import { t } from '$lib/bahasa.svelte';
 	import { waktuRelatif } from '$lib/insight';
 	import { jamWib, judulNotifikasi, penjelasanNotifikasi, selisihSkor } from '$lib/notifikasi';
 	import { bulatkanSkor, tierDariSkor } from '$lib/skor';
@@ -21,9 +22,9 @@
 	} = $props();
 
 	const SINYAL = [
-		['suspension', 'Suspensi'],
-		['insider_clustering', 'Orang dalam'],
-		['ownership_change', 'Kepemilikan']
+		['suspension', 'Suspensi', 'Suspension'],
+		['insider_clustering', 'Orang dalam', 'Insiders'],
+		['ownership_change', 'Kepemilikan', 'Ownership']
 	] as const;
 
 	const risiko = $derived(item.insight_type === 'red_flag');
@@ -55,7 +56,9 @@
 			<span class="flex min-w-0 items-center gap-2">
 				<span class="text-secondary truncate text-[12.5px]">{item.company_name || item.ticker}</span
 				>
-				<span class="jenis tw-data" class:intel={!risiko}>{risiko ? 'RED FLAG' : 'INTELIJEN'}</span>
+				<span class="jenis tw-data" class:intel={!risiko}
+					>{risiko ? 'RED FLAG' : t('INTELIJEN', 'INTEL')}</span
+				>
 			</span>
 
 			<span class="judul block text-[14.5px] leading-snug" class:tebal={!dibaca}>
@@ -68,10 +71,10 @@
 
 			{#if risiko && item.sub_scores}
 				<span class="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
-					{#each SINYAL as [kunci, label] (kunci)}
+					{#each SINYAL as [kunci, label, labelEn] (kunci)}
 						{@const nilai = Math.round(item.sub_scores[kunci] ?? 0)}
 						<span class="flex items-center gap-1.5 text-[11.5px]">
-							<span class="text-muted">{label}</span>
+							<span class="text-muted">{t(label, labelEn)}</span>
 							<span class="meter" aria-hidden="true">
 								<span style="width:{Math.max(nilai, 4)}%; background:{tierDariSkor(nilai).color}"
 								></span>
@@ -101,17 +104,17 @@
 					<span
 						data-testid="selisih-skor"
 						class="tw-data text-secondary mt-1 block text-[11.5px]"
-						title="Skor {selisih.label}"
+						title={t(`Skor ${selisih.label}`, `Score ${selisih.label}`)}
 					>
 						<span aria-hidden="true">{selisih.teks}</span>
-						<span class="sr-only">skor {selisih.label}</span>
+						<span class="sr-only">{t('skor', 'score')} {selisih.label}</span>
 					</span>
 				{/if}
 			{:else if skorAda}
 				<span class="tw-data text-ink block text-[18px] leading-none"
 					>{bulatkanSkor(item.score)}</span
 				>
-				<span class="text-muted mt-1.5 block text-[11px]">eksposur</span>
+				<span class="text-muted mt-1.5 block text-[11px]">{t('eksposur', 'exposure')}</span>
 			{:else}
 				<ChevronRight class="text-muted size-4" aria-hidden="true" />
 			{/if}
@@ -124,9 +127,11 @@
 			class="tombol"
 			data-testid={dibaca ? 'tandai-belum' : 'tandai-dibaca'}
 			aria-label={dibaca
-				? `Tandai ${item.ticker} belum dibaca`
-				: `Tandai ${item.ticker} sudah dibaca`}
-			title={dibaca ? 'Tandai belum dibaca' : 'Tandai sudah dibaca'}
+				? t(`Tandai ${item.ticker} belum dibaca`, `Mark ${item.ticker} as unread`)
+				: t(`Tandai ${item.ticker} sudah dibaca`, `Mark ${item.ticker} as read`)}
+			title={dibaca
+				? t('Tandai belum dibaca', 'Mark as unread')
+				: t('Tandai sudah dibaca', 'Mark as read')}
 			disabled={sibuk}
 			onclick={() => ontandai(item)}
 		>
@@ -140,8 +145,8 @@
 			type="button"
 			class="tombol"
 			data-testid="hapus-notifikasi"
-			aria-label="Hapus notifikasi {item.ticker}"
-			title="Hapus notifikasi"
+			aria-label={t(`Hapus notifikasi ${item.ticker}`, `Delete ${item.ticker} alert`)}
+			title={t('Hapus notifikasi', 'Delete alert')}
 			disabled={sibuk}
 			onclick={() => onhapus(item)}
 		>
@@ -173,7 +178,7 @@
 
 	@media (hover: hover) {
 		.baris:hover {
-			background: rgba(255, 255, 255, 0.03);
+			background: color-mix(in srgb, var(--cahaya) 3%, transparent);
 		}
 	}
 
@@ -227,7 +232,7 @@
 		height: 4px;
 		overflow: hidden;
 		border-radius: 999px;
-		background: rgba(180, 205, 255, 0.1);
+		background: color-mix(in srgb, var(--kilau) 10%, transparent);
 	}
 
 	.meter span {
@@ -280,7 +285,7 @@
 		}
 
 		.tombol:not(:disabled):hover {
-			background: rgba(255, 255, 255, 0.06);
+			background: color-mix(in srgb, var(--cahaya) 6%, transparent);
 			color: var(--color-ink);
 		}
 	}

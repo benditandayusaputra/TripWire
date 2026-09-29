@@ -1,4 +1,5 @@
 import { berlanggananPush, cabutPerangkat, kunciPublikPush } from '$lib/api/notifications';
+import { t } from '$lib/bahasa.svelte';
 
 function base64UrlKeBytes(nilai: string): Uint8Array<ArrayBuffer> {
 	const padded = nilai.padEnd(nilai.length + ((4 - (nilai.length % 4)) % 4), '=');
@@ -61,9 +62,15 @@ export class PushStore {
 
 			this.berlangganan = false;
 			this.endpoint = '';
-			this.pesan = 'Notifikasi push dimatikan di perangkat ini.';
+			this.pesan = t(
+				'Notifikasi push dimatikan di perangkat ini.',
+				'Push alerts are turned off on this device.'
+			);
 		} catch (galat) {
-			this.pesan = galat instanceof Error ? galat.message : 'Gagal mematikan notifikasi push.';
+			this.pesan =
+				galat instanceof Error
+					? galat.message
+					: t('Gagal mematikan notifikasi push.', "Couldn't turn off push alerts.");
 		} finally {
 			this.sibuk = false;
 		}
@@ -78,13 +85,19 @@ export class PushStore {
 		try {
 			this.izin = await Notification.requestPermission();
 			if (this.izin !== 'granted') {
-				this.pesan = 'Izin notifikasi ditolak browser.';
+				this.pesan = t(
+					'Izin notifikasi ditolak browser.',
+					'The browser denied notification permission.'
+				);
 				return;
 			}
 
 			const { public_key, enabled } = await kunciPublikPush();
 			if (!enabled || !public_key) {
-				this.pesan = 'Web push belum dikonfigurasi di server ini.';
+				this.pesan = t(
+					'Web push belum dikonfigurasi di server ini.',
+					"Web push isn't set up on this server yet."
+				);
 				return;
 			}
 
@@ -102,9 +115,15 @@ export class PushStore {
 
 			this.berlangganan = true;
 			this.endpoint = langganan.endpoint;
-			this.pesan = 'Notifikasi push aktif di perangkat ini.';
+			this.pesan = t(
+				'Notifikasi push aktif di perangkat ini.',
+				'Push alerts are on for this device.'
+			);
 		} catch (galat) {
-			this.pesan = galat instanceof Error ? galat.message : 'Gagal mengaktifkan notifikasi push.';
+			this.pesan =
+				galat instanceof Error
+					? galat.message
+					: t('Gagal mengaktifkan notifikasi push.', "Couldn't turn on push alerts.");
 		} finally {
 			this.sibuk = false;
 		}

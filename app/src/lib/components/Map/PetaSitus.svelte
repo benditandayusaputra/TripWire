@@ -15,7 +15,6 @@
 		import('leaflet').then((L) => {
 			if (batal) return;
 
-			const gaya = getComputedStyle(document.documentElement);
 			const titik = situs.filter((item) => item.latitude !== null && item.longitude !== null);
 
 			peta = L.map(wadah, { zoomControl: true, attributionControl: true, scrollWheelZoom: false });
@@ -27,15 +26,13 @@
 			const koordinat: [number, number][] = [];
 			for (const item of titik) {
 				const posisi: [number, number] = [item.latitude as number, item.longitude as number];
-				const warna = gaya.getPropertyValue(warnaKomoditas(item.commodity).variabel).trim();
 				L.circleMarker(posisi, {
 					radius: 7,
-					color: warna,
 					weight: 2,
-					fillColor: warna,
-					fillOpacity: 0.45
+					fillOpacity: 0.45,
+					className: warnaKomoditas(item.commodity).penanda
 				})
-					.bindPopup(`${item.name} · ${labelKomoditas(item.commodity)}`)
+					.bindPopup(() => `${item.name} · ${labelKomoditas(item.commodity)}`)
 					.addTo(peta);
 				koordinat.push(posisi);
 			}

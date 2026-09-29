@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Eye, EyeOff } from 'lucide-svelte';
+	import { t } from '$lib/bahasa.svelte';
 
 	let {
 		id,
@@ -56,14 +57,18 @@
 				aria-controls={id}
 				disabled={!siap}
 				onclick={() => (tampak = !tampak)}
-				class="text-muted hover:text-ink absolute top-1/2 right-1.5 grid size-9 -translate-y-1/2 place-items-center rounded-[10px] transition hover:bg-white/5"
+				class="text-muted hover:text-ink hover:bg-ink/5 absolute top-1/2 right-1.5 grid size-9 -translate-y-1/2 place-items-center rounded-[10px] transition"
 			>
 				{#if tampak}
 					<EyeOff class="size-4.5" aria-hidden="true" />
 				{:else}
 					<Eye class="size-4.5" aria-hidden="true" />
 				{/if}
-				<span class="sr-only">{tampak ? 'Sembunyikan password' : 'Tampilkan password'}</span>
+				<span class="sr-only"
+					>{tampak
+						? t('Sembunyikan password', 'Hide password')
+						: t('Tampilkan password', 'Show password')}</span
+				>
 			</button>
 		{/if}
 	</div>

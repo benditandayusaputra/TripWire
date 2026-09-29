@@ -22,28 +22,53 @@
 	import { subSkor, tanggal, TICKER } from '$lib/components/beranda/simulasi';
 	import { tierDariSkor } from '$lib/skor';
 	import { emiten } from '$lib/emiten';
+	import { lokal, t } from '$lib/bahasa.svelte';
 	import { terlihat } from '$lib/terlihat';
 
-	const penjelasanSinyal = {
+	const penjelasanSinyal = $derived({
 		'orang-dalam': {
 			ikon: UserMinus,
-			teks: 'Direksi, komisaris, atau pemegang saham besar yang menjual dalam 30 hari terakhir. Makin banyak orangnya, makin tinggi.'
+			teks: t(
+				'Direksi, komisaris, atau pemegang saham besar yang menjual dalam 30 hari terakhir. Makin banyak orangnya, makin tinggi.',
+				'Directors, commissioners, or major shareholders who sold in the last 30 days. The more people selling, the higher the score.'
+			)
 		},
 		kepemilikan: {
 			ikon: ChartPie,
-			teks: 'Porsi saham seorang pemegang besar yang berubah dalam 90 hari, dibaca dari laporan keterbukaan informasi.'
+			teks: t(
+				'Porsi saham seorang pemegang besar yang berubah dalam 90 hari, dibaca dari laporan keterbukaan informasi.',
+				"A major shareholder's stake that changed within 90 days, read from disclosure reports."
+			)
 		},
 		suspensi: {
 			ikon: Ban,
-			teks: 'Seberapa sering, seberapa baru, dan seberapa serius bursa pernah menghentikan perdagangan sahamnya.'
+			teks: t(
+				'Seberapa sering, seberapa baru, dan seberapa serius bursa pernah menghentikan perdagangan sahamnya.',
+				'How often, how recently, and how seriously the exchange has suspended trading in the stock.'
+			)
 		}
-	};
+	});
 
-	const bacaan = [
-		{ ikon: UserMinus, nama: 'Orang dalam', nilai: 100, hasil: '5 orang menjual' },
-		{ ikon: ChartPie, nama: 'Kepemilikan', nilai: 80, hasil: 'berubah 8 poin' },
-		{ ikon: Ban, nama: 'Suspensi', nilai: 20, hasil: '1 kali, 2 tahun lalu' }
-	];
+	const bacaan = $derived([
+		{
+			ikon: UserMinus,
+			nama: t('Orang dalam', 'Insiders'),
+			nilai: 100,
+			hasil: t('5 orang menjual', '5 people sold')
+		},
+		{
+			ikon: ChartPie,
+			nama: t('Kepemilikan', 'Ownership'),
+			nilai: 80,
+			hasil: t('berubah 8 poin', 'changed 8 points')
+		},
+		{
+			ikon: Ban,
+			nama: t('Suspensi', 'Suspension'),
+			nilai: 20,
+			hasil: t('1 kali, 2 tahun lalu', 'once, 2 years ago')
+		}
+	]);
 
 	const valuasi = [
 		{ nama: 'PER', emiten: 7.8, subsektor: 11.2 },
@@ -51,11 +76,11 @@
 		{ nama: 'PSR', emiten: 0.9, subsektor: 1.1 }
 	].map((item) => ({ ...item, selisih: ((item.emiten - item.subsektor) / item.subsektor) * 100 }));
 
-	const izin = [
-		{ nama: 'IUP Blok Utara', bulan: 7 },
-		{ nama: 'IUP Blok Selatan', bulan: 19 },
-		{ nama: 'IUP Eksplorasi', bulan: 31 }
-	];
+	const izin = $derived([
+		{ nama: t('IUP Blok Utara', 'North Block IUP'), bulan: 7 },
+		{ nama: t('IUP Blok Selatan', 'South Block IUP'), bulan: 19 },
+		{ nama: t('IUP Eksplorasi', 'Exploration IUP'), bulan: 31 }
+	]);
 
 	const rantai = [
 		{ hari: 19, skor: 54, hash: '3b9f 11d0 a4c2', sebelumnya: '0e57 c8a1 9f30' },
@@ -63,12 +88,14 @@
 		{ hari: 30, skor: 91, hash: 'c04a 6e18 d7f5', sebelumnya: '7c1e 9a2f 03bd' }
 	];
 
-	const desimal = new Intl.NumberFormat('id-ID', {
-		minimumFractionDigits: 1,
-		maximumFractionDigits: 1
-	});
+	const desimal = $derived(
+		new Intl.NumberFormat(lokal(), {
+			minimumFractionDigits: 1,
+			maximumFractionDigits: 1
+		})
+	);
 	const tglRantai = (hari: number) =>
-		tanggal[hari].toLocaleDateString('id-ID', {
+		tanggal[hari].toLocaleDateString(lokal(), {
 			day: 'numeric',
 			month: 'short',
 			year: 'numeric',
@@ -79,28 +106,36 @@
 </script>
 
 <svelte:head>
-	<title>TripWire: red flag saham IDX terdeteksi sebelum jadi berita</title>
+	<title
+		>{t(
+			'TripWire: red flag saham IDX terdeteksi sebelum jadi berita',
+			'TripWire: IDX stock red flags detected before they make the news'
+		)}</title
+	>
 	<meta
 		name="description"
-		content="TripWire memantau saham IDX pilihanmu setiap hari, menggabungkan transaksi orang dalam, perubahan kepemilikan, dan riwayat suspensi jadi satu skor risiko, lalu mengabari kamu begitu skornya melewati batas."
+		content={t(
+			'TripWire memantau saham IDX pilihanmu setiap hari, menggabungkan transaksi orang dalam, perubahan kepemilikan, dan riwayat suspensi jadi satu skor risiko, lalu mengabari kamu begitu skornya melewati batas.',
+			'TripWire monitors the IDX stocks you pick every day, combines insider transactions, ownership changes, and suspension history into one risk score, then alerts you as soon as the score crosses your threshold.'
+		)}
 	/>
 </svelte:head>
 
 <header class="border-line/70 bg-void/75 sticky top-0 z-40 border-b backdrop-blur-xl">
 	<div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
 		<Wordmark />
-		<nav class="hidden items-center gap-1 md:flex" aria-label="Utama">
-			<a href="#cara-kerja" class="tautan-nav">Cara kerja</a>
+		<nav class="hidden items-center gap-1 md:flex" aria-label={t('Utama', 'Main')}>
+			<a href="#cara-kerja" class="tautan-nav">{t('Cara kerja', 'How it works')}</a>
 			<a href="#skor" class="tautan-nav">Red Flag Score</a>
 			<a href="#intelijen" class="tautan-nav">Market Intelligence</a>
 			<a href="/verify-insight" data-testid="nav-verifikasi" class="tautan-nav"
-				>Verifikasi insight</a
+				>{t('Verifikasi insight', 'Verify insight')}</a
 			>
 		</nav>
 		<div class="flex items-center gap-2">
 			<Preferensi />
-			<a href="/login" class="tw-ghost px-3.5 py-2 text-[14px]">Masuk</a>
-			<a href="/register" class="tw-primary px-4 py-2 text-[14px]">Daftar</a>
+			<a href="/login" class="tw-ghost px-3.5 py-2 text-[14px]">{t('Masuk', 'Log in')}</a>
+			<a href="/register" class="tw-primary px-4 py-2 text-[14px]">{t('Daftar', 'Sign up')}</a>
 		</div>
 	</div>
 </header>
@@ -112,23 +147,31 @@
 			class="mx-auto grid max-w-7xl items-center gap-12 px-4 pt-10 pb-16 sm:px-6 sm:pt-14 lg:grid-cols-12 lg:gap-12 lg:px-8 lg:pt-16 lg:pb-20"
 		>
 			<div class="space-y-7 lg:col-span-5">
-				<h1 class="judul-hero text-ink masuk">Red flag saham terdeteksi sebelum jadi berita.</h1>
+				<h1 class="judul-hero text-ink masuk">
+					{t(
+						'Red flag saham terdeteksi sebelum jadi berita.',
+						'Stock red flags detected before they make the news.'
+					)}
+				</h1>
 
 				<p
 					class="text-secondary masuk max-w-xl text-[17px] leading-relaxed sm:text-[18px]"
 					style="--urut:1"
 				>
-					TripWire memantau saham IDX pilihanmu setiap hari. Transaksi orang dalam, perubahan
-					pemegang saham besar, dan riwayat suspensi digabung jadi satu skor risiko, lalu kamu
-					dikabari begitu skornya melewati batas.
+					{t(
+						'TripWire memantau saham IDX pilihanmu setiap hari. Transaksi orang dalam, perubahan pemegang saham besar, dan riwayat suspensi digabung jadi satu skor risiko, lalu kamu dikabari begitu skornya melewati batas.',
+						'TripWire monitors the IDX stocks you pick every day. Insider transactions, changes among major shareholders, and suspension history are combined into one risk score, and you get an alert as soon as the score crosses your threshold.'
+					)}
 				</p>
 
 				<div class="masuk grid gap-3 sm:flex sm:flex-wrap" style="--urut:2">
 					<a href="/register" class="tw-primary cta-utama px-5 py-3">
 						<BellRing class="lonceng size-4" aria-hidden="true" />
-						Mulai pantau gratis
+						{t('Mulai pantau gratis', 'Start monitoring for free')}
 					</a>
-					<a href="#cara-kerja" class="tw-ghost px-5 py-3">Lihat cara kerjanya</a>
+					<a href="#cara-kerja" class="tw-ghost px-5 py-3"
+						>{t('Lihat cara kerjanya', 'See how it works')}</a
+					>
 				</div>
 
 				<ul
@@ -137,15 +180,15 @@
 				>
 					<li class="flex items-center gap-2">
 						<Radar class="text-diamond-300 size-4 flex-none" aria-hidden="true" />
-						Lebih dari 950 emiten IDX
+						{t('Lebih dari 950 emiten IDX', 'More than 950 IDX stocks')}
 					</li>
 					<li class="flex items-center gap-2">
 						<Database class="text-diamond-300 size-4 flex-none" aria-hidden="true" />
-						Data dari Sectors
+						{t('Data dari Sectors', 'Data from Sectors')}
 					</li>
 					<li class="flex items-center gap-2">
 						<ShieldCheck class="text-diamond-300 size-4 flex-none" aria-hidden="true" />
-						Insight bersegel digital
+						{t('Insight bersegel digital', 'Digitally sealed insights')}
 					</li>
 				</ul>
 			</div>
@@ -153,18 +196,22 @@
 			<div class="masuk min-w-0 space-y-3 lg:col-span-7" style="--urut:2">
 				<ReplayTerminal />
 				<p class="text-muted px-1 text-[12.5px] leading-relaxed">
-					Simulasi dengan emiten fiktif. Urutan skornya dihitung dengan formula Red Flag Score yang
-					sama dengan yang dipakai TripWire. Arahkan kursor atau sentuh grafik untuk melihat angka
-					per hari.
+					{t(
+						'Simulasi dengan emiten fiktif. Urutan skornya dihitung dengan formula Red Flag Score yang sama dengan yang dipakai TripWire. Arahkan kursor atau sentuh grafik untuk melihat angka per hari.',
+						'A simulation with a fictional company. Its score sequence is calculated with the same Red Flag Score formula TripWire uses. Hover over or tap the chart to see the numbers for each day.'
+					)}
 				</p>
 			</div>
 		</div>
 	</section>
 
-	<section aria-label="Emiten yang bisa dipantau" class="pita border-line bg-base/60 border-y">
+	<section
+		aria-label={t('Emiten yang bisa dipantau', 'Stocks you can monitor')}
+		class="pita border-line bg-base/60 border-y"
+	>
 		<p class="label-pita text-secondary text-[13px]">
 			<span class="denyut-hijau" aria-hidden="true"></span>
-			Bisa dipantau
+			{t('Bisa dipantau', 'Available to monitor')}
 		</p>
 		<div class="jendela-pita" aria-hidden="true">
 			<div class="jalan-pita">
@@ -184,10 +231,17 @@
 		{@attach terlihat}
 	>
 		<div class="max-w-2xl space-y-4">
-			<h2 class="judul-seksi text-ink muncul">Pasang sekali, TripWire berjaga setiap hari.</h2>
+			<h2 class="judul-seksi text-ink muncul">
+				{t(
+					'Pasang sekali, TripWire berjaga setiap hari.',
+					'Set it once, and TripWire keeps watch every day.'
+				)}
+			</h2>
 			<p class="text-secondary muncul text-[17px] leading-relaxed" style="--urut:1">
-				Kamu cukup memilih saham dan batas skornya. Mengambil data, menghitung skor, dan mengirim
-				notifikasi berjalan otomatis sesuai jadwal yang kamu atur.
+				{t(
+					'Kamu cukup memilih saham dan batas skornya. Mengambil data, menghitung skor, dan mengirim notifikasi berjalan otomatis sesuai jadwal yang kamu atur.',
+					'You just pick the stocks and their score threshold. Fetching data, calculating scores, and sending alerts all run automatically on the schedule you set.'
+				)}
 			</p>
 		</div>
 
@@ -201,10 +255,12 @@
 					</div>
 					<div class="saran">
 						<span class="tw-data text-ink text-[13px] font-semibold">{TICKER}</span>
-						<span class="text-secondary truncate text-[12px]">Emiten fiktif</span>
+						<span class="text-secondary truncate text-[12px]"
+							>{t('Emiten fiktif', 'Fictional company')}</span
+						>
 						<span class="tombol-pantau">
 							<Plus class="size-3" aria-hidden="true" />
-							Pantau
+							{t('Pantau', 'Watch')}
 						</span>
 					</div>
 					<div class="flex flex-wrap gap-1.5">
@@ -215,10 +271,14 @@
 				</div>
 				<div class="space-y-2 p-5 sm:p-6">
 					<span class="nomor">1</span>
-					<h3 class="tw-heading text-ink">Pilih saham yang mau dipantau</h3>
+					<h3 class="tw-heading text-ink">
+						{t('Pilih saham yang mau dipantau', 'Pick the stocks you want to monitor')}
+					</h3>
 					<p class="tw-caption">
-						Cari kode emiten, tambahkan ke watchlist, lalu atur jadwal pengecekan: harian, mingguan,
-						atau begitu ada kejadian baru.
+						{t(
+							'Cari kode emiten, tambahkan ke watchlist, lalu atur jadwal pengecekan: harian, mingguan, atau begitu ada kejadian baru.',
+							'Search for a ticker, add it to your watchlist, then choose how often it gets checked: daily, weekly, or as soon as something new happens.'
+						)}
 					</p>
 				</div>
 			</li>
@@ -242,15 +302,19 @@
 					{/each}
 					<p class="text-muted flex items-center gap-1.5 pt-1 text-[11.5px]">
 						<Database class="size-3" aria-hidden="true" />
-						Sumber data: Sectors API
+						{t('Sumber data: Sectors API', 'Data source: Sectors API')}
 					</p>
 				</div>
 				<div class="space-y-2 p-5 sm:p-6">
 					<span class="nomor">2</span>
-					<h3 class="tw-heading text-ink">TripWire membaca datanya dari Sectors</h3>
+					<h3 class="tw-heading text-ink">
+						{t('TripWire membaca datanya dari Sectors', 'TripWire reads the data from Sectors')}
+					</h3>
 					<p class="tw-caption">
-						Riwayat suspensi, laporan transaksi orang dalam, dan perubahan kepemilikan diambil, lalu
-						dihitung jadi Red Flag Score dari 0 sampai 100.
+						{t(
+							'Riwayat suspensi, laporan transaksi orang dalam, dan perubahan kepemilikan diambil, lalu dihitung jadi Red Flag Score dari 0 sampai 100.',
+							'Suspension history, insider transaction reports, and ownership changes are collected, then turned into a Red Flag Score from 0 to 100.'
+						)}
 					</p>
 				</div>
 			</li>
@@ -265,22 +329,32 @@
 								class="lonceng-notif text-diamond-300 ml-auto size-3.5"
 								aria-hidden="true"
 							/>
-							<span class="tw-data text-muted text-[11px]">07.02</span>
+							<span class="tw-data text-muted text-[11px]">{t('07.02', '07:02')}</span>
 						</div>
 						<p class="text-ink mt-2 text-[13px] leading-snug font-medium">
-							{TICKER} menyentuh skor 91, Kritis
+							{t(`${TICKER} menyentuh skor 91, Kritis`, `${TICKER} hit a score of 91, Critical`)}
 						</p>
 						<p class="text-secondary mt-0.5 text-[12px] leading-snug">
-							Lima orang dalam menjual dalam 30 hari dan kepemilikan berubah 8 poin.
+							{t(
+								'Lima orang dalam menjual dalam 30 hari dan kepemilikan berubah 8 poin.',
+								'Five insiders sold within 30 days and ownership changed by 8 points.'
+							)}
 						</p>
 					</div>
 				</div>
 				<div class="space-y-2 p-5 sm:p-6">
 					<span class="nomor">3</span>
-					<h3 class="tw-heading text-ink">Notifikasi masuk begitu skor melewati batas</h3>
+					<h3 class="tw-heading text-ink">
+						{t(
+							'Notifikasi masuk begitu skor melewati batas',
+							'Get an alert as soon as the score crosses the threshold'
+						)}
+					</h3>
 					<p class="tw-caption">
-						Kabar sampai ke browser dan HP kamu lengkap dengan alasannya. Buka untuk melihat angka
-						dan sumber datanya satu per satu.
+						{t(
+							'Kabar sampai ke browser dan HP kamu lengkap dengan alasannya. Buka untuk melihat angka dan sumber datanya satu per satu.',
+							'Alerts reach your browser and phone along with the reasons. Open one to see each number and its data source.'
+						)}
 					</p>
 				</div>
 			</li>
@@ -294,12 +368,16 @@
 			<div class="space-y-8">
 				<div class="space-y-4">
 					<h2 class="judul-seksi text-ink muncul">
-						Tiga sinyal tata kelola, satu skor 0 sampai 100.
+						{t(
+							'Tiga sinyal tata kelola, satu skor 0 sampai 100.',
+							'Three governance signals, one score from 0 to 100.'
+						)}
 					</h2>
 					<p class="text-secondary muncul text-[17px] leading-relaxed" style="--urut:1">
-						Sinyal ini biasanya tersebar di tempat berbeda. TripWire menggabungkannya, lalu menambah
-						bobot kalau beberapa sinyal muncul berdekatan, karena pola seperti itu yang sering
-						mendahului masalah.
+						{t(
+							'Sinyal ini biasanya tersebar di tempat berbeda. TripWire menggabungkannya, lalu menambah bobot kalau beberapa sinyal muncul berdekatan, karena pola seperti itu yang sering mendahului masalah.',
+							'These signals are usually scattered across different places. TripWire combines them and adds weight when several signals appear close together, because that pattern often comes before trouble.'
+						)}
 					</p>
 				</div>
 
@@ -312,8 +390,12 @@
 							</span>
 							<div class="min-w-0 flex-1 space-y-2">
 								<div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-									<h3 class="text-ink text-[16px] font-semibold">{item.nama}</h3>
-									<span class="tw-data text-muted text-[12px]">bobot {item.bobot * 100}%</span>
+									<h3 class="text-ink text-[16px] font-semibold">
+										{t(item.nama[0], item.nama[1])}
+									</h3>
+									<span class="tw-data text-muted text-[12px]"
+										>{t('bobot', 'weight')} {item.bobot * 100}%</span
+									>
 								</div>
 								<p class="tw-caption">{detail.teks}</p>
 								<div class="flex items-center gap-3 pt-1">
@@ -334,15 +416,19 @@
 				</ul>
 
 				<p class="text-muted muncul text-[13px] leading-relaxed" style="--urut:5">
-					Skor menunjukkan pola, bukan vonis. Setiap insight tetap berisi fakta: apa yang terjadi,
-					kapan, dan dari data mana.
+					{t(
+						'Skor menunjukkan pola, bukan vonis. Setiap insight tetap berisi fakta: apa yang terjadi, kapan, dan dari data mana.',
+						'A score shows a pattern, not a verdict. Every insight still sticks to the facts: what happened, when, and from which data.'
+					)}
 				</p>
 			</div>
 
 			<div class="panel-gauge muncul lg:sticky lg:top-24 lg:self-start" style="--urut:2">
 				<div class="mb-6 flex items-center justify-between gap-3">
-					<p class="text-ink text-[15px] font-semibold">Red Flag Score {TICKER}</p>
-					<span class="tw-data text-muted text-[12px]">13 Jul 2026</span>
+					<p class="text-ink text-[15px] font-semibold">
+						{t(`Red Flag Score ${TICKER}`, `${TICKER} Red Flag Score`)}
+					</p>
+					<span class="tw-data text-muted text-[12px]">{t('13 Jul 2026', 'Jul 13, 2026')}</span>
 				</div>
 				<SkorGauge />
 			</div>
@@ -356,12 +442,16 @@
 	>
 		<div class="max-w-2xl space-y-4">
 			<h2 class="judul-seksi text-ink muncul">
-				Bandingkan dengan emiten sejenis, bukan cuma harganya.
+				{t(
+					'Bandingkan dengan emiten sejenis, bukan cuma harganya.',
+					'Compare against similar companies, not just the price.'
+				)}
 			</h2>
 			<p class="text-secondary muncul text-[17px] leading-relaxed" style="--urut:1">
-				Valuasi dan pertumbuhan dibandingkan dengan rata rata subsektornya. Di atas atau di bawah
-				rata rata bukan penilaian baik buruk, hanya konteks supaya kamu tidak membaca angka
-				sendirian.
+				{t(
+					'Valuasi dan pertumbuhan dibandingkan dengan rata rata subsektornya. Di atas atau di bawah rata rata bukan penilaian baik buruk, hanya konteks supaya kamu tidak membaca angka sendirian.',
+					'Valuation and growth are compared with the subsector average. Above or below average is not a judgment of good or bad, just context so you never read a number in isolation.'
+				)}
 			</p>
 		</div>
 
@@ -369,9 +459,12 @@
 			<article class="panel muncul lg:col-span-7" style="--urut:2">
 				<div class="flex flex-wrap items-baseline justify-between gap-2">
 					<h3 class="text-ink text-[16px] font-semibold">
-						Valuasi {TICKER} dibanding rata rata subsektor
+						{t(
+							`Valuasi ${TICKER} dibanding rata rata subsektor`,
+							`${TICKER} valuation vs the subsector average`
+						)}
 					</h3>
-					<span class="text-muted text-[12px]">Contoh</span>
+					<span class="text-muted text-[12px]">{t('Contoh', 'Example')}</span>
 				</div>
 
 				<div class="mt-6 space-y-1">
@@ -380,9 +473,9 @@
 					>
 						<span></span>
 						<div class="relative flex justify-between">
-							<span>di bawah</span>
-							<span class="absolute left-1/2 -translate-x-1/2">rata rata</span>
-							<span>di atas</span>
+							<span>{t('di bawah', 'below')}</span>
+							<span class="absolute left-1/2 -translate-x-1/2">{t('rata rata', 'average')}</span>
+							<span>{t('di atas', 'above')}</span>
 						</div>
 					</div>
 					{#each valuasi as item, urutan (item.nama)}
@@ -418,17 +511,21 @@
 
 				<div class="border-line mt-6 grid gap-3 border-t pt-5 sm:grid-cols-2">
 					<div>
-						<p class="text-muted text-[12px]">Pertumbuhan pendapatan</p>
+						<p class="text-muted text-[12px]">{t('Pertumbuhan pendapatan', 'Revenue growth')}</p>
 						<p class="mt-1 flex items-baseline gap-2">
-							<span class="tw-data text-ink text-[20px]">14,2%</span>
-							<span class="text-secondary text-[12.5px]">subsektor 9,8%</span>
+							<span class="tw-data text-ink text-[20px]">{desimal.format(14.2)}%</span>
+							<span class="text-secondary text-[12.5px]"
+								>{t('subsektor', 'subsector')} {desimal.format(9.8)}%</span
+							>
 						</p>
 					</div>
 					<div>
-						<p class="text-muted text-[12px]">Pertumbuhan laba</p>
+						<p class="text-muted text-[12px]">{t('Pertumbuhan laba', 'Earnings growth')}</p>
 						<p class="mt-1 flex items-baseline gap-2">
-							<span class="tw-data text-ink text-[20px]">6,1%</span>
-							<span class="text-secondary text-[12.5px]">subsektor 11,5%</span>
+							<span class="tw-data text-ink text-[20px]">{desimal.format(6.1)}%</span>
+							<span class="text-secondary text-[12.5px]"
+								>{t('subsektor', 'subsector')} {desimal.format(11.5)}%</span
+							>
 						</p>
 					</div>
 				</div>
@@ -440,13 +537,19 @@
 						<Pickaxe class="size-4" aria-hidden="true" />
 					</span>
 					<div>
-						<h3 class="text-ink text-[16px] font-semibold">Khusus saham tambang</h3>
-						<p class="text-muted text-[12px]">Contoh radar izin {TICKER}</p>
+						<h3 class="text-ink text-[16px] font-semibold">
+							{t('Khusus saham tambang', 'For mining stocks')}
+						</h3>
+						<p class="text-muted text-[12px]">
+							{t(`Contoh radar izin ${TICKER}`, `Example permit radar for ${TICKER}`)}
+						</p>
 					</div>
 				</div>
 				<p class="tw-caption mt-4">
-					Produksi, harga komoditas, dan umur cadangan dibaca jadi skor eksposur komoditas. Izin
-					tambang yang berakhir dalam 12 bulan ikut ditandai.
+					{t(
+						'Produksi, harga komoditas, dan umur cadangan dibaca jadi skor eksposur komoditas. Izin tambang yang berakhir dalam 12 bulan ikut ditandai.',
+						'Production, commodity prices, and reserve life are turned into a commodity exposure score. Mining permits that expire within 12 months are flagged too.'
+					)}
 				</p>
 
 				<div class="radar mt-6">
@@ -458,7 +561,7 @@
 								<span class="penanda-izin" style="left:{(item.bulan / 36) * 100}%">
 									<span class="berlian" class:dekat={item.bulan <= 12}></span>
 									<span class="label-izin tw-data" class:dekat={item.bulan <= 12}
-										>{item.bulan} bln</span
+										>{item.bulan} {t('bln', 'mo')}</span
 									>
 								</span>
 							</span>
@@ -468,12 +571,12 @@
 						<span>0</span>
 						<span class="text-tier-moderate">12</span>
 						<span>24</span>
-						<span>36 bln</span>
+						<span>36 {t('bln', 'mo')}</span>
 					</div>
 				</div>
 
 				<dl class="border-line mt-6 grid grid-cols-3 gap-3 border-t pt-5">
-					{#each [['Komoditas', 'Nikel'], ['Produksi', '▲ 12%'], ['Umur cadangan', '9 tahun']] as [label, nilai] (label)}
+					{#each [[t('Komoditas', 'Commodity'), t('Nikel', 'Nickel')], [t('Produksi', 'Production'), '▲ 12%'], [t('Umur cadangan', 'Reserve life'), t('9 tahun', '9 years')]] as [label, nilai] (label)}
 						<div>
 							<dt class="text-muted text-[12px]">{label}</dt>
 							<dd class="tw-data text-ink mt-1 text-[15px]">{nilai}</dd>
@@ -490,16 +593,20 @@
 		>
 			<div class="space-y-5 lg:col-span-5">
 				<h2 class="judul-seksi text-ink muncul">
-					Setiap insight bersegel digital. Siapa pun bisa mengeceknya.
+					{t(
+						'Setiap insight bersegel digital. Siapa pun bisa mengeceknya.',
+						'Every insight is digitally sealed. Anyone can check it.'
+					)}
 				</h2>
 				<p class="text-secondary muncul text-[17px] leading-relaxed" style="--urut:1">
-					Begitu dibuat, setiap insight ditandatangani dengan Ed25519 dan dirantai ke insight
-					sebelumnya. Satu huruf saja diubah, tanda tangannya tidak cocok lagi. Halaman verifikasi
-					bisa dibuka tanpa akun.
+					{t(
+						'Begitu dibuat, setiap insight ditandatangani dengan Ed25519 dan dirantai ke insight sebelumnya. Satu huruf saja diubah, tanda tangannya tidak cocok lagi. Halaman verifikasi bisa dibuka tanpa akun.',
+						'Once created, every insight is signed with Ed25519 and chained to the previous insight. Change a single letter and the signature no longer matches. The verification page works without an account.'
+					)}
 				</p>
 				<a href="/verify-insight" class="tw-ghost muncul" style="--urut:2">
 					<FileCheck2 class="size-4" aria-hidden="true" />
-					Cek keaslian insight
+					{t('Cek keaslian insight', 'Check insight authenticity')}
 				</a>
 			</div>
 
@@ -517,7 +624,8 @@
 							<span class="tw-data text-muted text-[11.5px]">{tglRantai(blok.hari)}</span>
 						</div>
 						<p class="mt-1.5 text-[13px] font-medium {tierDariSkor(blok.skor).text}">
-							Skor {blok.skor}, {tierDariSkor(blok.skor).label}
+							{t('Skor', 'Score')}
+							{blok.skor}, {tierDariSkor(blok.skor).label}
 						</p>
 						<dl class="tw-data mt-3 space-y-1.5 text-[11.5px]">
 							<div>
@@ -525,7 +633,7 @@
 								<dd class="hash" class:cocok={sorotBlok === urutan}>{blok.hash}</dd>
 							</div>
 							<div>
-								<dt class="text-muted">sebelumnya</dt>
+								<dt class="text-muted">{t('sebelumnya', 'previous')}</dt>
 								<dd class="hash" class:cocok={sorotBlok !== null && sorotBlok === urutan - 1}>
 									{blok.sebelumnya}
 								</dd>
@@ -550,15 +658,19 @@
 				<Logo size={56} />
 			</div>
 			<h2 class="judul-seksi text-ink mx-auto mt-8 max-w-2xl">
-				Pasang TripWire di saham pilihanmu.
+				{t('Pasang TripWire di saham pilihanmu.', 'Set a TripWire on the stocks you pick.')}
 			</h2>
 			<p class="text-secondary mx-auto mt-4 max-w-xl text-[17px] leading-relaxed">
-				Daftar gratis, tambahkan saham ke watchlist, dan tentukan batas skornya. Sisanya TripWire
-				yang mengecek setiap hari.
+				{t(
+					'Daftar gratis, tambahkan saham ke watchlist, dan tentukan batas skornya. Sisanya TripWire yang mengecek setiap hari.',
+					'Sign up for free, add stocks to your watchlist, and set their score threshold. TripWire handles the daily checks from there.'
+				)}
 			</p>
 			<div class="mt-8 flex flex-wrap justify-center gap-3">
-				<a href="/register" class="tw-primary px-6 py-3">Buat akun gratis</a>
-				<a href="/login" class="tw-ghost px-6 py-3">Masuk</a>
+				<a href="/register" class="tw-primary px-6 py-3"
+					>{t('Buat akun gratis', 'Create a free account')}</a
+				>
+				<a href="/login" class="tw-ghost px-6 py-3">{t('Masuk', 'Log in')}</a>
 			</div>
 		</div>
 
@@ -573,19 +685,21 @@
 		<div class="max-w-sm space-y-3">
 			<Wordmark size="sm" />
 			<p class="text-muted text-[13px] leading-relaxed">
-				Red flag detector dan market intelligence untuk saham IDX. Dibuat untuk Sectors Hackathon
-				2026.
+				{t(
+					'Red flag detector dan market intelligence untuk saham IDX. Dibuat untuk Sectors Hackathon 2026.',
+					'Red flag detector and market intelligence for IDX stocks. Built for the Sectors Hackathon 2026.'
+				)}
 			</p>
 		</div>
 		<nav
 			class="text-secondary flex flex-wrap gap-x-6 gap-y-2 text-[14px]"
-			aria-label="Tautan bawah"
+			aria-label={t('Tautan bawah', 'Footer links')}
 		>
-			<a href="/login" class="tautan-kaki">Masuk</a>
-			<a href="/register" class="tautan-kaki">Daftar</a>
-			<a href="/verify-insight" class="tautan-kaki">Verifikasi insight</a>
+			<a href="/login" class="tautan-kaki">{t('Masuk', 'Log in')}</a>
+			<a href="/register" class="tautan-kaki">{t('Daftar', 'Sign up')}</a>
+			<a href="/verify-insight" class="tautan-kaki">{t('Verifikasi insight', 'Verify insight')}</a>
 			<a href="https://sectors.app" class="tautan-kaki" rel="noopener noreferrer" target="_blank"
-				>Data dari Sectors</a
+				>{t('Data dari Sectors', 'Data from Sectors')}</a
 			>
 		</nav>
 	</div>
@@ -631,8 +745,8 @@
 		z-index: -1;
 		pointer-events: none;
 		background-image:
-			linear-gradient(rgba(180, 205, 255, 0.05) 1px, transparent 1px),
-			linear-gradient(90deg, rgba(180, 205, 255, 0.05) 1px, transparent 1px);
+			linear-gradient(color-mix(in srgb, var(--kilau) 5%, transparent) 1px, transparent 1px),
+			linear-gradient(90deg, color-mix(in srgb, var(--kilau) 5%, transparent) 1px, transparent 1px);
 		background-size: 56px 56px;
 		mask-image: radial-gradient(ellipse 85% 75% at 65% 30%, #000 25%, transparent 75%);
 	}
@@ -754,7 +868,7 @@
 		align-items: baseline;
 		gap: 8px;
 		padding: 14px 22px;
-		border-right: 1px solid rgba(180, 205, 255, 0.07);
+		border-right: 1px solid color-mix(in srgb, var(--kilau) 7%, transparent);
 		transition: background 0.2s ease;
 	}
 
@@ -778,7 +892,7 @@
 	@media (hover: hover) {
 		.langkah:hover {
 			transform: translateY(-4px);
-			border-color: rgba(143, 208, 255, 0.3);
+			border-color: color-mix(in srgb, var(--color-diamond-300) 30%, transparent);
 			box-shadow: 0 30px 60px -30px rgba(74, 158, 255, 0.35);
 		}
 	}
@@ -944,7 +1058,7 @@
 		flex: 1;
 		overflow: hidden;
 		border-radius: 999px;
-		background: rgba(180, 205, 255, 0.08);
+		background: color-mix(in srgb, var(--kilau) 8%, transparent);
 	}
 
 	.lajur::after {
@@ -974,11 +1088,11 @@
 	}
 
 	.kartu-notif {
-		border: 1px solid rgba(143, 208, 255, 0.25);
+		border: 1px solid color-mix(in srgb, var(--color-diamond-300) 25%, transparent);
 		border-radius: 14px;
 		background: var(--color-raised);
 		padding: 12px 14px;
-		box-shadow: 0 20px 40px -24px #000;
+		box-shadow: 0 20px 40px -24px var(--bayang);
 	}
 
 	:global(.terlihat) .kartu-notif {
@@ -1006,7 +1120,7 @@
 	@media (hover: hover) {
 		.sinyal:hover {
 			border-color: var(--edge);
-			background: rgba(255, 255, 255, 0.025);
+			background: color-mix(in srgb, var(--cahaya) 2.5%, transparent);
 		}
 
 		.sinyal:hover .ikon-sinyal {
@@ -1046,7 +1160,7 @@
 
 	@media (hover: hover) {
 		.panel:hover {
-			border-color: rgba(180, 205, 255, 0.24);
+			border-color: color-mix(in srgb, var(--kilau) 24%, transparent);
 		}
 	}
 
@@ -1059,7 +1173,7 @@
 
 	@media (hover: hover) {
 		.baris-valuasi:hover {
-			background: rgba(255, 255, 255, 0.03);
+			background: color-mix(in srgb, var(--cahaya) 3%, transparent);
 		}
 
 		.baris-valuasi:hover .bar-valuasi {
@@ -1078,7 +1192,7 @@
 		bottom: -6px;
 		left: 50%;
 		width: 1px;
-		background: rgba(180, 205, 255, 0.28);
+		background: color-mix(in srgb, var(--kilau) 28%, transparent);
 	}
 
 	.bar-valuasi {
@@ -1177,7 +1291,7 @@
 	.rel-izin {
 		position: relative;
 		height: 2px;
-		background: rgba(180, 205, 255, 0.12);
+		background: color-mix(in srgb, var(--kilau) 12%, transparent);
 	}
 
 	.penanda-izin {
@@ -1273,7 +1387,7 @@
 
 	.blok.disorot {
 		transform: translateY(-4px);
-		border-color: rgba(143, 208, 255, 0.35);
+		border-color: color-mix(in srgb, var(--color-diamond-300) 35%, transparent);
 	}
 
 	.hash {

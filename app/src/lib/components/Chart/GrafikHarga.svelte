@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { lokal, t } from '$lib/bahasa.svelte';
+
 	let { seri }: { seri: { date: string; price: number }[] } = $props();
 
 	const id = $props.id();
@@ -25,7 +27,7 @@
 		const pilih = [seri[0], seri[Math.floor((seri.length - 1) / 2)], seri[seri.length - 1]];
 		return pilih.map((item) =>
 			new Date(item.date)
-				.toLocaleDateString('id-ID', { month: 'short', year: '2-digit', timeZone: 'UTC' })
+				.toLocaleDateString(lokal(), { month: 'short', year: '2-digit', timeZone: 'UTC' })
 				.toUpperCase()
 		);
 	});
@@ -37,7 +39,7 @@
 		preserveAspectRatio="none"
 		class="block h-[92px] w-full"
 		role="img"
-		aria-label="Grafik harga komoditas"
+		aria-label={t('Grafik harga komoditas', 'Commodity price chart')}
 	>
 		<defs>
 			<linearGradient id="isi-{id}" x1="0" y1="0" x2="0" y2="1">
@@ -46,7 +48,13 @@
 			</linearGradient>
 		</defs>
 		{#each [23, 46, 69] as y (y)}
-			<line x1="0" y1={y} x2={LEBAR} y2={y} stroke="rgba(180,205,255,.09)" />
+			<line
+				x1="0"
+				y1={y}
+				x2={LEBAR}
+				y2={y}
+				style="stroke: color-mix(in srgb, var(--kilau) 9%, transparent)"
+			/>
 		{/each}
 		<polygon points={bidang} fill="url(#isi-{id})" />
 		<polyline

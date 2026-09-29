@@ -45,6 +45,11 @@ semua 962 emiten sambil membawa nama sektor, dan simbol di `where` wajib berakhi
 (`symbol in ['BBCA.JK']`), tanpa akhiran hasilnya kosong tapi tetap ditagih 1 credit. `GET /market/top`
 hanya membaca halaman pertama, sedangkan `GET /market/stocks` membaca semua halaman saat modal dibuka.
 
+Sectors API tidak punya field logo. Logo emiten di daftar saham diambil browser langsung dari aset publik
+yang dipakai sectors.app sendiri, `https://storage.googleapis.com/sectorsapp-sea/logo/{KODE}.webp`
+(lingkaran 40x40, 404 kalau emiten belum punya logo), jadi tidak memakai credit. `LogoEmiten.svelte`
+menumpuknya di atas monogram sebagai cadangan, dan CSP `img-src` hanya membuka path itu.
+
 ## 2. Aturan Penagihan
 Diambil dari dokumentasi Sectors, dan diterapkan di `api/pkg/sectorsclient`:
 

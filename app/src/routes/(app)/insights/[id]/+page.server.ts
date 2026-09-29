@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { panggilApi } from '$lib/server/api';
 import type { Insight } from '$lib/insight';
+import { teks } from '$lib/bahasa.svelte';
 import type { PageServerLoad } from './$types';
 
 type Verifikasi = {
@@ -14,7 +15,7 @@ type Verifikasi = {
 	reason?: string;
 };
 
-export const load: PageServerLoad = async ({ params, request }) => {
+export const load: PageServerLoad = async ({ params, request, locals }) => {
 	const { response, payload } = await panggilApi(
 		`/insights/${params.id}`,
 		{},
@@ -22,7 +23,7 @@ export const load: PageServerLoad = async ({ params, request }) => {
 	);
 
 	if (!response.ok || !payload) {
-		error(404, 'Insight tidak ditemukan');
+		error(404, teks(locals.bahasa, 'Insight tidak ditemukan', 'Insight not found'));
 	}
 
 	return {

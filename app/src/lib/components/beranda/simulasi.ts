@@ -6,9 +6,10 @@ export type Lilin = {
 	volume: number;
 };
 
-export type JenisKejadian = 'awal' | 'orang-dalam' | 'kepemilikan' | 'notifikasi' | 'anjlok' | 'suspensi' | 'buka';
+export type JenisKejadian =
+	'awal' | 'orang-dalam' | 'kepemilikan' | 'notifikasi' | 'anjlok' | 'suspensi' | 'buka';
 
-export type Kejadian = { hari: number; jenis: JenisKejadian; teks: string };
+export type Kejadian = { hari: number; jenis: JenisKejadian; teks: [id: string, en: string] };
 
 export const TICKER = 'SIMU';
 export const BATAS = 86;
@@ -25,9 +26,24 @@ const JANGKAR: [number, number][] = [
 	[33, 1340]
 ];
 
-const SETELAH_KABAR: Record<number, number> = { 34: 1045, 39: 905, 40: 830, 41: 790, 42: 815, 43: 780 };
+const SETELAH_KABAR: Record<number, number> = {
+	34: 1045,
+	39: 905,
+	40: 830,
+	41: 790,
+	42: 815,
+	43: 780
+};
 const BUKA_KHUSUS: Record<number, number> = { 34: 1320, 39: 1000 };
-const LONJAKAN_VOLUME: Record<number, number> = { 12: 1.9, 19: 2.3, 25: 1.8, 30: 1.6, 34: 6.5, 39: 4.2, 40: 3 };
+const LONJAKAN_VOLUME: Record<number, number> = {
+	12: 1.9,
+	19: 2.3,
+	25: 1.8,
+	30: 1.6,
+	34: 6.5,
+	39: 4.2,
+	40: 3
+};
 
 function acak(benih: number) {
 	return () => (benih = (benih * 16807) % 2147483647) / 2147483647;
@@ -85,25 +101,69 @@ export function skorPada(hari: number) {
 }
 
 export const kejadian: Kejadian[] = [
-	{ hari: 0, jenis: 'awal', teks: 'Harga naik pelan. Skor masih 6 dari suspensi rutin dua tahun lalu.' },
-	{ hari: 12, jenis: 'orang-dalam', teks: 'Dua orang dalam menjual saham dalam 30 hari. Skor naik ke 22.' },
+	{
+		hari: 0,
+		jenis: 'awal',
+		teks: [
+			'Harga naik pelan. Skor masih 6 dari suspensi rutin dua tahun lalu.',
+			'The price rises slowly. The score is still 6, from a routine suspension two years ago.'
+		]
+	},
+	{
+		hari: 12,
+		jenis: 'orang-dalam',
+		teks: [
+			'Dua orang dalam menjual saham dalam 30 hari. Skor naik ke 22.',
+			'Two insiders sell shares within 30 days. The score rises to 22.'
+		]
+	},
 	{
 		hari: 19,
 		jenis: 'kepemilikan',
-		teks: 'Pemegang saham besar melepas 6,5 poin kepemilikan. Dua sinyal berdekatan, skor dikali 1,3.'
+		teks: [
+			'Pemegang saham besar melepas 6,5 poin kepemilikan. Dua sinyal berdekatan, skor dikali 1,3.',
+			'A major shareholder sells off 6.5 points of ownership. Two signals close together, so the score is multiplied by 1.3.'
+		]
 	},
-	{ hari: 25, jenis: 'orang-dalam', teks: 'Orang dalam yang menjual bertambah jadi empat. Skor 75, Tinggi.' },
+	{
+		hari: 25,
+		jenis: 'orang-dalam',
+		teks: [
+			'Orang dalam yang menjual bertambah jadi empat. Skor 75, Tinggi.',
+			'The number of insiders selling grows to four. Score 75, High.'
+		]
+	},
 	{
 		hari: HARI_NOTIFIKASI,
 		jenis: 'notifikasi',
-		teks: 'Skor 91 melewati batas 86. Notifikasi terkirim, harga masih terlihat baik baik saja.'
+		teks: [
+			'Skor 91 melewati batas 86. Notifikasi terkirim, harga masih terlihat baik baik saja.',
+			'The score of 91 crosses the threshold of 86. An alert goes out while the price still looks fine.'
+		]
 	},
-	{ hari: HARI_ANJLOK, jenis: 'anjlok', teks: 'SIMU mengumumkan gagal bayar. Harga turun 22% dalam sehari.' },
-	{ hari: SUSPENSI.mulai, jenis: 'suspensi', teks: 'Bursa menghentikan sementara perdagangan SIMU selama empat hari.' },
+	{
+		hari: HARI_ANJLOK,
+		jenis: 'anjlok',
+		teks: [
+			'SIMU mengumumkan gagal bayar. Harga turun 22% dalam sehari.',
+			'SIMU announces a default. The price drops 22% in a single day.'
+		]
+	},
+	{
+		hari: SUSPENSI.mulai,
+		jenis: 'suspensi',
+		teks: [
+			'Bursa menghentikan sementara perdagangan SIMU selama empat hari.',
+			'The exchange suspends trading in SIMU for four days.'
+		]
+	},
 	{
 		hari: 39,
 		jenis: 'buka',
-		teks: 'Dibuka lagi, harga terus turun sampai 42% di bawah puncak. Kamu sudah dikabari 4 hari bursa sebelum kabar itu.'
+		teks: [
+			'Dibuka lagi, harga terus turun sampai 42% di bawah puncak. Kamu sudah dikabari 4 hari bursa sebelum kabar itu.',
+			'Trading resumes and the price keeps falling to 42% below its peak. You were alerted 4 trading days before the news.'
+		]
 	}
 ];
 
@@ -112,9 +172,19 @@ export function kejadianPada(hari: number) {
 }
 
 export const subSkor = [
-	{ kunci: 'orang-dalam', nama: 'Transaksi orang dalam', bobot: 0.4, nilai: 100 },
-	{ kunci: 'kepemilikan', nama: 'Perubahan kepemilikan', bobot: 0.3, nilai: 80 },
-	{ kunci: 'suspensi', nama: 'Riwayat suspensi', bobot: 0.3, nilai: 20 }
+	{
+		kunci: 'orang-dalam',
+		nama: ['Transaksi orang dalam', 'Insider transactions'],
+		bobot: 0.4,
+		nilai: 100
+	},
+	{
+		kunci: 'kepemilikan',
+		nama: ['Perubahan kepemilikan', 'Ownership changes'],
+		bobot: 0.3,
+		nilai: 80
+	},
+	{ kunci: 'suspensi', nama: ['Riwayat suspensi', 'Suspension history'], bobot: 0.3, nilai: 20 }
 ] as const;
 
 export const PENGALI_POLA_SILANG = 1.3;
