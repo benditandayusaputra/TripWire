@@ -38,6 +38,22 @@ func (h *MarketHandler) DaftarSaham(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"stocks": saham, "meta": meta})
 }
 
+func (h *MarketHandler) Indeks(c *fiber.Ctx) error {
+	seri, err := h.market.Indeks(c.Context(), c.Params("code"))
+	if err != nil {
+		return sectorsError(c, err)
+	}
+	return c.JSON(seri)
+}
+
+func (h *MarketHandler) ArusAsing(c *fiber.Ctx) error {
+	ringkasan, err := h.market.ArusAsing(c.Context())
+	if err != nil {
+		return sectorsError(c, err)
+	}
+	return c.JSON(ringkasan)
+}
+
 func (h *MarketHandler) Credits(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"meta": h.market.Credits(c.Context())})
 }
