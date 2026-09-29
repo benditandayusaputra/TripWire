@@ -25,6 +25,14 @@ func (h *MarketHandler) CompanyReport(c *fiber.Ctx) error {
 	return c.JSON(report)
 }
 
+func (h *MarketHandler) Teratas(c *fiber.Ctx) error {
+	saham, meta, err := h.market.Teratas(c.Context())
+	if err != nil {
+		return sectorsError(c, err)
+	}
+	return c.JSON(fiber.Map{"stocks": saham, "meta": meta})
+}
+
 func (h *MarketHandler) Credits(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"meta": h.market.Credits(c.Context())})
 }

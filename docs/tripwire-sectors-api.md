@@ -18,7 +18,8 @@ TripWire memakai v2 dengan base URL `https://api.sectors.app/v2` dan header `Aut
 | Daftar situs tambang | `/mining/sites/?company={slug}&limit=30` | 1 | 7 hari |
 | Koordinat situs, maksimal tiga | `/mining/sites/{slug}/` | 1 per situs | 7 hari |
 | Universe ticker | `/companies/?limit=200&offset=` | 1 per halaman, sekitar 5 | 7 hari |
-| Harga harian untuk grafik watchlist | `/daily/{symbol}/?start={90 hari lalu}` | 1 | `SECTORS_CACHE_TTL` |
+| Harga harian untuk grafik dan garis tren watchlist | `/daily/{symbol}/?start={90 hari lalu}` | 1 | `SECTORS_CACHE_TTL` |
+| Saran saham berkapitalisasi terbesar | `/companies/?where=...&order_by=-market_cap&include_query_values=true&limit=10` | 1 | `SECTORS_CACHE_TTL` |
 
 `SECTORS_CACHE_TTL` bawaannya 24 jam. Data harian Sectors paling cepat berubah sekali sehari, jadi
 scheduler yang jalan tiap 6 jam hampir selalu dilayani cache.
@@ -28,11 +29,19 @@ pernah dipakai untuk menghitung insight, hanya untuk kutipan harga di `GET /watc
 yang dibaca dari cache laporan emiten atau salinannya tanpa memanggil Sectors dan tanpa memakai credit.
 Emiten yang belum pernah dipindai tidak punya kutipan sampai scan pertamanya.
 
-Harga harian hanya diambil saat pengguna membuka detail satu emiten di watchlist, tidak ikut scan
-terjadwal. Respons `/daily/` berupa array polos berisi `symbol, date, open, high, low, close, volume,
-market_cap`, sekitar 62 hari bursa untuk jendela 90 hari. Parameter `start` berganti tiap hari
-sehingga biaya paling banyak 1 credit per emiten per hari, berapa pun pengguna yang membukanya.
-Endpoint TripWire-nya hanya melayani emiten yang ada di watchlist pemanggil.
+Harga harian diambil untuk setiap emiten di watchlist saat halaman watchlist dibuka, tidak ikut scan
+terjadwal. Seri yang sama dipakai untuk garis tren sebulan di tiap baris, harga penutupan emiten yang
+belum pernah dipindai, dan grafik candle di panel detail. Respons `/daily/` berupa array polos berisi
+`symbol, date, open, high, low, close, volume, market_cap`, sekitar 62 hari bursa untuk jendela 90
+hari. Parameter `start` berganti tiap hari sehingga biaya paling banyak 1 credit per emiten per hari,
+berapa pun pengguna yang membukanya. Endpoint TripWire-nya hanya melayani emiten yang ada di watchlist
+pemanggil.
+
+Saran saham memakai screener `/companies/` dengan `where=last_close_price > 0 and daily_close_change
+> -1 and market_cap > 0`, `order_by=-market_cap`, dan `include_query_values=true`. Diuji dengan data
+asli pada 29 September 2026: `query_values` hanya berisi field yang disebut di `where` atau
+`order_by`, dan simbol di `where` wajib berakhiran `.JK` (`symbol in ['BBCA.JK']`), tanpa akhiran
+hasilnya kosong tapi tetap ditagih 1 credit.
 
 ## 2. Aturan Penagihan
 Diambil dari dokumentasi Sectors, dan diterapkan di `api/pkg/sectorsclient`:
@@ -57,7 +66,7 @@ pemakaian semua lingkungan.
 | Market Intelligence emiten tambang pertama kali dalam seminggu | 7 sampai 10 |
 | Scan pertama untuk ANTM, MDKA, INCO, PTBA, BBCA | sekitar 70 |
 | Scan harian berikutnya untuk lima emiten yang sama | sekitar 30 |
-| Grafik harga satu emiten di detail watchlist | 1 per hari, pembuka berikutnya dilayani cache |
+| Membuka watchlist berisi N emiten pertama kali dalam sehari | N untuk harga harian, ditambah 1 untuk saran saham |
 
 Verifikasi dengan data asli pada 28 September 2026 memakai 59 credit: 14 untuk eksplorasi manual,
 5 untuk universe ticker, dan 40 untuk insight ANTM, PTBA, PPGL, dan BBCA.

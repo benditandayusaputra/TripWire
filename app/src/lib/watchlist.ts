@@ -65,6 +65,18 @@ export type Harian = {
 
 export type HasilHarga = { seri: Harian[]; galat: string };
 
+export type Tren = { tutup: number[]; tanggal: string };
+
+export type Penutupan = { harga: number; ubah: number | null; tanggal: string };
+
+export type SahamTeratas = {
+	ticker: string;
+	company_name: string;
+	last_close_price: number;
+	daily_close_change: number | null;
+	market_cap: number | null;
+};
+
 export type JenisPeristiwa = 'jual' | 'beli' | 'kepemilikan' | 'suspensi';
 
 export type Peristiwa = { tanggal: string; jenis: JenisPeristiwa; teks: string };
@@ -72,6 +84,8 @@ export type Peristiwa = { tanggal: string; jenis: JenisPeristiwa; teks: string }
 export type Baris = {
 	item: ItemWatchlist;
 	kutipan: Kutipan | null;
+	penutupan: Penutupan | null;
+	tren: number[] | null;
 	risiko: Risiko | null;
 	skor: number | null;
 	ubah: number | null;
@@ -80,6 +94,30 @@ export type Baris = {
 
 export const BATAS_WATCHLIST = 50;
 export const BATAS_KRITIS = 86;
+export const HARI_TREN = 22;
+
+export function ringkasTren(seri: Harian[]): Tren | null {
+	if (!seri.length) return null;
+	return {
+		tutup: seri.slice(-HARI_TREN).map((bar) => bar.close),
+		tanggal: seri[seri.length - 1].date
+	};
+}
+
+export function penutupanTerbaru(kutipan: Kutipan | null, tren: Tren | null): Penutupan | null {
+	const dariKutipan = kutipan && {
+		harga: kutipan.last_close_price,
+		ubah: kutipan.daily_close_change,
+		tanggal: kutipan.latest_close_date ?? ''
+	};
+	if (!tren || (dariKutipan && dariKutipan.tanggal >= tren.tanggal)) return dariKutipan;
+	const [kemarin, terakhir] = tren.tutup.length > 1 ? tren.tutup.slice(-2) : [null, tren.tutup[0]];
+	return { harga: terakhir, ubah: kemarin ? terakhir / kemarin - 1 : null, tanggal: tren.tanggal };
+}
+
+export function ronaEmiten(kode: string) {
+	return 195 + ([...kode].reduce((jumlah, huruf) => jumlah * 31 + huruf.charCodeAt(0), 7) % 130);
+}
 
 export const NAMA_KONDISI: Record<string, string> = {
 	daily: 'Harian',
@@ -199,14 +237,13 @@ export function peristiwaDari(insight: Insight | undefined): Peristiwa[] {
 	return hasil.sort((a, b) => (a.tanggal < b.tanggal ? 1 : -1));
 }
 
-export type KunciUrut = 'skor' | 'ubah' | 'kapitalisasi' | 'kode' | 'kondisi';
+export type KunciUrut = 'skor' | 'ubah' | 'kapitalisasi' | 'kode';
 
 const nilaiUrut: Record<KunciUrut, (baris: Baris) => number | string | null> = {
 	skor: (baris) => baris.skor,
 	ubah: (baris) => baris.ubah,
 	kapitalisasi: (baris) => baris.kutipan?.market_cap ?? null,
-	kode: (baris) => baris.item.ticker,
-	kondisi: (baris) => baris.aktif
+	kode: (baris) => baris.item.ticker
 };
 
 export function urutkan(daftar: Baris[], kunci: KunciUrut, naik: boolean) {

@@ -1,7 +1,16 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { panggilApi, pesanGalat } from '$lib/server/api';
 import type { Insight } from '$lib/insight';
-import type { HasilHarga, ItemWatchlist, Jadwal, Kutipan, Risiko } from '$lib/watchlist';
+import {
+	ringkasTren,
+	type HasilHarga,
+	type ItemWatchlist,
+	type Jadwal,
+	type Kutipan,
+	type Risiko,
+	type SahamTeratas,
+	type Tren
+} from '$lib/watchlist';
 import type { Actions, PageServerLoad } from './$types';
 
 function konteks(request: Request) {
@@ -20,6 +29,15 @@ async function ambilHarga(id: string, cookie: string): Promise<HasilHarga> {
 		return { seri: payload?.series ?? [], galat: '' };
 	} catch {
 		return { seri: [], galat: 'Harga harian belum bisa dimuat' };
+	}
+}
+
+async function ambilTeratas(cookie: string): Promise<SahamTeratas[]> {
+	try {
+		const { response, payload } = await panggilApi('/market/top', {}, cookie);
+		return response.ok ? ((payload?.stocks ?? []) as SahamTeratas[]) : [];
+	} catch {
+		return [];
 	}
 }
 
@@ -49,6 +67,8 @@ export const load: PageServerLoad = async ({ request, url }) => {
 		items.find((item) => item.ticker === diminta) ??
 		[...items].sort((a, b) => skor(b) - skor(a) || a.ticker.localeCompare(b.ticker))[0];
 
+	const semuaHarga = Promise.all(items.map((item) => ambilHarga(item.id, cookie)));
+
 	return {
 		items,
 		quotes: (daftar.payload?.quotes ?? {}) as Record<string, Kutipan>,
@@ -60,8 +80,17 @@ export const load: PageServerLoad = async ({ request, url }) => {
 		}) as Jadwal,
 		kode: terpilih?.ticker ?? null,
 		dipilih: Boolean(terpilih) && terpilih.ticker === diminta,
-		harga: terpilih ? ambilHarga(terpilih.id, cookie) : null,
-		insights: terpilih ? ambilInsight(terpilih.ticker, cookie) : null
+		tren: semuaHarga.then((daftarHarga) => {
+			const peta: Record<string, Tren> = {};
+			items.forEach((item, urutan) => {
+				const tren = ringkasTren(daftarHarga[urutan].seri);
+				if (tren) peta[item.ticker] = tren;
+			});
+			return peta;
+		}),
+		harga: terpilih ? semuaHarga.then((daftarHarga) => daftarHarga[items.indexOf(terpilih)]) : null,
+		insights: terpilih ? ambilInsight(terpilih.ticker, cookie) : null,
+		teratas: ambilTeratas(cookie)
 	};
 };
 

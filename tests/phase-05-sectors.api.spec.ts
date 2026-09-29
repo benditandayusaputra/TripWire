@@ -165,6 +165,39 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		expect(await statistikStub(request)).toBe(sebelum + 1);
 	});
 
+	test('saham berkapitalisasi terbesar diambil dari screener Sectors dengan satu credit', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-teratas');
+
+		await tungguCacheKedaluwarsa();
+		const sebelum = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const pertama = await sesi.kirim('get', '/market/top');
+		expect(pertama.status()).toBe(200);
+		const isi = await pertama.json();
+		expect(isi.meta.cached).toBe(false);
+		expect(isi.meta.credits_used).toBe(sebelum + 1);
+
+		const kode = isi.stocks.map((saham: { ticker: string }) => saham.ticker);
+		expect(kode.slice(0, 3)).toEqual(['BBCA', 'BBRI', 'TLKM']);
+		expect(kode).not.toContain('BBCA.JK');
+		expect(isi.stocks[0]).toEqual({
+			ticker: 'BBCA',
+			company_name: 'Bank Central Asia Tbk.',
+			last_close_price: 7000,
+			daily_close_change: 0.0036,
+			market_cap: 863_000_000_000_000
+		});
+		const kapitalisasi = isi.stocks.map((saham: { market_cap: number }) => saham.market_cap);
+		expect(kapitalisasi).toEqual([...kapitalisasi].sort((a, b) => b - a));
+
+		const kedua = await (await sesi.kirim('get', '/market/top')).json();
+		expect(kedua.meta.cached).toBe(true);
+		expect(kedua.meta.credits_used).toBe(isi.meta.credits_used);
+		expect(kedua.stocks).toEqual(isi.stocks);
+	});
+
 	test('ticker di luar daftar IDX tidak pernah diteruskan ke Sectors', async ({ request }) => {
 		const { sesi } = await sesiMasuk(request, 'sectors-ticker');
 
@@ -200,5 +233,6 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 	test('endpoint pasar menolak pengunjung tanpa sesi', async ({ request }) => {
 		const response = await request.get('/market/ANTM');
 		expect(response.status()).toBe(401);
+		expect((await request.get('/market/top')).status()).toBe(401);
 	});
 });

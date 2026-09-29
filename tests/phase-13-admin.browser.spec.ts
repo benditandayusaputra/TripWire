@@ -89,7 +89,7 @@ test.describe('Fase 13: panel admin dan kontrol aksesnya', () => {
 		await masukSebagai(page, akun.email, akun.password);
 
 		await page.goto('/watchlist');
-		await page.getByLabel('Kode emiten').fill('ANTM');
+		await page.getByLabel('Cari saham').fill('ANTM');
 		await page.getByTestId('tambah-ticker').click();
 
 		const kondisi = page.getByTestId('panel-emiten').getByTestId('kondisi');
