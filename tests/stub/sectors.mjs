@@ -17,7 +17,18 @@ function pemegang(daftar) {
 	}));
 }
 
-function laporanDasar({ symbol, nama, sector, subSector, industry, subIndustry, publik, lain = [] }) {
+function laporanDasar({
+	symbol,
+	nama,
+	sector,
+	subSector,
+	industry,
+	subIndustry,
+	publik,
+	lain = [],
+	harga = [1500, 0.004, 1200, 1800, 44, 60, []]
+}) {
+	const [penutupan, ubah, rendah, tinggi, triliun, peringkat, indices] = harga;
 	return {
 		symbol,
 		company_name: nama,
@@ -27,11 +38,18 @@ function laporanDasar({ symbol, nama, sector, subSector, industry, subIndustry, 
 			sub_sector: subSector,
 			industry,
 			sub_industry: subIndustry,
-			market_cap: 44_000_000_000_000,
-			last_close_price: 1500,
-			latest_close_date: hariLalu(1)
+			market_cap: triliun * 1_000_000_000_000,
+			market_cap_rank: peringkat,
+			last_close_price: penutupan,
+			latest_close_date: hariLalu(1),
+			daily_close_change: ubah,
+			all_time_price: {
+				'52_w_low': { [hariLalu(200)]: rendah },
+				'52_w_high': { [hariLalu(90)]: tinggi }
+			},
+			indices
 		},
-		valuation: { last_close_price: 1500, historical_valuation: [] },
+		valuation: { last_close_price: penutupan, historical_valuation: [] },
 		financials: { historical_financials: [] },
 		ownership: {
 			major_shareholders: pemegang([...lain, ['Public', publik]]),
@@ -49,7 +67,8 @@ const laporan = {
 		industry: 'Metals & Minerals',
 		subIndustry: 'Diversified Metals & Minerals',
 		publik: 35,
-		lain: [['Inalum (Persero)', 65]]
+		lain: [['Inalum (Persero)', 65]],
+		harga: [3230, -0.0122, 2450, 4970, 77.6, 27, ['LQ45', 'IDX30']]
 	}),
 	PTBA: laporanDasar({
 		symbol: 'PTBA.JK',
@@ -59,7 +78,8 @@ const laporan = {
 		industry: 'Coal',
 		subIndustry: 'Coal Production',
 		publik: 40,
-		lain: [['MIND ID', 60]]
+		lain: [['MIND ID', 60]],
+		harga: [2650, 0.0076, 2300, 3100, 30.5, 45, ['LQ45']]
 	}),
 	MDKA: laporanDasar({
 		symbol: 'MDKA.JK',
@@ -69,7 +89,8 @@ const laporan = {
 		industry: 'Metals & Minerals',
 		subIndustry: 'Diversified Metals & Minerals',
 		publik: 12,
-		lain: [['Saratoga Investama Sedaya', 18]]
+		lain: [['Saratoga Investama Sedaya', 18]],
+		harga: [1850, -0.0213, 1400, 2900, 45.2, 38, ['LQ45']]
 	}),
 	ITMG: laporanDasar({
 		symbol: 'ITMG.JK',
@@ -79,7 +100,8 @@ const laporan = {
 		industry: 'Coal',
 		subIndustry: 'Coal Production',
 		publik: 30,
-		lain: [['Banpu Minerals', 62]]
+		lain: [['Banpu Minerals', 62]],
+		harga: [24500, 0.0041, 22000, 28000, 27.7, 52, []]
 	}),
 	TLKM: laporanDasar({
 		symbol: 'TLKM.JK',
@@ -89,7 +111,8 @@ const laporan = {
 		industry: 'Telecommunication',
 		subIndustry: 'Integrated Telecommunication',
 		publik: 48,
-		lain: [['Negara Republik Indonesia', 52]]
+		lain: [['Negara Republik Indonesia', 52]],
+		harga: [2980, 0.0068, 2500, 3500, 295, 6, ['LQ45', 'IDX30']]
 	}),
 	BBCA: {
 		...laporanDasar({
@@ -100,7 +123,8 @@ const laporan = {
 			industry: 'Banks',
 			subIndustry: 'Banks',
 			publik: 45,
-			lain: [['PT Dwimuria Investama Andalan', 55]]
+			lain: [['PT Dwimuria Investama Andalan', 55]],
+			harga: [7000, 0.0036, 6100, 9800, 863, 1, ['LQ45', 'IDX30']]
 		}),
 		valuation: {
 			last_close_price: 7000,
@@ -124,7 +148,8 @@ const laporan = {
 		industry: 'Coal',
 		subIndustry: 'Coal Production',
 		publik: 38,
-		lain: [['Adaro Strategic Investments', 62]]
+		lain: [['Adaro Strategic Investments', 62]],
+		harga: [2100, -0.0094, 1800, 2700, 64.6, 30, ['LQ45']]
 	}),
 	INCO: laporanDasar({
 		symbol: 'INCO.JK',
@@ -134,7 +159,8 @@ const laporan = {
 		industry: 'Metals & Minerals',
 		subIndustry: 'Nickel',
 		publik: 22,
-		lain: [['Vale Canada Limited', 44]]
+		lain: [['Vale Canada Limited', 44]],
+		harga: [3900, 0.0155, 3100, 4600, 38.8, 41, ['LQ45']]
 	}),
 	BBRI: laporanDasar({
 		symbol: 'BBRI.JK',
@@ -144,7 +170,8 @@ const laporan = {
 		industry: 'Banks',
 		subIndustry: 'Banks',
 		publik: 47,
-		lain: [['Negara Republik Indonesia', 53]]
+		lain: [['Negara Republik Indonesia', 53]],
+		harga: [3950, -0.005, 3500, 5200, 598, 3, ['LQ45', 'IDX30']]
 	})
 };
 
@@ -335,6 +362,36 @@ const hargaKomoditas = {
 	coal: seriHarga('Coal', 94, 100),
 	nickel: seriHarga('Nickel', 16_500, 15_000)
 };
+
+function hargaHarian(kode, mulai) {
+	const tanggal = [];
+	for (let mundur = 1; hariLalu(mundur) >= mulai; mundur += 1) {
+		const hari = new Date(`${hariLalu(mundur)}T00:00:00Z`).getUTCDay();
+		if (hari !== 0 && hari !== 6) tanggal.unshift(hariLalu(mundur));
+	}
+
+	let benih = [...kode].reduce((jumlah, huruf) => jumlah * 31 + huruf.charCodeAt(0), 7) % 2147483647;
+	const acak = () => (benih = (benih * 16807) % 2147483647) / 2147483647;
+	const fraksi = (harga) => Math.max(50, Math.round(harga / 5) * 5);
+
+	let tutup = laporan[kode]?.overview.last_close_price ?? 1000;
+	const baris = [];
+	for (let i = tanggal.length - 1; i >= 0; i -= 1) {
+		const buka = fraksi(tutup * (1 + (acak() - 0.5) * 0.03));
+		baris.unshift({
+			symbol: `${kode}.JK`,
+			date: tanggal[i],
+			close: tutup,
+			open: buka,
+			high: Math.max(buka, tutup) + 5 * Math.round(acak() * 6),
+			low: Math.min(buka, tutup) - 5 * Math.round(acak() * 6),
+			volume: Math.round(20 + acak() * 60) * 1_000_000,
+			market_cap: tutup * 24_000_000_000
+		});
+		tutup = fraksi(buka * (1 + (acak() - 0.5) * 0.02));
+	}
+	return baris;
+}
 
 const situsTambang = {
 	'pt-alamtri-resources-indonesia-tbk': [
@@ -579,6 +636,12 @@ createServer((req, res) => {
 			},
 			slug: situs.slug
 		});
+	}
+
+	const cocokHarian = path.match(/^\/daily\/([a-z0-9.]+)\/$/i);
+	if (cocokHarian) {
+		const mulai = url.searchParams.get('start') ?? hariLalu(30);
+		return balas(res, 200, hargaHarian(kodeDari(cocokHarian[1]), mulai));
 	}
 
 	return balas(res, 404, { error: 'rute stub tidak dikenal' });

@@ -47,7 +47,13 @@ func (h *StreamHandler) Stream(c *fiber.Ctx) error {
 		defer detak.Stop()
 
 		terputus := pantauPutus(koneksi)
+		perpanjang := func() {
+			if koneksi != nil {
+				_ = koneksi.SetWriteDeadline(time.Now().Add(3 * detakStream))
+			}
+		}
 
+		perpanjang()
 		if !tulisEvent(w, service.StreamEvent{
 			Type: "presence",
 			Data: fiber.Map{"online": true, "user_scope": "self"},
@@ -57,6 +63,7 @@ func (h *StreamHandler) Stream(c *fiber.Ctx) error {
 		}
 
 		for {
+			perpanjang()
 			select {
 			case <-terputus:
 				return

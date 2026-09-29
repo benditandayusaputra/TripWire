@@ -245,6 +245,32 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		expect(galat).toEqual([]);
 	});
 
+	test('pindah halaman memunculkan progres di atas dan menu tujuan langsung aktif', async ({
+		page
+	}) => {
+		await masukLewatBrowser(page, 'halaman-progres');
+		const galat = tangkapGalatKonsol(page);
+
+		await page.route('**/watchlist/__data.json**', async (route) => {
+			await new Promise((selesai) => setTimeout(selesai, 1500));
+			await route.continue();
+		});
+
+		const progres = page.getByTestId('progres-navigasi');
+		await expect(progres).toHaveCount(0);
+
+		await page.getByTestId('nav-watchlist').click();
+		await expect(progres).toBeVisible();
+		await expect(page.getByTestId('nav-watchlist')).toHaveAttribute('aria-current', 'page');
+		await expect(page).toHaveURL(/\/dashboard$/);
+
+		await expect(page).toHaveURL(/\/watchlist$/);
+		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+		await expect(progres).toHaveCount(0);
+
+		expect(galat).toEqual([]);
+	});
+
 	test('navigasi utama menjangkau tiap halaman aplikasi', async ({ page }) => {
 		await masukLewatBrowser(page, 'halaman-navigasi');
 		const galat = tangkapGalatKonsol(page);
