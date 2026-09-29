@@ -58,8 +58,6 @@ export const actions: Actions = {
 					full_name: String(form.get('full_name') ?? ''),
 					phone_number: String(form.get('phone_number') ?? ''),
 					bio: String(form.get('bio') ?? ''),
-					locale: String(form.get('locale') ?? 'id'),
-					theme_preference: String(form.get('theme_preference') ?? 'dark'),
 					timezone: String(form.get('timezone') ?? 'Asia/Jakarta')
 				})
 			},

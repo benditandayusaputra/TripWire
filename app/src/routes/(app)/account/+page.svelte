@@ -189,31 +189,7 @@
 				{/if}
 			</div>
 
-			<div class="grid gap-5 sm:grid-cols-3">
-				<div class="space-y-1.5">
-					<label for="locale" class="text-secondary block text-[13.5px] font-medium">Bahasa</label>
-					<select id="locale" name="locale" value={data.profil?.locale ?? 'id'} class="tw-field">
-						<option value="id">Indonesia</option>
-						<option value="en">English</option>
-					</select>
-				</div>
-
-				<div class="space-y-1.5">
-					<label for="theme_preference" class="text-secondary block text-[13.5px] font-medium">
-						Tema
-					</label>
-					<select
-						id="theme_preference"
-						name="theme_preference"
-						value={data.profil?.theme_preference ?? 'dark'}
-						class="tw-field"
-					>
-						<option value="dark">Gelap</option>
-						<option value="light">Terang</option>
-						<option value="system">Ikut sistem</option>
-					</select>
-				</div>
-
+			<div class="grid gap-5 sm:grid-cols-2">
 				<div class="space-y-1.5">
 					<label for="timezone" class="text-secondary block text-[13.5px] font-medium">
 						Zona waktu
