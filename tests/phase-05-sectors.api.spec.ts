@@ -234,6 +234,69 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		);
 	});
 
+	test('grafik indeks IHSG ditagih satu credit lalu dilayani cache, kode asing ditolak', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-indeks');
+
+		await tungguCacheKedaluwarsa();
+		const sebelum = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const pertama = await sesi.kirim('get', '/market/index/IHSG');
+		expect(pertama.status()).toBe(200);
+		const isi = await pertama.json();
+		expect(isi.code).toBe('IHSG');
+		expect(isi.meta.cached).toBe(false);
+		expect(isi.meta.credits_used).toBe(sebelum + 1);
+
+		const tanggal = isi.series.map((titik: { date: string }) => titik.date);
+		expect(tanggal.length).toBeGreaterThan(40);
+		expect(tanggal).toEqual([...tanggal].sort());
+		const batas = new Date(Date.now() - 91 * 86_400_000).toISOString().slice(0, 10);
+		expect(tanggal[0] >= batas).toBe(true);
+		for (const titik of isi.series) expect(titik.price).toBeGreaterThan(0);
+
+		const kedua = await (await sesi.kirim('get', '/market/index/ihsg')).json();
+		expect(kedua.meta.cached).toBe(true);
+		expect(kedua.meta.credits_used).toBe(isi.meta.credits_used);
+
+		const sebelumStub = await statistikStub(request);
+		const asing = await sesi.kirim('get', '/market/index/sp500');
+		expect(asing.status()).toBe(422);
+		expect(await statistikStub(request)).toBe(sebelumStub);
+	});
+
+	test('arus dana asing memisahkan net beli dan net jual dengan dua credit', async ({ request }) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-asing');
+
+		await tungguCacheKedaluwarsa();
+		const sebelum = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const response = await sesi.kirim('get', '/market/foreign-flow');
+		expect(response.status()).toBe(200);
+		const isi = await response.json();
+		expect(isi.meta.credits_used).toBe(sebelum + 2);
+		expect(isi.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+		const beli = isi.top_buy.map((satu: { ticker: string }) => satu.ticker);
+		const jual = isi.top_sell.map((satu: { ticker: string }) => satu.ticker);
+		expect(beli.slice(0, 3)).toEqual(['ANTM', 'BBCA', 'TLKM']);
+		expect(jual.slice(0, 3)).toEqual(['BBRI', 'INCO', 'MDKA']);
+		expect(isi.top_buy[0]).toEqual({
+			ticker: 'ANTM',
+			company_name: 'Aneka Tambang Tbk.',
+			net_foreign_inflow: 294_600_000_000,
+			foreign_buy_idr: 377_700_000_000,
+			foreign_sell_idr: expect.any(Number)
+		});
+		for (const satu of isi.top_buy) expect(satu.net_foreign_inflow).toBeGreaterThan(0);
+		for (const satu of isi.top_sell) expect(satu.net_foreign_inflow).toBeLessThan(0);
+
+		const kedua = await (await sesi.kirim('get', '/market/foreign-flow')).json();
+		expect(kedua.meta.cached).toBe(true);
+		expect(kedua.meta.credits_used).toBe(isi.meta.credits_used);
+	});
+
 	test('ticker di luar daftar IDX tidak pernah diteruskan ke Sectors', async ({ request }) => {
 		const { sesi } = await sesiMasuk(request, 'sectors-ticker');
 
@@ -279,5 +342,7 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		const response = await request.get('/market/ANTM');
 		expect(response.status()).toBe(401);
 		expect((await request.get('/market/top')).status()).toBe(401);
+		expect((await request.get('/market/index/ihsg')).status()).toBe(401);
+		expect((await request.get('/market/foreign-flow')).status()).toBe(401);
 	});
 });

@@ -2,6 +2,7 @@
 	import { tierDariSkor, type Tier } from '$lib/skor';
 	import { waktuRelatif } from '$lib/insight';
 	import { hitungMundur, jamCek, type Baris, type Jadwal } from '$lib/watchlist';
+	import { t } from '$lib/bahasa.svelte';
 
 	let { baris, jadwal, sekarang }: { baris: Baris[]; jadwal: Jadwal; sekarang: number } = $props();
 
@@ -28,31 +29,40 @@
 	);
 </script>
 
-<section data-testid="ringkasan-watchlist" class="strip" aria-label="Ringkasan watchlist">
+<section
+	data-testid="ringkasan-watchlist"
+	class="strip"
+	aria-label={t('Ringkasan watchlist', 'Watchlist summary')}
+>
 	<div class="sel">
-		<h2 class="label">Pergerakan terakhir</h2>
+		<h2 class="label">{t('Pergerakan terakhir', 'Latest moves')}</h2>
 		{#if bergerak.length}
 			<p class="tw-data mt-1.5 flex flex-wrap gap-x-3 text-[14px]">
-				<span class="text-naik">▲ {naik} naik</span>
-				<span class="text-turun">▼ {turun} turun</span>
-				{#if tetap}<span class="text-muted">■ {tetap} tetap</span>{/if}
+				<span class="text-naik">▲ {naik} {t('naik', 'up')}</span>
+				<span class="text-turun">▼ {turun} {t('turun', 'down')}</span>
+				{#if tetap}<span class="text-muted">■ {tetap} {t('tetap', 'unchanged')}</span>{/if}
 			</p>
 			<div
 				class="bar-tumpuk mt-2.5"
 				role="img"
-				aria-label="{naik} saham naik, {turun} turun, {tetap} tetap"
+				aria-label={t(
+					`${naik} saham naik, ${turun} turun, ${tetap} tetap`,
+					`${naik} ${naik === 1 ? 'stock' : 'stocks'} up, ${turun} down, ${tetap} unchanged`
+				)}
 			>
 				{#if naik}<span style="flex:{naik}" class="bg-naik"></span>{/if}
 				{#if tetap}<span style="flex:{tetap}" class="bg-line"></span>{/if}
 				{#if turun}<span style="flex:{turun}" class="bg-turun"></span>{/if}
 			</div>
 		{:else}
-			<p class="text-secondary mt-1.5 text-[13px]">Menunggu harga penutupan dari Sectors.</p>
+			<p class="text-secondary mt-1.5 text-[13px]">
+				{t('Menunggu harga penutupan dari Sectors.', 'Waiting for closing prices from Sectors.')}
+			</p>
 		{/if}
 	</div>
 
 	<div class="sel">
-		<h2 class="label">Risiko tertinggi</h2>
+		<h2 class="label">{t('Risiko tertinggi', 'Highest risk')}</h2>
 		{#if tertinggi && tertinggi.skor !== null}
 			{@const info = tierDariSkor(tertinggi.skor)}
 			<a
@@ -67,9 +77,15 @@
 				<span class="text-[12.5px] {info.text}">{info.label}</span>
 			</a>
 		{:else}
-			<p class="text-secondary mt-1.5 text-[13px]">Belum ada saham yang selesai dipindai.</p>
+			<p class="text-secondary mt-1.5 text-[13px]">
+				{t('Belum ada saham yang selesai dipindai.', 'No stock has finished scanning yet.')}
+			</p>
 		{/if}
-		<div class="bar-tumpuk mt-2" role="img" aria-label="Sebaran tingkat risiko watchlist">
+		<div
+			class="bar-tumpuk mt-2"
+			role="img"
+			aria-label={t('Sebaran tingkat risiko watchlist', 'Watchlist risk level breakdown')}
+		>
 			{#each sebaran as satu (satu.tier)}
 				{#if satu.jumlah}
 					<span style="flex:{satu.jumlah}; background:{satu.info.color}"></span>
@@ -84,13 +100,16 @@
 				.filter((satu) => satu.jumlah)
 				.map((satu) => `${satu.jumlah} ${satu.info.label.toLowerCase()}`)
 				.join(', ')}{belumDipindai
-				? `${sebaran.some((satu) => satu.jumlah) ? ', ' : ''}${belumDipindai} belum dipindai`
+				? `${sebaran.some((satu) => satu.jumlah) ? ', ' : ''}${t(
+						`${belumDipindai} belum dipindai`,
+						`${belumDipindai} not scanned yet`
+					)}`
 				: ''}
 		</p>
 	</div>
 
 	<div class="sel">
-		<h2 class="label">Pemindaian berikutnya</h2>
+		<h2 class="label">{t('Pemindaian berikutnya', 'Next scan')}</h2>
 		{#if jadwal.next_scan_at}
 			<p class="mt-1 flex items-baseline gap-2">
 				<span class="denyut" aria-hidden="true"></span>
@@ -100,12 +119,17 @@
 				<span class="text-muted text-[12px]">WIB</span>
 			</p>
 			<p class="catatan">
-				{hitungMundur(jadwal.next_scan_at, sekarang)}, terakhir {jadwal.last_scan_at
-					? waktuRelatif(jadwal.last_scan_at)
-					: 'belum pernah'}
+				{hitungMundur(jadwal.next_scan_at, sekarang)}, {jadwal.last_scan_at
+					? t(
+							`terakhir ${waktuRelatif(jadwal.last_scan_at)}`,
+							`last scan ${waktuRelatif(jadwal.last_scan_at)}`
+						)
+					: t('terakhir belum pernah', 'no scan yet')}
 			</p>
 		{:else}
-			<p class="text-secondary mt-1.5 text-[13px]">Jadwal pemindaian belum tersedia.</p>
+			<p class="text-secondary mt-1.5 text-[13px]">
+				{t('Jadwal pemindaian belum tersedia.', 'The scan schedule is not available yet.')}
+			</p>
 		{/if}
 	</div>
 </section>
@@ -181,16 +205,16 @@
 		align-self: center;
 		border-radius: 999px;
 		background: var(--color-diamond-300);
-		box-shadow: 0 0 0 0 rgba(143, 208, 255, 0.6);
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-diamond-300) 60%, transparent);
 		animation: denyut 2s ease-out infinite;
 	}
 
 	@keyframes denyut {
 		70% {
-			box-shadow: 0 0 0 7px rgba(143, 208, 255, 0);
+			box-shadow: 0 0 0 7px transparent;
 		}
 		100% {
-			box-shadow: 0 0 0 0 rgba(143, 208, 255, 0);
+			box-shadow: 0 0 0 0 transparent;
 		}
 	}
 </style>

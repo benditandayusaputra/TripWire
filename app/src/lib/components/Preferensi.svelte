@@ -43,6 +43,9 @@
 	data-testid="tombol-preferensi"
 	aria-label={t('Tema dan bahasa', 'Theme and language')}
 	class="pemicu"
+	{@attach (tombol) => {
+		tombol.dataset.siap = '';
+	}}
 >
 	<IkonTema class="size-3.5" aria-hidden="true" />
 	<span class="tw-data">{bahasa().toUpperCase()}</span>

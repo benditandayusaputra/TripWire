@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { panggilApi, pesanGalat } from '$lib/server/api';
+import { teks } from '$lib/bahasa.svelte';
 import type { Actions, PageServerLoad } from './$types';
 
 type Statistik = {
@@ -65,7 +66,7 @@ export const load: PageServerLoad = async ({ request }) => {
 };
 
 export const actions: Actions = {
-	scan: async ({ request, cookies }) => {
+	scan: async ({ request, cookies, locals }) => {
 		const { response, payload } = await panggilApi(
 			'/admin/system/trigger-scan',
 			{ method: 'POST', headers: { 'X-CSRF-Token': cookies.get('tw_csrf') ?? '' } },
@@ -73,7 +74,12 @@ export const actions: Actions = {
 		);
 
 		if (!response.ok) {
-			return fail(response.status, { error: pesanGalat(payload, 'Scan manual gagal dijalankan') });
+			return fail(response.status, {
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Scan manual gagal dijalankan', 'The manual scan failed to run')
+				)
+			});
 		}
 
 		return { sukses: true, run: payload?.run as Run };

@@ -67,6 +67,8 @@ Akses: **Publik** (gak perlu login) · **User** (butuh access token valid) · **
 | GET | /market/top | User | Sepuluh saham berkapitalisasi terbesar dari halaman pertama screener Sectors `/companies/` (kode, nama, sektor, harga penutupan, perubahan harian, kapitalisasi), 1 credit lalu dilayani cache. Dipakai sebagai saran saham di watchlist |
 | GET | /market/:ticker/profile | User | Profil saham untuk halaman `/stocks/[ticker]`: kutipan harga, profil perusahaan (alamat, situs web http/https saja, kontak, karyawan, tanggal dan papan pencatatan), direksi dan saham milik direksi, pemegang saham mayor terurut porsi, grup usaha, investor kakap, afiliasi, pembeli dan penjual institusi terbesar, arus institusi 12 bulan, dan komposisi investor lokal dan asing bulan terakhir. Laporan emiten dibagi cache dengan scan, management dan komposisi 1 credit masing masing lalu cache 7 hari. Kalau salah satu pelengkap gagal, profil tetap dikirim dengan bagian itu kosong |
 | GET | /market/stocks | User | Seluruh emiten di daftar ticker IDX untuk modal Tambah saham, diurutkan kapitalisasi. Harga, perubahan, kapitalisasi, dan sektor diambil dari semua halaman screener (sekitar 5 credit per hari, halaman pertama dibagi dengan `/market/top`). Kalau Sectors tidak bisa dipanggil, emiten tetap dikirim dengan harga `null` |
+| GET | /market/index/:code | User | Nilai penutupan harian indeks `ihsg`, `lq45`, atau `idx30` selama 90 hari dari Sectors `/index-daily/`, 1 credit per indeks per hari. Kode lain ditolak 422 sebelum sampai ke Sectors. Dipakai grafik indeks di dashboard |
+| GET | /market/foreign-flow | User | Sepuluh saham dengan net beli asing terbesar dan sepuluh dengan net jual asing terbesar pada hari bursa terakhir dari Sectors `/foreign-flow/`, 2 credit per hari |
 | POST | /watchlist | User | Tambah ticker baru |
 | PATCH | /watchlist/:id | User (owner) | Ubah data_display_pref |
 | DELETE | /watchlist/:id | User (owner) | Hapus dari watchlist |
@@ -131,6 +133,15 @@ langsung dikirimi web push.
 | GET | /admin/system/scheduler-status | Admin | Log run terakhir + status |
 | POST | /admin/system/trigger-scan | Admin | Jalanin scheduler manual, buat testing |
 | GET | /admin/users | Admin | List user, buat debugging |
+
+## Bahasa pesan
+
+Pesan untuk pengguna ditulis dalam bahasa Indonesia. Kalau permintaan membawa cookie `tw_bahasa=en`
+(diset frontend dan ikut diteruskan lewat `panggilApi` maupun proxy `/api`), middleware `Language` yang
+dipasang paling luar menerjemahkan string `error` dan `message` di level teratas balasan JSON serta
+setiap nilai string di objek `fields` lewat kamus di `api/internal/middleware/language.go`. Kode status,
+kunci lain seperti `reason`, balasan non JSON, dan stream SSE tidak diubah. String yang belum ada di
+kamus dikirim apa adanya dalam bahasa Indonesia, jadi pesan baru perlu ikut ditambahkan ke kamus.
 
 ## Catatan implementasi
 - Endpoint dengan **User (owner)** wajib filter `WHERE user_id = ?` di query, balas 404 (bukan 403) kalau resource ada tapi bukan milik pemanggil.

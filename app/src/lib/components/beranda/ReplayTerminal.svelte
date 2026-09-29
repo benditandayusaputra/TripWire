@@ -5,6 +5,7 @@
 	import { fade, fly, scale } from 'svelte/transition';
 	import { Ban, BellRing, ChartPie, RotateCcw, UserMinus } from 'lucide-svelte';
 	import Logo from '$lib/components/Logo.svelte';
+	import { lokal, t } from '$lib/bahasa.svelte';
 	import SkorBadge from '$lib/components/SkorBadge.svelte';
 	import { tierDariSkor } from '$lib/skor';
 	import { gerakDikurangi, saatTerlihat } from '$lib/terlihat';
@@ -52,12 +53,14 @@
 		return [{ ...item, Ikon, posisi }];
 	});
 
-	const angka = new Intl.NumberFormat('id-ID');
-	const persen = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+	const angka = $derived(new Intl.NumberFormat(lokal()));
+	const persen = $derived(
+		new Intl.NumberFormat(lokal(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+	);
 	const tglPendek = (i: number) =>
-		tanggal[i].toLocaleDateString('id-ID', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+		tanggal[i].toLocaleDateString(lokal(), { day: 'numeric', month: 'short', timeZone: 'UTC' });
 	const tglPanjang = (i: number) =>
-		tanggal[i].toLocaleDateString('id-ID', {
+		tanggal[i].toLocaleDateString(lokal(), {
 			weekday: 'short',
 			day: 'numeric',
 			month: 'short',
@@ -97,7 +100,9 @@
 	const xHari = (i: number) => PAD_KIRI + slot * (i + 0.5);
 	const xTepi = (i: number) => PAD_KIRI + slot * i;
 	const yHarga = (nilai: number) =>
-		8 + ((skala.current.atas - nilai) / (skala.current.atas - skala.current.bawah)) * (tinggiHarga - 16);
+		8 +
+		((skala.current.atas - nilai) / (skala.current.atas - skala.current.bawah)) *
+			(tinggiHarga - 16);
 	const ySkor = (nilai: number) => atasSkor + 8 + (1 - nilai / 100) * (TINGGI_SKOR - 16);
 	const tinggiVolume = (volume: number) => (volume / VOLUME_MAKS) * tinggiHarga * 0.24;
 	const xUjung = $derived(Math.min(PAD_KIRI + lebarPlot, xTepi(hari + 1)));
@@ -107,7 +112,8 @@
 		const kasar = (atas - bawah) / 4;
 		const langkah = [10, 20, 25, 50, 100, 200, 250].find((nilai) => nilai >= kasar) ?? 500;
 		const hasil: number[] = [];
-		for (let nilai = Math.ceil(bawah / langkah) * langkah; nilai < atas; nilai += langkah) hasil.push(nilai);
+		for (let nilai = Math.ceil(bawah / langkah) * langkah; nilai < atas; nilai += langkah)
+			hasil.push(nilai);
 		return hasil;
 	});
 
@@ -127,13 +133,17 @@
 	);
 
 	const hariTampil = $derived(sorot ?? indeks);
-	const lilinTampil = $derived(lilin.slice(0, hariTampil + 1).findLast((item) => item !== null) ?? null);
+	const lilinTampil = $derived(
+		lilin.slice(0, hariTampil + 1).findLast((item) => item !== null) ?? null
+	);
 	const harga = $derived(lilinTampil?.tutup ?? TUTUP_AWAL);
 	const selisih = $derived(((harga - TUTUP_AWAL) / TUTUP_AWAL) * 100);
 	const skorTampil = $derived(skorPada(hariTampil));
 	const tersuspensi = $derived(lilin[hariTampil] === null);
 	const kabar = $derived(kejadianPada(indeks));
-	const lilinTerakhir = $derived(lilin.slice(0, indeks + 1).findLast((item) => item !== null) ?? null);
+	const lilinTerakhir = $derived(
+		lilin.slice(0, indeks + 1).findLast((item) => item !== null) ?? null
+	);
 
 	const infoSorot = $derived.by(() => {
 		if (sorot === null) return null;
@@ -153,7 +163,9 @@
 	const teksNilai = $derived.by(() => {
 		const i = sorot ?? indeks;
 		const item = lilin[i];
-		const hargaTeks = item ? `harga tutup ${angka.format(item.tutup)}` : 'perdagangan dihentikan';
+		const hargaTeks = item
+			? t(`harga tutup ${angka.format(item.tutup)}`, `closing price ${angka.format(item.tutup)}`)
+			: t('perdagangan dihentikan', 'trading suspended');
 		return `${tglPanjang(i)}, ${hargaTeks}, Red Flag Score ${skorPada(i)}`;
 	});
 
@@ -162,7 +174,10 @@
 		if (ms <= 0) return 0;
 		if (ms < menuju) return (ms / menuju) * HARI_NOTIFIKASI;
 		if (ms < menuju + jeda) return HARI_NOTIFIKASI;
-		return Math.min(AKHIR, HARI_NOTIFIKASI + ((ms - menuju - jeda) / sisa) * (AKHIR - HARI_NOTIFIKASI));
+		return Math.min(
+			AKHIR,
+			HARI_NOTIFIKASI + ((ms - menuju - jeda) / sisa) * (AKHIR - HARI_NOTIFIKASI)
+		);
 	}
 
 	function putar() {
@@ -194,7 +209,12 @@
 	}
 
 	function tombol(event: KeyboardEvent) {
-		const geser: Record<string, number> = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 };
+		const geser: Record<string, number> = {
+			ArrowLeft: -1,
+			ArrowDown: -1,
+			ArrowRight: 1,
+			ArrowUp: 1
+		};
 		const awal = sorot ?? indeks;
 		if (event.key === 'Home') sorot = 0;
 		else if (event.key === 'End') sorot = indeks;
@@ -223,20 +243,27 @@
 <figure
 	bind:this={wadah}
 	aria-labelledby="judul-simulasi"
-	class="terminal border-line bg-base relative isolate overflow-hidden rounded-2xl border"
+	class="terminal tw-gelap border-line bg-base relative isolate overflow-hidden rounded-2xl border"
 >
 	<figcaption id="judul-simulasi" class="sr-only">
-		Simulasi grafik harga saham fiktif {TICKER} selama Juni sampai Juli 2026 beserta Red Flag Score-nya.
+		{t(
+			`Simulasi grafik harga saham fiktif ${TICKER} selama Juni sampai Juli 2026 beserta Red Flag Score-nya.`,
+			`Simulated price chart of the fictional stock ${TICKER} from June to July 2026, with its Red Flag Score.`
+		)}
 	</figcaption>
 
 	<header class="flex items-start justify-between gap-3 px-4 pt-4 sm:px-5">
 		<div class="min-w-0 space-y-1.5">
 			<div class="flex items-center gap-2">
-				<span class="tw-data bg-raised text-ink rounded-md px-2 py-0.5 text-[13px] font-semibold tracking-wide">
+				<span
+					class="tw-data bg-raised text-ink rounded-md px-2 py-0.5 text-[13px] font-semibold tracking-wide"
+				>
 					{TICKER}
 				</span>
 				<span class="text-secondary truncate text-[13px]">
-					Emiten fiktif<span class="hidden sm:inline"> untuk simulasi</span>
+					{t('Emiten fiktif', 'Fictional company')}<span class="hidden sm:inline"
+						>{t(' untuk simulasi', ' for simulation')}</span
+					>
 				</span>
 			</div>
 			<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -247,14 +274,14 @@
 					{selisih >= 0 ? '▲' : '▼'}
 					{persen.format(Math.abs(selisih))}%
 				</span>
-				<span class="text-muted text-[12px]">sejak 1 Jun</span>
+				<span class="text-muted text-[12px]">{t('sejak 1 Jun', 'since Jun 1')}</span>
 				{#if tersuspensi}
 					<span
 						class="bg-raised text-secondary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px]"
 						transition:fade={{ duration: 150 }}
 					>
 						<Ban class="size-3" aria-hidden="true" />
-						Disuspensi
+						{t('Disuspensi', 'Suspended')}
 					</span>
 				{/if}
 			</div>
@@ -266,7 +293,7 @@
 				type="button"
 				onclick={putar}
 				disabled={bermain}
-				aria-label="Putar ulang simulasi"
+				aria-label={t('Putar ulang simulasi', 'Replay simulation')}
 				class="putar border-line text-secondary hover:text-ink hover:border-diamond-700 grid size-8 place-items-center rounded-lg border transition"
 			>
 				<RotateCcw class="size-3.5" aria-hidden="true" />
@@ -327,7 +354,14 @@
 				{#if lilinTerakhir && sorot === null}
 					{@const y = yHarga(lilinTerakhir.tutup)}
 					{@const naik = lilinTerakhir.tutup >= TUTUP_AWAL}
-					<line x1={PAD_KIRI} x2={PAD_KIRI + lebarPlot} y1={y} y2={y} class="garis-terakhir" class:turun={!naik} />
+					<line
+						x1={PAD_KIRI}
+						x2={PAD_KIRI + lebarPlot}
+						y1={y}
+						y2={y}
+						class="garis-terakhir"
+						class:turun={!naik}
+					/>
 					<rect
 						x={PAD_KIRI + lebarPlot + 2}
 						y={y - 9}
@@ -336,10 +370,18 @@
 						rx="4"
 						class={naik ? 'fill-naik' : 'fill-turun'}
 					/>
-					<text x={PAD_KIRI + lebarPlot + 8} y={y + 4} class="label-harga">{angka.format(lilinTerakhir.tutup)}</text>
+					<text x={PAD_KIRI + lebarPlot + 8} y={y + 4} class="label-harga"
+						>{angka.format(lilinTerakhir.tutup)}</text
+					>
 				{/if}
 
-				<line x1={PAD_KIRI} x2={PAD_KIRI + lebarPlot} y1={atasSkor} y2={atasSkor} class="grid-garis" />
+				<line
+					x1={PAD_KIRI}
+					x2={PAD_KIRI + lebarPlot}
+					y1={atasSkor}
+					y2={atasSkor}
+					class="grid-garis"
+				/>
 				<text x={PAD_KIRI + 4} y={ySkor(44)} class="label-panel">Red Flag Score</text>
 
 				{#each segmenSkor as segmen (segmen.x0)}
@@ -374,8 +416,15 @@
 				<g class="kawat" class:putus={tersentuh}>
 					<line x1={PAD_KIRI} x2={PAD_KIRI + lebarPlot} y1={ySkor(BATAS)} y2={ySkor(BATAS)} />
 				</g>
-				<text x={PAD_KIRI + 4} y={ySkor(BATAS) - 5} class="label-sumbu">Batas notifikasi</text>
-				<text x={PAD_KIRI + lebarPlot + 8} y={ySkor(BATAS) + 3.5} class="label-kawat" class:putus={tersentuh}>
+				<text x={PAD_KIRI + 4} y={ySkor(BATAS) - 5} class="label-sumbu"
+					>{t('Batas notifikasi', 'Alert threshold')}</text
+				>
+				<text
+					x={PAD_KIRI + lebarPlot + 8}
+					y={ySkor(BATAS) + 3.5}
+					class="label-kawat"
+					class:putus={tersentuh}
+				>
 					{BATAS}
 				</text>
 				<text x={PAD_KIRI + lebarPlot + 8} y={ySkor(0) + 3.5} class="label-sumbu">0</text>
@@ -407,7 +456,9 @@
 					{@const y = atasSkor + TINGGI_SKOR - 12}
 					<g class="kurung" transition:fade={{ duration: 400 }}>
 						<path d="M{x0} {y - 5} V{y} H{x1} V{y - 5}" />
-						<text x={(x0 + x1) / 2} y={y - 9} text-anchor="middle">4 hari bursa lebih awal</text>
+						<text x={(x0 + x1) / 2} y={y - 9} text-anchor="middle"
+							>{t('4 hari bursa lebih awal', '4 trading days earlier')}</text
+						>
 					</g>
 				{/if}
 
@@ -426,7 +477,14 @@
 					{#if lilin[sorot]}
 						{@const y = yHarga((lilin[sorot] as Lilin).tutup)}
 						<line x1={PAD_KIRI} x2={PAD_KIRI + lebarPlot} y1={y} y2={y} class="silang" />
-						<rect x={PAD_KIRI + lebarPlot + 2} y={y - 9} width={PAD_KANAN - 4} height="18" rx="4" class="tag-silang" />
+						<rect
+							x={PAD_KIRI + lebarPlot + 2}
+							y={y - 9}
+							width={PAD_KANAN - 4}
+							height="18"
+							rx="4"
+							class="tag-silang"
+						/>
 						<text x={PAD_KIRI + lebarPlot + 8} y={y + 4} class="label-harga terang">
 							{angka.format((lilin[sorot] as Lilin).tutup)}
 						</text>
@@ -453,26 +511,39 @@
 					<p class="text-muted text-[11.5px]">{infoSorot.tanggal}</p>
 					{#if infoSorot.item}
 						<p class="mt-1 flex items-baseline gap-2">
-							<span class="tw-data text-ink text-[15px] font-medium">{angka.format(infoSorot.item.tutup)}</span>
-							<span class="text-muted text-[11.5px]">harga tutup</span>
+							<span class="tw-data text-ink text-[15px] font-medium"
+								>{angka.format(infoSorot.item.tutup)}</span
+							>
+							<span class="text-muted text-[11.5px]">{t('harga tutup', 'closing price')}</span>
 							{#if infoSorot.ubah !== null}
-								<span class="tw-data ml-auto text-[12px] {infoSorot.ubah >= 0 ? 'text-naik' : 'text-turun'}">
+								<span
+									class="tw-data ml-auto text-[12px] {infoSorot.ubah >= 0
+										? 'text-naik'
+										: 'text-turun'}"
+								>
 									{infoSorot.ubah >= 0 ? '▲' : '▼'}
 									{persen.format(Math.abs(infoSorot.ubah))}%
 								</span>
 							{/if}
 						</p>
 					{:else}
-						<p class="text-secondary mt-1 text-[13px]">Perdagangan dihentikan bursa</p>
+						<p class="text-secondary mt-1 text-[13px]">
+							{t('Perdagangan dihentikan bursa', 'Trading suspended by the exchange')}
+						</p>
 					{/if}
 					<p class="mt-1 flex items-center gap-2">
-						<span class="h-0.5 w-3 rounded-full" style="background:{tierDariSkor(infoSorot.skor).color}"></span>
+						<span
+							class="h-0.5 w-3 rounded-full"
+							style="background:{tierDariSkor(infoSorot.skor).color}"
+						></span>
 						<span class="tw-data text-ink text-[13px] font-medium">{infoSorot.skor}</span>
-						<span class="text-muted text-[11.5px]">Red Flag Score, {tierDariSkor(infoSorot.skor).label}</span>
+						<span class="text-muted text-[11.5px]"
+							>Red Flag Score, {tierDariSkor(infoSorot.skor).label}</span
+						>
 					</p>
 					{#if infoSorot.kejadian}
 						<p class="border-line text-secondary mt-2 border-t pt-2 text-[12px] leading-snug">
-							{infoSorot.kejadian.teks}
+							{t(...infoSorot.kejadian.teks)}
 						</p>
 					{/if}
 				</div>
@@ -484,7 +555,7 @@
 			style="height:{atasSkor + TINGGI_SKOR}px; touch-action: pan-y"
 			role="slider"
 			tabindex="0"
-			aria-label="Telusuri grafik per hari"
+			aria-label={t('Telusuri grafik per hari', 'Explore the chart day by day')}
 			aria-valuemin={0}
 			aria-valuemax={indeks}
 			aria-valuenow={sorot ?? indeks}
@@ -508,13 +579,16 @@
 			<div class="min-w-0 flex-1">
 				<p class="flex items-center justify-between gap-2">
 					<span class="text-ink text-[13px] font-semibold">TripWire</span>
-					<span class="text-muted text-[11.5px]">baru saja</span>
+					<span class="text-muted text-[11.5px]">{t('baru saja', 'just now')}</span>
 				</p>
 				<p class="text-ink mt-0.5 text-[13px] leading-snug font-medium">
-					{TICKER} menyentuh skor 91, Kritis
+					{t(`${TICKER} menyentuh skor 91, Kritis`, `${TICKER} hit a score of 91, Critical`)}
 				</p>
 				<p class="text-secondary mt-0.5 text-[12px] leading-snug">
-					Lima orang dalam menjual dalam 30 hari dan kepemilikan berubah 8 poin.
+					{t(
+						'Lima orang dalam menjual dalam 30 hari dan kepemilikan berubah 8 poin.',
+						'Five insiders sold within 30 days and ownership changed by 8 points.'
+					)}
 				</p>
 			</div>
 		</div>
@@ -523,15 +597,17 @@
 	<div class="border-line bg-void/40 flex min-h-16 items-start gap-3 border-t px-4 py-3 sm:px-5">
 		{#key kabar.hari}
 			<p class="flex items-start gap-3" in:fly={{ y: 8, duration: 280 }}>
-				<span class="tw-data text-diamond-300 mt-px w-12 flex-none text-[12px]">{tglPendek(kabar.hari)}</span>
-				<span class="text-secondary text-[13px] leading-snug">{kabar.teks}</span>
+				<span class="tw-data text-diamond-300 mt-px w-12 flex-none text-[12px]"
+					>{tglPendek(kabar.hari)}</span
+				>
+				<span class="text-secondary text-[13px] leading-snug">{t(...kabar.teks)}</span>
 			</p>
 		{/key}
 	</div>
 
 	<ol class="sr-only">
 		{#each kejadian as item (item.hari)}
-			<li>{tglPanjang(item.hari)}: {item.teks}</li>
+			<li>{tglPanjang(item.hari)}: {t(...item.teks)}</li>
 		{/each}
 	</ol>
 </figure>

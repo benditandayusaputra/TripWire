@@ -14,6 +14,7 @@
 	import AuthShell from '$lib/components/AuthShell.svelte';
 	import Field from '$lib/components/Field.svelte';
 	import Mark from '$lib/components/Mark.svelte';
+	import { lokal, t } from '$lib/bahasa.svelte';
 
 	let { form } = $props();
 
@@ -55,15 +56,21 @@
 	onMount(muatCaptcha);
 
 	function formatWaktu(value: string) {
-		return new Date(value).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+		return new Date(value).toLocaleTimeString(lokal(), { hour: '2-digit', minute: '2-digit' });
 	}
 </script>
 
 <svelte:head>
-	<title>Masuk ke TripWire</title>
+	<title>{t('Masuk ke TripWire', 'Log in to TripWire')}</title>
 </svelte:head>
 
-<AuthShell title="Masuk ke TripWire" subtitle="Lanjutkan memantau emiten yang kamu awasi.">
+<AuthShell
+	title={t('Masuk ke TripWire', 'Log in to TripWire')}
+	subtitle={t(
+		'Lanjutkan memantau emiten yang kamu awasi.',
+		'Keep monitoring the stocks you watch.'
+	)}
+>
 	<form
 		method="POST"
 		class="space-y-5"
@@ -82,7 +89,7 @@
 				class="rounded-glass border-tier-low/35 bg-tier-low/10 text-tier-low flex items-center gap-2.5 border px-3.5 py-2.5 text-[13.5px]"
 			>
 				<Mark size={8} color="var(--color-tier-low)" />
-				Email berhasil diverifikasi, silakan masuk.
+				{t('Email berhasil diverifikasi, silakan masuk.', 'Email verified. Please log in.')}
 			</p>
 		{/if}
 
@@ -92,7 +99,7 @@
 				class="rounded-glass border-diamond-700 bg-diamond-900/40 text-diamond-100 flex items-center gap-2.5 border px-3.5 py-2.5 text-[13.5px]"
 			>
 				<Mark size={8} />
-				Akun sudah dibuat. Masuk untuk melanjutkan.
+				{t('Akun sudah dibuat. Masuk untuk melanjutkan.', 'Account created. Log in to continue.')}
 			</p>
 		{/if}
 
@@ -105,7 +112,10 @@
 				{form.error}
 				{#if form.lockedUntil}
 					<span class="text-secondary mt-1 block text-[12.5px]">
-						Coba lagi setelah pukul {formatWaktu(form.lockedUntil)}.
+						{t(
+							`Coba lagi setelah pukul ${formatWaktu(form.lockedUntil)}.`,
+							`Try again after ${formatWaktu(form.lockedUntil)}.`
+						)}
 					</span>
 				{/if}
 			</p>
@@ -118,7 +128,7 @@
 			bind:value={email}
 			error={fieldErrors.email}
 			autocomplete="email"
-			placeholder="nama@email.com"
+			placeholder={t('nama@email.com', 'name@email.com')}
 			icon={AtSign}
 		/>
 
@@ -129,7 +139,7 @@
 			bind:value={password}
 			error={fieldErrors.password}
 			autocomplete="current-password"
-			placeholder="Password kamu"
+			placeholder={t('Password kamu', 'Your password')}
 			icon={KeyRound}
 		/>
 
@@ -139,13 +149,15 @@
 					class="rounded-glass border-diamond-700 bg-diamond-900/40 text-diamond-100 flex items-start gap-2.5 border px-3.5 py-2.5 text-[13.5px]"
 				>
 					<ShieldCheck class="text-diamond-300 mt-0.5 size-4 flex-none" aria-hidden="true" />
-					Akun ini dilindungi dua faktor. Masukkan kode dari aplikasi authenticator, atau salah satu kode
-					cadangan kamu.
+					{t(
+						'Akun ini dilindungi dua faktor. Masukkan kode dari aplikasi authenticator, atau salah satu kode cadangan kamu.',
+						'This account is protected with two-factor authentication. Enter the code from your authenticator app, or one of your backup codes.'
+					)}
 				</p>
 
 				<Field
 					id="totp_code"
-					label="Kode verifikasi"
+					label={t('Kode verifikasi', 'Verification code')}
 					bind:value={totpCode}
 					error={fieldErrors.totp_code}
 					autocomplete="one-time-code"
@@ -157,21 +169,26 @@
 
 		<div class="space-y-1.5">
 			<label for="captcha_answer" class="text-secondary block text-[13.5px] font-medium"
-				>Kode captcha</label
+				>{t('Kode captcha', 'Captcha code')}</label
 			>
 			<div class="flex gap-2">
-				<div class="slip" data-testid="captcha" aria-busy={memuatCaptcha}>
+				<div class="slip tw-gelap" data-testid="captcha" aria-busy={memuatCaptcha}>
 					{#if captcha}
-						<img src={captcha.image} alt="Kode captcha berisi 6 angka" width="180" height="60" />
+						<img
+							src={captcha.image}
+							alt={t('Kode captcha berisi 6 angka', 'Captcha code with 6 digits')}
+							width="180"
+							height="60"
+						/>
 					{:else if captchaGagal}
 						<span class="text-tier-critical px-3 text-center text-[12.5px]"
-							>Kode gagal dimuat, coba lagi</span
+							>{t('Kode gagal dimuat, coba lagi', "Couldn't load the code, try again")}</span
 						>
 					{/if}
 				</div>
 				<button type="button" onclick={muatCaptcha} disabled={memuatCaptcha} class="tombol-ikon">
 					<RefreshCw class="size-4 {memuatCaptcha ? 'animate-spin' : ''}" aria-hidden="true" />
-					<span class="sr-only">Ganti kode captcha</span>
+					<span class="sr-only">{t('Ganti kode captcha', 'Get a new captcha code')}</span>
 				</button>
 				<button
 					type="button"
@@ -180,7 +197,12 @@
 					class="tombol-ikon"
 				>
 					<Volume2 class="size-4" aria-hidden="true" />
-					<span class="sr-only">Dengarkan kode captcha dalam bahasa Inggris</span>
+					<span class="sr-only"
+						>{t(
+							'Dengarkan kode captcha dalam bahasa Inggris',
+							'Listen to the captcha code in English'
+						)}</span
+					>
 				</button>
 			</div>
 			<input
@@ -191,7 +213,7 @@
 				inputmode="numeric"
 				autocomplete="off"
 				maxlength="6"
-				placeholder="Ketik 6 angka pada gambar"
+				placeholder={t('Ketik 6 angka pada gambar', 'Type the 6 digits in the image')}
 				aria-invalid={fieldErrors.captcha_answer ? 'true' : undefined}
 				aria-describedby={fieldErrors.captcha_answer ? 'captcha_answer-error' : undefined}
 				class="tw-field tw-data tracking-[0.35em] placeholder:font-sans placeholder:tracking-normal"
@@ -214,7 +236,7 @@
 			{:else}
 				<LogIn class="size-4" aria-hidden="true" />
 			{/if}
-			{submitting ? 'Memproses' : 'Masuk'}
+			{submitting ? t('Memproses', 'Processing') : t('Masuk', 'Log in')}
 		</button>
 	</form>
 </AuthShell>
@@ -230,8 +252,12 @@
 		border: 1px dashed var(--edge-strong);
 		border-radius: var(--radius-glass);
 		background:
-			repeating-linear-gradient(-45deg, rgba(180, 205, 255, 0.035) 0 6px, transparent 6px 12px),
-			rgba(8, 11, 18, 0.55);
+			repeating-linear-gradient(
+				-45deg,
+				color-mix(in srgb, var(--kilau) 3.5%, transparent) 0 6px,
+				transparent 6px 12px
+			),
+			color-mix(in srgb, var(--color-void) 55%, var(--color-base));
 	}
 
 	.slip[aria-busy='true'] img {

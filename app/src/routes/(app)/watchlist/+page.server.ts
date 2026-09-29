@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { panggilApi, pesanGalat } from '$lib/server/api';
+import { teks } from '$lib/bahasa.svelte';
 import type { Insight } from '$lib/insight';
 import {
 	ringkasTren,
@@ -21,14 +22,13 @@ function csrfHeader(cookies: { get: (name: string) => string | undefined }) {
 	return { 'X-CSRF-Token': cookies.get('tw_csrf') ?? '' };
 }
 
-async function ambilHarga(id: string, cookie: string): Promise<HasilHarga> {
+async function ambilHarga(id: string, cookie: string, galat: string): Promise<HasilHarga> {
 	try {
 		const { response, payload } = await panggilApi(`/watchlist/${id}/prices`, {}, cookie);
-		if (!response.ok)
-			return { seri: [], galat: pesanGalat(payload, 'Harga harian belum bisa dimuat') };
+		if (!response.ok) return { seri: [], galat: pesanGalat(payload, galat) };
 		return { seri: payload?.series ?? [], galat: '' };
 	} catch {
-		return { seri: [], galat: 'Harga harian belum bisa dimuat' };
+		return { seri: [], galat };
 	}
 }
 
@@ -50,7 +50,7 @@ async function ambilInsight(ticker: string, cookie: string): Promise<Insight[]> 
 	}
 }
 
-export const load: PageServerLoad = async ({ request, url }) => {
+export const load: PageServerLoad = async ({ request, url, locals }) => {
 	const cookie = konteks(request);
 
 	const [daftar, ringkasan] = await Promise.all([
@@ -67,7 +67,12 @@ export const load: PageServerLoad = async ({ request, url }) => {
 		items.find((item) => item.ticker === diminta) ??
 		[...items].sort((a, b) => skor(b) - skor(a) || a.ticker.localeCompare(b.ticker))[0];
 
-	const semuaHarga = Promise.all(items.map((item) => ambilHarga(item.id, cookie)));
+	const galatHarga = teks(
+		locals.bahasa,
+		'Harga harian belum bisa dimuat',
+		'Daily prices could not be loaded'
+	);
+	const semuaHarga = Promise.all(items.map((item) => ambilHarga(item.id, cookie, galatHarga)));
 
 	return {
 		items,
@@ -95,7 +100,7 @@ export const load: PageServerLoad = async ({ request, url }) => {
 };
 
 export const actions: Actions = {
-	tambah: async ({ request, cookies }) => {
+	tambah: async ({ request, cookies, locals }) => {
 		const form = await request.formData();
 		const ticker = String(form.get('ticker') ?? '')
 			.trim()
@@ -115,7 +120,12 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'tambah',
-				error: payload?.fields?.ticker ?? pesanGalat(payload, 'Gagal menambah emiten'),
+				error:
+					payload?.fields?.ticker ??
+					pesanGalat(
+						payload,
+						teks(locals.bahasa, 'Gagal menambah emiten', 'Could not add this stock')
+					),
 				fields: (payload?.fields ?? {}) as Record<string, string>
 			});
 		}
@@ -137,7 +147,7 @@ export const actions: Actions = {
 		redirect(303, `/watchlist?emiten=${item.ticker}`);
 	},
 
-	hapus: async ({ request, cookies }) => {
+	hapus: async ({ request, cookies, locals }) => {
 		const form = await request.formData();
 		const id = String(form.get('item_id') ?? '');
 
@@ -150,14 +160,17 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'hapus',
-				error: pesanGalat(payload, 'Gagal menghapus emiten')
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal menghapus emiten', 'Could not remove this stock')
+				)
 			});
 		}
 
 		redirect(303, '/watchlist');
 	},
 
-	ubahTampilan: async ({ request, cookies }) => {
+	ubahTampilan: async ({ request, cookies, locals }) => {
 		const form = await request.formData();
 		const id = String(form.get('item_id') ?? '');
 
@@ -174,14 +187,17 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'tampilan',
-				error: pesanGalat(payload, 'Gagal mengubah tampilan data')
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal mengubah tampilan data', 'Could not change the data view')
+				)
 			});
 		}
 
 		return { aksi: 'tampilan', sukses: true };
 	},
 
-	tambahKondisi: async ({ request, cookies }) => {
+	tambahKondisi: async ({ request, cookies, locals }) => {
 		const form = await request.formData();
 		const id = String(form.get('item_id') ?? '');
 		const conditionType = String(form.get('condition_type') ?? '');
@@ -212,7 +228,10 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'kondisi',
-				error: pesanGalat(payload, 'Gagal menambah kondisi'),
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal menambah kondisi', 'Could not add the condition')
+				),
 				fields: (payload?.fields ?? {}) as Record<string, string>
 			});
 		}
@@ -220,7 +239,7 @@ export const actions: Actions = {
 		return { aksi: 'kondisi', sukses: true };
 	},
 
-	ubahKondisi: async ({ request, cookies }) => {
+	ubahKondisi: async ({ request, cookies, locals }) => {
 		const form = await request.formData();
 		const id = String(form.get('item_id') ?? '');
 		const conditionId = String(form.get('condition_id') ?? '');
@@ -238,14 +257,17 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'kondisi',
-				error: pesanGalat(payload, 'Gagal mengubah kondisi')
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal mengubah kondisi', 'Could not update the condition')
+				)
 			});
 		}
 
 		return { aksi: 'kondisi', sukses: true };
 	},
 
-	hapusKondisi: async ({ request, cookies }) => {
+	hapusKondisi: async ({ request, cookies, locals }) => {
 		const form = await request.formData();
 		const id = String(form.get('item_id') ?? '');
 		const conditionId = String(form.get('condition_id') ?? '');
@@ -259,7 +281,10 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'kondisi',
-				error: pesanGalat(payload, 'Gagal menghapus kondisi')
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal menghapus kondisi', 'Could not delete the condition')
+				)
 			});
 		}
 

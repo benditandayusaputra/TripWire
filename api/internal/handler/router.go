@@ -37,6 +37,7 @@ type Dependencies struct {
 func Register(app *fiber.App, deps Dependencies) {
 	cfg := deps.Config
 
+	app.Use(middleware.Language())
 	app.Use(middleware.SecurityHeaders(cfg.IsProduction()))
 	app.Use(middleware.CORS(cfg.FrontendURL))
 
@@ -127,6 +128,8 @@ func Register(app *fiber.App, deps Dependencies) {
 	app.Get("/market/credits", requireAuth, market.Credits)
 	app.Get("/market/top", requireAuth, market.Teratas)
 	app.Get("/market/stocks", requireAuth, market.DaftarSaham)
+	app.Get("/market/foreign-flow", requireAuth, market.ArusAsing)
+	app.Get("/market/index/:code", requireAuth, market.Indeks)
 	app.Get("/market/:ticker", requireAuth, market.CompanyReport)
 	app.Get("/market/:ticker/profile", requireAuth, market.Profil)
 

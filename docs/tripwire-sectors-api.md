@@ -20,6 +20,8 @@ TripWire memakai v2 dengan base URL `https://api.sectors.app/v2` dan header `Aut
 | Daftar situs tambang | `/mining/sites/?company={slug}&limit=30` | 1 | 7 hari |
 | Koordinat situs, maksimal tiga | `/mining/sites/{slug}/` | 1 per situs | 7 hari |
 | Universe ticker | `/companies/?limit=200&offset=` | 1 per halaman, sekitar 5 | 7 hari |
+| Grafik indeks IHSG, LQ45, IDX30 di dashboard | `/index-daily/{kode}/?start={90 hari lalu}` | 1 per indeks | `SECTORS_CACHE_TTL` |
+| Net beli dan net jual asing teratas | `/foreign-flow/?limit=10&order_by=-net_foreign_inflow` dan `order_by=net_foreign_inflow` | 2 | `SECTORS_CACHE_TTL` |
 | Harga harian untuk grafik dan garis tren watchlist | `/daily/{symbol}/?start={90 hari lalu}` | 1 | `SECTORS_CACHE_TTL` |
 | Daftar saham untuk saran dan modal Tambah saham | `/companies/?where=...&order_by=-market_cap&include_query_values=true&limit=200&offset=` | 1 per halaman, 5 halaman untuk 962 emiten | `SECTORS_CACHE_TTL` |
 
@@ -46,6 +48,11 @@ and daily_close_change > -1 and market_cap > 0 and sector like '%'`, `order_by=-
 semua 962 emiten sambil membawa nama sektor, dan simbol di `where` wajib berakhiran `.JK`
 (`symbol in ['BBCA.JK']`), tanpa akhiran hasilnya kosong tapi tetap ditagih 1 credit. `GET /market/top`
 hanya membaca halaman pertama, sedangkan `GET /market/stocks` membaca semua halaman saat modal dibuka.
+
+Sectors API tidak punya field logo. Logo emiten di daftar saham diambil browser langsung dari aset publik
+yang dipakai sectors.app sendiri, `https://storage.googleapis.com/sectorsapp-sea/logo/{KODE}.webp`
+(lingkaran 40x40, 404 kalau emiten belum punya logo), jadi tidak memakai credit. `LogoEmiten.svelte`
+menumpuknya di atas monogram sebagai cadangan, dan CSP `img-src` hanya membuka path itu.
 
 ## 2. Aturan Penagihan
 Diambil dari dokumentasi Sectors, dan diterapkan di `api/pkg/sectorsclient`:
