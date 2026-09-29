@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { API_URL, masukLewatBrowser, sesiMasuk } from './helpers/akun';
+import { bukaModalSaham, modalSaham, tambahSaham } from './helpers/watchlist';
 
 function tangkapGalatKonsol(page: Page) {
 	const galat: string[] = [];
@@ -11,10 +12,14 @@ function tangkapGalatKonsol(page: Page) {
 }
 
 async function tambah(page: Page, ticker: string) {
-	await page.getByLabel('Cari saham').fill(ticker);
-	await page.getByTestId('tambah-ticker').click();
-	await expect(page).toHaveURL(new RegExp(`emiten=${ticker}`));
+	await tambahSaham(page, ticker);
 	await expect(page.getByTestId('panel-emiten')).toHaveAttribute('data-ticker', ticker);
+}
+
+async function bukaTab(page: Page, nama: 'Harga' | 'Risiko' | 'Pemantauan') {
+	const tab = page.getByTestId('panel-emiten').getByRole('tab', { name: new RegExp(nama) });
+	await tab.click();
+	await expect(tab).toHaveAttribute('aria-selected', 'true');
 }
 
 async function siap(page: Page) {
@@ -60,6 +65,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await expect(item).toContainText('Aneka Tambang Tbk.');
 
 		const panel = page.getByTestId('panel-emiten');
+		await bukaTab(page, 'Pemantauan');
 		await expect(panel.getByTestId('kondisi')).toHaveCount(1);
 		await expect(panel.getByTestId('kondisi')).toHaveAttribute('data-condition-type', 'daily');
 
@@ -74,6 +80,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 
 		await page.reload();
 		await expect(page.getByTestId('watchlist-item').filter({ hasText: 'ANTM' })).toBeVisible();
+		await bukaTab(page, 'Pemantauan');
 		await expect(page.getByTestId('kondisi')).toHaveCount(2);
 		await expect(page.getByTestId('kondisi').filter({ hasText: 'tiap 8 jam' })).toBeVisible();
 	});
@@ -83,6 +90,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 
 		await page.goto('/watchlist');
 		await tambah(page, 'PTBA');
+		await bukaTab(page, 'Pemantauan');
 
 		const panel = page.getByTestId('panel-emiten');
 		const kondisi = panel.getByTestId('kondisi');
@@ -99,14 +107,20 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await expect(panel).toContainText('belum ikut dipindai');
 	});
 
-	test('emiten di luar daftar IDX ditolak dengan pesan yang jelas', async ({ page }) => {
+	test('emiten di luar daftar IDX tidak bisa dipilih dan diberi pesan yang jelas', async ({
+		page
+	}) => {
 		await masukLewatBrowser(page, 'wl-tolak');
 
 		await page.goto('/watchlist');
-		await page.getByLabel('Cari saham').fill('ZZZZ');
-		await page.getByTestId('tambah-ticker').click();
+		const modal = await bukaModalSaham(page);
+		await modal.getByLabel('Cari saham').fill('ZZZZ');
+		await expect(modal.getByTestId('pilih-kosong')).toContainText('ZZZZ');
+		await expect(modal.getByTestId('pilih-item')).toHaveCount(0);
 
-		await expect(page.getByTestId('watchlist-error')).toContainText('IDX');
+		await page.keyboard.press('Escape');
+		await expect(modal).toBeHidden();
+		await expect(page).toHaveURL(/\/watchlist$/);
 		await expect(page.getByTestId('watchlist-kosong')).toBeVisible();
 	});
 
@@ -117,6 +131,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await tambah(page, 'INCO');
 		await expect(page.getByTestId('watchlist-item')).toHaveCount(1);
 
+		await bukaTab(page, 'Pemantauan');
 		await page.getByTestId('hapus-ticker').click();
 		await expect(page.getByTestId('panel-emiten')).toContainText('beserta 1 kondisinya');
 		await page.getByTestId('konfirmasi-hapus').click();
@@ -146,7 +161,6 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await expect(grafik).toBeVisible();
 		expect(await grafik.locator('g.lilin').count()).toBeGreaterThan(40);
 		await expect(grafik.getByTestId('penanda-peristiwa').first()).toBeVisible();
-		await expect(panel.getByTestId('daftar-peristiwa')).toContainText('Direktur Utama');
 
 		const slider = grafik.getByRole('slider');
 		await slider.focus();
@@ -158,14 +172,36 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await grafik.getByRole('button', { name: 'Tampilkan 1 bulan' }).click();
 		expect(await grafik.locator('g.lilin').count()).toBe(22);
 
-		await expect(panel.getByTestId('cek-berikutnya')).toContainText('WIB');
 		await expect(page.getByTestId('scan-berikutnya')).toBeVisible();
 		await expect(page.getByTestId('ringkasan-watchlist')).toContainText('ANTM');
+
+		const daftar = await page.getByRole('region', { name: /Daftar pantauan/ }).boundingBox();
+		const ringkasan = await page.getByTestId('ringkasan-watchlist').boundingBox();
+		const kotakPanel = await panel.boundingBox();
+		expect(Math.abs((ringkasan?.x ?? 0) - (daftar?.x ?? 99))).toBeLessThan(2);
+		expect(ringkasan?.y ?? 0).toBeGreaterThan((daftar?.y ?? 0) + (daftar?.height ?? 0));
+		expect(kotakPanel?.x ?? 0).toBeGreaterThan((daftar?.x ?? 0) + (daftar?.width ?? 0));
+
+		await bukaTab(page, 'Risiko');
+		await expect(grafik).toBeHidden();
+		await expect(panel.getByTestId('daftar-peristiwa')).toContainText('Direktur Utama');
+		await expect(panel.getByRole('tab', { name: /Risiko/ })).toContainText(/\d+/);
+
+		await page.keyboard.press('ArrowRight');
+		const tabPantau = panel.getByRole('tab', { name: /Pemantauan/ });
+		await expect(tabPantau).toHaveAttribute('aria-selected', 'true');
+		await expect(tabPantau).toBeFocused();
+		await expect(panel.getByTestId('cek-berikutnya')).toContainText('WIB');
 
 		await panel.getByTestId('tampilan-insight_only').click();
 		await expect(panel.getByTestId('tampilan-insight_only')).toHaveAttribute('aria-pressed', 'true');
 		await expect(panel.getByTestId('daftar-peristiwa')).toHaveCount(0);
 		await panel.getByTestId('tampilan-insight_plus_data').click();
+		await expect(panel.getByTestId('tampilan-insight_plus_data')).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await bukaTab(page, 'Risiko');
 		await expect(panel.getByTestId('daftar-peristiwa')).toBeVisible();
 
 		expect(galat).toEqual([]);
@@ -204,26 +240,65 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await expect(page.getByTestId('panel-emiten')).toHaveAttribute('data-ticker', 'BBCA');
 	});
 
-	test('emiten bisa dicari lewat nama lalu ditambah dengan keyboard', async ({ page }) => {
+	test('saham bisa dicari lewat nama lalu ditambah dengan keyboard', async ({ page }) => {
 		await masukLewatBrowser(page, 'wl-cari');
 
 		await page.goto('/watchlist');
 		await siap(page);
 		await page.keyboard.press('/');
-		await expect(page.getByLabel('Cari saham')).toBeFocused();
+		const modal = modalSaham(page);
+		await expect(modal.getByLabel('Cari saham')).toBeFocused();
 		await page.keyboard.type('aneka');
 
-		const saran = page.getByRole('option', { name: /ANTM/ });
-		await expect(saran).toContainText('Aneka Tambang');
-		await page.keyboard.press('ArrowDown');
-		await expect(saran).toHaveAttribute('aria-selected', 'true');
+		const pilihan = modal.getByRole('option', { name: /ANTM/ });
+		await expect(pilihan).toContainText('Aneka Tambang');
+		await expect(modal.getByTestId('pilih-item')).toHaveCount(1);
+		await expect(pilihan).toHaveAttribute('aria-selected', 'true');
 		await page.keyboard.press('Enter');
+		await expect(pilihan).toContainText('Dipantau');
+		await expect(modal.getByTestId('jumlah-ditambah')).toContainText('ANTM');
 
+		await page.keyboard.press('Escape');
+		await expect(modal).toBeHidden();
 		await expect(page).toHaveURL(/emiten=ANTM/);
 		await expect(page.getByTestId('watchlist-item').filter({ hasText: 'ANTM' })).toBeVisible();
 
-		await page.getByLabel('Cari saham').fill('ANT');
-		await expect(page.getByRole('option', { name: /ANTM/ })).toContainText('Dipantau');
+		await page.keyboard.press('/');
+		await page.keyboard.type('ANT');
+		await expect(modal.getByRole('option', { name: /ANTM/ })).toContainText('Dipantau');
+	});
+
+	test('modal daftar saham bisa disaring per sektor dan menambah beberapa saham sekaligus', async ({
+		page
+	}) => {
+		await masukLewatBrowser(page, 'wl-modal');
+		await page.goto('/watchlist');
+		await siap(page);
+
+		await page.getByTestId('lihat-semua-saham').click();
+		const modal = modalSaham(page);
+		await expect(modal).toContainText('10 emiten BEI');
+		const pilihan = modal.getByTestId('pilih-item');
+		await expect(pilihan).toHaveCount(10);
+		await expect(pilihan.first()).toHaveAttribute('data-ticker', 'BBCA');
+		await expect(pilihan.first()).toContainText('Keuangan');
+		await expect(pilihan.first()).toContainText('7.000');
+		await expect(pilihan.first()).toContainText('Rp863 T');
+
+		await modal.getByTestId('sektor-Energy').click();
+		await expect(pilihan).toHaveCount(3);
+		await modal.getByLabel('Urutkan daftar saham').selectOption('kode');
+		await expect(pilihan.first()).toHaveAttribute('data-ticker', 'ADRO');
+
+		await modal.locator('[data-testid="pilih-item"][data-ticker="ADRO"]').click();
+		await expect(modal.locator('[data-ticker="ADRO"]')).toContainText('Dipantau');
+		await modal.locator('[data-testid="pilih-item"][data-ticker="PTBA"]').click();
+		await expect(modal.getByTestId('jumlah-ditambah')).toContainText('ADRO, PTBA');
+		await expect(page.getByTestId('watchlist-item')).toHaveCount(2);
+
+		await modal.getByRole('button', { name: 'Selesai' }).click();
+		await expect(page).toHaveURL(/emiten=PTBA/);
+		await expect(page.getByTestId('panel-emiten')).toHaveAttribute('data-ticker', 'PTBA');
 	});
 
 	test('insight baru lewat SSE memunculkan kabar tanpa muat ulang halaman', async ({
@@ -282,7 +357,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 
 		await page.getByTestId('tur-lanjut').click();
 		await expect(tur).toContainText('Tambah saham dari sini');
-		await tersorot(page, page.getByLabel('Cari saham'));
+		await tersorot(page, page.getByTestId('buka-pilih-saham'));
 
 		await page.getByTestId('tur-lanjut').click();
 		await expect(tur).toContainText('Cara membaca satu baris');
@@ -333,12 +408,11 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await expect(page).toHaveURL(/emiten=BBRI/);
 		await expect(page.getByTestId('watchlist-item').filter({ hasText: 'BBRI' })).toBeVisible();
 
-		await page.getByLabel('Cari saham').focus();
-		const populer = page.getByRole('listbox', {
-			name: 'Saham berkapitalisasi terbesar dari Sectors'
-		});
-		await expect(populer.getByRole('option').first()).toContainText('BBCA');
-		await expect(populer.getByRole('option', { name: /BBRI/ })).toContainText('Dipantau');
+		const modal = await bukaModalSaham(page);
+		await expect(modal.getByTestId('pilih-item').first()).toHaveAttribute('data-ticker', 'BBCA');
+		await expect(modal.locator('[data-testid="pilih-item"][data-ticker="BBRI"]')).toContainText(
+			'Dipantau'
+		);
 	});
 
 	test('baris memakai harga dan tren harian Sectors walau saham belum dipindai', async ({

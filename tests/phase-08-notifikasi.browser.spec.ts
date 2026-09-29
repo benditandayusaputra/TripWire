@@ -5,6 +5,7 @@ import type { Page } from "@playwright/test";
 import { masukLewatBrowser, sesiMasuk } from "./helpers/akun";
 import { kueri } from "./helpers/database";
 import { langgananUji, redisAda } from "./helpers/dorongan";
+import { tambahSaham } from "./helpers/watchlist";
 
 const TTL_CACHE_MS = 2000;
 
@@ -45,8 +46,7 @@ test.describe("Fase 8: insight baru muncul realtime tanpa muat ulang", () => {
 
     await page.getByTestId("nav-watchlist").click();
     await expect(page).toHaveURL(/\/watchlist/);
-    await page.getByLabel("Cari saham").fill("BBRI");
-    await page.getByTestId("tambah-ticker").click();
+    await tambahSaham(page, "BBRI");
     await expect(
       page.getByTestId("watchlist-item").filter({ hasText: "BBRI" }),
     ).toBeVisible();

@@ -182,9 +182,11 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		const kode = isi.stocks.map((saham: { ticker: string }) => saham.ticker);
 		expect(kode.slice(0, 3)).toEqual(['BBCA', 'BBRI', 'TLKM']);
 		expect(kode).not.toContain('BBCA.JK');
+		expect(isi.stocks).toHaveLength(10);
 		expect(isi.stocks[0]).toEqual({
 			ticker: 'BBCA',
 			company_name: 'Bank Central Asia Tbk.',
+			sector: 'Financials',
 			last_close_price: 7000,
 			daily_close_change: 0.0036,
 			market_cap: 863_000_000_000_000
@@ -196,6 +198,40 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		expect(kedua.meta.cached).toBe(true);
 		expect(kedua.meta.credits_used).toBe(isi.meta.credits_used);
 		expect(kedua.stocks).toEqual(isi.stocks);
+	});
+
+	test('daftar semua saham memakai halaman screener yang sama dengan saran saham', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-semua');
+
+		await tungguCacheKedaluwarsa();
+		const sebelum = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const response = await sesi.kirim('get', '/market/stocks');
+		expect(response.status()).toBe(200);
+		const isi = await response.json();
+		expect(isi.meta.credits_used).toBe(sebelum + 1);
+
+		const kode = isi.stocks.map((saham: { ticker: string }) => saham.ticker);
+		expect(new Set(kode).size).toBe(kode.length);
+		expect(kode).toEqual(
+			expect.arrayContaining(['ANTM', 'PTBA', 'BBCA', 'MDKA', 'INCO', 'BRMS', 'ADRO', 'ITMG'])
+		);
+		expect(kode[0]).toBe('BBCA');
+		for (const saham of isi.stocks) {
+			expect(saham.sector).toBeTruthy();
+			expect(saham.last_close_price).toBeGreaterThan(0);
+		}
+		const kapitalisasi = isi.stocks.map((saham: { market_cap: number }) => saham.market_cap);
+		expect(kapitalisasi).toEqual([...kapitalisasi].sort((a, b) => b - a));
+
+		const teratas = await (await sesi.kirim('get', '/market/top')).json();
+		expect(teratas.meta.cached).toBe(true);
+		expect(teratas.meta.credits_used).toBe(isi.meta.credits_used);
+		expect(teratas.stocks.map((saham: { ticker: string }) => saham.ticker)).toEqual(
+			kode.slice(0, 10)
+		);
 	});
 
 	test('ticker di luar daftar IDX tidak pernah diteruskan ke Sectors', async ({ request }) => {
@@ -227,6 +263,15 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		const sebelum = await statistikStub(request);
 		const lain = await sesi.kirim('get', '/market/MDKA');
 		expect(lain.status()).toBe(503);
+		expect(await statistikStub(request)).toBe(sebelum);
+
+		await tungguCacheKedaluwarsa();
+		const cadangan = await sesi.kirim('get', '/market/stocks');
+		expect(cadangan.status()).toBe(200);
+		const daftar = (await cadangan.json()).stocks as { ticker: string; last_close_price: number }[];
+		expect(daftar.length).toBeGreaterThanOrEqual(10);
+		expect(daftar.map((saham) => saham.ticker)).toContain('ANTM');
+		expect(daftar.every((saham) => saham.last_close_price === null)).toBe(true);
 		expect(await statistikStub(request)).toBe(sebelum);
 	});
 

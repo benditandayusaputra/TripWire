@@ -140,6 +140,17 @@
 		}
 	}
 
+	@media (min-width: 1024px) {
+		.strip {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.sel + .sel {
+			border-top: 1px solid var(--edge-soft);
+			border-left: 0;
+		}
+	}
+
 	.label {
 		font-size: 12px;
 		font-weight: 500;

@@ -36,7 +36,8 @@
 		type Jadwal,
 		type Kutipan,
 		type Penutupan,
-		type Risiko
+		type Risiko,
+		type TabPanel
 	} from '$lib/watchlist';
 
 	let {
@@ -48,7 +49,8 @@
 		harga,
 		insights,
 		galatKondisi = '',
-		galatTampilan = ''
+		galatTampilan = '',
+		tab = $bindable('harga')
 	}: {
 		item: ItemWatchlist;
 		kutipan: Kutipan | null;
@@ -59,7 +61,14 @@
 		insights: Promise<Insight[]> | null;
 		galatKondisi?: string;
 		galatTampilan?: string;
+		tab?: TabPanel;
 	} = $props();
+
+	const TAB: { kunci: TabPanel; label: string }[] = [
+		{ kunci: 'harga', label: 'Harga' },
+		{ kunci: 'risiko', label: 'Risiko' },
+		{ kunci: 'pemantauan', label: 'Pemantauan' }
+	];
 
 	const IKON_PERISTIWA = { jual: UserMinus, beli: UserPlus, kepemilikan: ChartPie, suspensi: Ban };
 
@@ -77,6 +86,7 @@
 	const subSkor = $derived(Object.entries(redFlag?.sub_scores ?? {}));
 	const batas = $derived(batasNotifikasi(item.conditions));
 	const plusData = $derived(item.data_display_pref === 'insight_plus_data');
+	const kondisiAktif = $derived(item.conditions.filter((kondisi) => kondisi.is_active).length);
 
 	const posisi52 = $derived.by(() => {
 		if (!kutipan?.high_52w || !kutipan.low_52w || kutipan.high_52w <= kutipan.low_52w) return null;
@@ -94,6 +104,15 @@
 		return daftar
 			.filter((satu, urutan) => daftar.findIndex((lain) => kunci(lain) === kunci(satu)) === urutan)
 			.slice(0, 4);
+	}
+
+	function geserTab(event: KeyboardEvent) {
+		const arah = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+		if (!arah) return;
+		event.preventDefault();
+		const urutan = TAB.findIndex((satu) => satu.kunci === tab);
+		tab = TAB[(urutan + arah + TAB.length) % TAB.length].kunci;
+		document.getElementById(`tab-${tab}`)?.focus();
 	}
 
 	function kinerja(seri: HasilHarga['seri'], hari: number) {
@@ -223,29 +242,35 @@
 		{/if}
 	</div>
 
-	{#if posisi52 !== null && kutipan}
-		<div class="mt-4">
-			<div class="text-muted flex justify-between text-[11.5px]">
-				<span>Terendah 52 minggu</span>
-				<span>Tertinggi 52 minggu</span>
-			</div>
-			<div
-				class="rentang mt-1.5"
-				role="img"
-				aria-label="Harga {formatHarga(kutipan.last_close_price)} berada di {Math.round(
-					posisi52 * 100
-				)} persen rentang 52 minggu"
+	<div class="tab" role="tablist" aria-label="Rincian {item.ticker}">
+		{#each TAB as satu (satu.kunci)}
+			<button
+				type="button"
+				role="tab"
+				id="tab-{satu.kunci}"
+				aria-selected={tab === satu.kunci}
+				aria-controls="isi-{satu.kunci}"
+				tabindex={tab === satu.kunci ? 0 : -1}
+				onclick={() => (tab = satu.kunci)}
+				onkeydown={geserTab}
 			>
-				<span class="penanda-rentang" style="left:{posisi52 * 100}%"></span>
-			</div>
-			<div class="tw-data text-secondary mt-1 flex justify-between text-[12px]">
-				<span>{formatHarga(kutipan.low_52w)}</span>
-				<span>{formatHarga(kutipan.high_52w)}</span>
-			</div>
-		</div>
-	{/if}
+				{satu.label}
+				{#if satu.kunci === 'risiko' && skor !== null}
+					<span class="lencana tw-data {tierDariSkor(skor).text}">{Math.round(skor)}</span>
+				{:else if satu.kunci === 'pemantauan'}
+					<span class="lencana tw-data">{kondisiAktif}</span>
+				{/if}
+			</button>
+		{/each}
+	</div>
 
-	<div class="border-line mt-5 border-t pt-4">
+	<div
+		id="isi-harga"
+		role="tabpanel"
+		aria-labelledby="tab-harga"
+		class="isi-tab"
+		hidden={tab !== 'harga'}
+	>
 		{#await muatan}
 			<div class="kerangka" aria-live="polite">
 				<LoaderCircle class="text-diamond-300 size-5 animate-spin" aria-hidden="true" />
@@ -255,8 +280,9 @@
 			</div>
 		{:then hasil}
 			{@const seri = hasil?.[0].seri ?? []}
-			{@const daftar = hasil?.[1] ?? []}
-			{@const peristiwa = peristiwaDari(daftar.find((satu) => satu.insight_type === 'red_flag'))}
+			{@const peristiwa = peristiwaDari(
+				(hasil?.[1] ?? []).find((satu) => satu.insight_type === 'red_flag')
+			)}
 			{#if seri.length > 1}
 				<GrafikEmiten
 					kode={item.ticker}
@@ -292,9 +318,101 @@
 					{hasil?.[0].galat || `Belum ada data harga harian untuk ${item.ticker}.`}
 				</p>
 			{/if}
+		{/await}
+		{#if posisi52 !== null && kutipan}
+			<div class="mt-5">
+				<div class="text-muted flex justify-between text-[11.5px]">
+					<span>Terendah 52 minggu</span>
+					<span>Tertinggi 52 minggu</span>
+				</div>
+				<div
+					class="rentang mt-1.5"
+					role="img"
+					aria-label="Harga {formatHarga(kutipan.last_close_price)} berada di {Math.round(
+						posisi52 * 100
+					)} persen rentang 52 minggu"
+				>
+					<span class="penanda-rentang" style="left:{posisi52 * 100}%"></span>
+				</div>
+				<div class="tw-data text-secondary mt-1 flex justify-between text-[12px]">
+					<span>{formatHarga(kutipan.low_52w)}</span>
+					<span>{formatHarga(kutipan.high_52w)}</span>
+				</div>
+			</div>
+		{/if}
+	</div>
 
+	<div
+		id="isi-risiko"
+		role="tabpanel"
+		aria-labelledby="tab-risiko"
+		class="isi-tab space-y-5"
+		hidden={tab !== 'risiko'}
+	>
+		<section class="space-y-3" aria-labelledby="judul-risiko">
+			<div class="flex items-center justify-between gap-3">
+				<h3 id="judul-risiko" class="tw-overline flex items-center gap-2">
+					<ShieldAlert class="size-3.5" aria-hidden="true" />
+					Tata kelola
+				</h3>
+				{#if redFlag}
+					<span class="text-muted text-[11.5px]">dihitung {waktuRelatif(redFlag.generated_at)}</span
+					>
+				{/if}
+			</div>
+
+			{#if redFlag && skor !== null}
+				<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+					<span class="tw-data text-[26px] leading-none font-semibold {tierDariSkor(skor).text}"
+						>{Math.round(skor)}</span
+					>
+					<span class="text-[13px] font-medium {tierDariSkor(skor).text}"
+						>{tierDariSkor(skor).label}</span
+					>
+					{#if selisihSkor !== null && selisihSkor !== 0}
+						<span class="tw-data text-secondary text-[12px]">
+							{selisihSkor > 0 ? 'naik' : 'turun'}
+							{Math.abs(selisihSkor)} dari sebelumnya
+						</span>
+					{/if}
+					{#if redFlag.multiplier && redFlag.multiplier > 1}
+						<span class="chip ml-auto"
+							>Pola silang ×{redFlag.multiplier.toLocaleString('id-ID')}</span
+						>
+					{/if}
+				</div>
+				<ul class="space-y-2.5">
+					{#each subSkor as [kunci, nilai] (kunci)}
+						<li
+							class="grid grid-cols-[minmax(0,9.5rem)_1fr_2.2rem] items-center gap-3 text-[12.5px]"
+						>
+							<span class="text-secondary truncate">{NAMA_SINYAL[kunci] ?? kunci}</span>
+							<span class="lajur"
+								><span
+									class="isi"
+									style="width:{Math.max(nilai, 3)}%; background:{tierDariSkor(nilai).color}"
+								></span></span
+							>
+							<span class="tw-data text-ink text-right">{Math.round(nilai)}</span>
+						</li>
+					{/each}
+				</ul>
+				<a href="/insights/{redFlag.id}" class="tautan">
+					Buka rincian dan sumber datanya
+					<ArrowUpRight class="size-3.5" aria-hidden="true" />
+				</a>
+			{:else}
+				<p class="text-secondary text-[13px]">
+					Belum ada skor. Skor pertama muncul setelah putaran pemindaian berikutnya memeriksa {item.ticker}.
+				</p>
+			{/if}
+		</section>
+
+		{#await insights then hasilInsight}
+			{@const daftar = hasilInsight ?? []}
+			{@const peristiwa = peristiwaDari(daftar.find((satu) => satu.insight_type === 'red_flag'))}
 			{#if plusData && peristiwa.length}
-				<section class="mt-5 space-y-2.5" aria-labelledby="judul-peristiwa">
+				<section class="space-y-2.5" aria-labelledby="judul-peristiwa">
 					<h3 id="judul-peristiwa" class="tw-overline">Peristiwa pendukung</h3>
 					<ol data-testid="daftar-peristiwa" class="space-y-1.5">
 						{#each peristiwa.slice(0, 6) as satu, urutan (urutan)}
@@ -310,9 +428,8 @@
 					</ol>
 				</section>
 			{/if}
-
 			{#if daftar.length}
-				<section class="mt-5 space-y-2" aria-labelledby="judul-insight">
+				<section class="space-y-2" aria-labelledby="judul-insight">
 					<h3 id="judul-insight" class="tw-overline">Insight terbaru {item.ticker}</h3>
 					<ul class="space-y-1.5">
 						{#each berbeda(daftar) as insight (insight.id)}
@@ -335,120 +452,71 @@
 		{/await}
 	</div>
 
-	<section class="border-line mt-5 space-y-3 border-t pt-4" aria-labelledby="judul-risiko">
-		<div class="flex items-center justify-between gap-3">
-			<h3 id="judul-risiko" class="tw-overline flex items-center gap-2">
-				<ShieldAlert class="size-3.5" aria-hidden="true" />
-				Tata kelola
-			</h3>
-			{#if redFlag}
-				<span class="text-muted text-[11.5px]">dihitung {waktuRelatif(redFlag.generated_at)}</span>
-			{/if}
-		</div>
-
-		{#if redFlag && skor !== null}
-			<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-				<span class="tw-data text-[26px] leading-none font-semibold {tierDariSkor(skor).text}"
-					>{Math.round(skor)}</span
-				>
-				<span class="text-[13px] font-medium {tierDariSkor(skor).text}"
-					>{tierDariSkor(skor).label}</span
-				>
-				{#if selisihSkor !== null && selisihSkor !== 0}
-					<span class="tw-data text-secondary text-[12px]">
-						{selisihSkor > 0 ? 'naik' : 'turun'}
-						{Math.abs(selisihSkor)} dari sebelumnya
-					</span>
-				{/if}
-				{#if redFlag.multiplier && redFlag.multiplier > 1}
-					<span class="chip ml-auto">Pola silang ×{redFlag.multiplier.toLocaleString('id-ID')}</span
-					>
-				{/if}
-			</div>
-			<ul class="space-y-2.5">
-				{#each subSkor as [kunci, nilai] (kunci)}
-					<li class="grid grid-cols-[minmax(0,9.5rem)_1fr_2.2rem] items-center gap-3 text-[12.5px]">
-						<span class="text-secondary truncate">{NAMA_SINYAL[kunci] ?? kunci}</span>
-						<span class="lajur"
-							><span
-								class="isi"
-								style="width:{Math.max(nilai, 3)}%; background:{tierDariSkor(nilai).color}"
-							></span></span
-						>
-						<span class="tw-data text-ink text-right">{Math.round(nilai)}</span>
-					</li>
-				{/each}
-			</ul>
-			<a href="/insights/{redFlag.id}" class="tautan">
-				Buka rincian dan sumber datanya
-				<ArrowUpRight class="size-3.5" aria-hidden="true" />
-			</a>
-		{:else}
-			<p class="text-secondary text-[13px]">
-				Belum ada skor. Skor pertama muncul setelah putaran pemindaian berikutnya memeriksa {item.ticker}.
-			</p>
-		{/if}
-	</section>
-
-	<div class="border-line mt-5 border-t pt-4">
+	<div
+		id="isi-pemantauan"
+		role="tabpanel"
+		aria-labelledby="tab-pemantauan"
+		class="isi-tab space-y-5"
+		hidden={tab !== 'pemantauan'}
+	>
 		<EditorKondisi {item} jadwal={jadwal.conditions} galat={galatKondisi} />
-	</div>
 
-	<section class="border-line mt-5 space-y-3 border-t pt-4" aria-labelledby="judul-pengaturan">
-		<h3 id="judul-pengaturan" class="tw-overline">Pengaturan {item.ticker}</h3>
+		<section class="border-line space-y-3 border-t pt-4" aria-labelledby="judul-pengaturan">
+			<h3 id="judul-pengaturan" class="tw-overline">Pengaturan {item.ticker}</h3>
 
-		<form method="POST" action={aksi('ubahTampilan')} use:enhance class="space-y-1.5">
-			<input type="hidden" name="item_id" value={item.id} />
-			<p id="label-tampilan" class="text-secondary text-[12.5px] font-medium">Tampilan data</p>
-			<div class="segmen" role="group" aria-labelledby="label-tampilan">
-				{#each [['insight_only', 'Insight saja'], ['insight_plus_data', 'Insight plus data pendukung']] as [nilai, label] (nilai)}
-					<button
-						type="submit"
-						name="data_display_pref"
-						value={nilai}
-						data-testid="tampilan-{nilai}"
-						aria-pressed={item.data_display_pref === nilai}
-						class:aktif={item.data_display_pref === nilai}
-					>
-						{label}
-					</button>
-				{/each}
-			</div>
-			{#if galatTampilan}
-				<p role="alert" class="text-tier-critical text-[12.5px]">{galatTampilan}</p>
-			{/if}
-		</form>
-
-		{#if yakinHapus}
-			<form method="POST" action="?/hapus" use:enhance class="konfirmasi">
+			<form method="POST" action={aksi('ubahTampilan')} use:enhance class="space-y-1.5">
 				<input type="hidden" name="item_id" value={item.id} />
-				<p class="text-ink text-[13px]">
-					Hapus {item.ticker} beserta {item.conditions.length} kondisinya dari watchlist?
-				</p>
-				<div class="flex gap-2">
-					<button
-						type="button"
-						class="tw-ghost px-3 py-1.5 text-[13px]"
-						onclick={() => (yakinHapus = false)}>Batal</button
-					>
-					<button type="submit" data-testid="konfirmasi-hapus" class="tombol-hapus">
-						<Trash2 class="size-3.5" aria-hidden="true" />
-						Ya, hapus
-					</button>
+				<p id="label-tampilan" class="text-secondary text-[12.5px] font-medium">Tampilan data</p>
+				<div class="segmen" role="group" aria-labelledby="label-tampilan">
+					{#each [['insight_only', 'Insight saja'], ['insight_plus_data', 'Insight plus data pendukung']] as [nilai, label] (nilai)}
+						<button
+							type="submit"
+							name="data_display_pref"
+							value={nilai}
+							data-testid="tampilan-{nilai}"
+							aria-pressed={item.data_display_pref === nilai}
+							class:aktif={item.data_display_pref === nilai}
+						>
+							{label}
+						</button>
+					{/each}
 				</div>
+				{#if galatTampilan}
+					<p role="alert" class="text-tier-critical text-[12.5px]">{galatTampilan}</p>
+				{/if}
 			</form>
-		{:else}
-			<button
-				type="button"
-				data-testid="hapus-ticker"
-				class="tombol-hapus-awal"
-				onclick={() => (yakinHapus = true)}
-			>
-				<Trash2 class="size-3.5" aria-hidden="true" />
-				Hapus {item.ticker} dari watchlist
-			</button>
-		{/if}
-	</section>
+
+			{#if yakinHapus}
+				<form method="POST" action="?/hapus" use:enhance class="konfirmasi">
+					<input type="hidden" name="item_id" value={item.id} />
+					<p class="text-ink text-[13px]">
+						Hapus {item.ticker} beserta {item.conditions.length} kondisinya dari watchlist?
+					</p>
+					<div class="flex gap-2">
+						<button
+							type="button"
+							class="tw-ghost px-3 py-1.5 text-[13px]"
+							onclick={() => (yakinHapus = false)}>Batal</button
+						>
+						<button type="submit" data-testid="konfirmasi-hapus" class="tombol-hapus">
+							<Trash2 class="size-3.5" aria-hidden="true" />
+							Ya, hapus
+						</button>
+					</div>
+				</form>
+			{:else}
+				<button
+					type="button"
+					data-testid="hapus-ticker"
+					class="tombol-hapus-awal"
+					onclick={() => (yakinHapus = true)}
+				>
+					<Trash2 class="size-3.5" aria-hidden="true" />
+					Hapus {item.ticker} dari watchlist
+				</button>
+			{/if}
+		</section>
+	</div>
 </article>
 
 <style>
@@ -510,6 +578,57 @@
 		border-radius: 3px;
 		background: var(--color-ink);
 		transform: rotate(45deg);
+	}
+
+	.tab {
+		display: flex;
+		gap: 2px;
+		margin-top: 18px;
+		overflow-x: auto;
+		border-bottom: 1px solid var(--edge-soft);
+		scrollbar-width: none;
+	}
+
+	.tab button {
+		position: relative;
+		display: inline-flex;
+		flex: none;
+		align-items: center;
+		gap: 7px;
+		padding: 9px 12px 10px;
+		font-size: 13.5px;
+		font-weight: 500;
+		color: var(--color-muted);
+		transition: color 0.2s ease;
+	}
+
+	.tab button:hover,
+	.tab button[aria-selected='true'] {
+		color: var(--color-ink);
+	}
+
+	.tab button[aria-selected='true']::after {
+		content: '';
+		position: absolute;
+		right: 10px;
+		bottom: -1px;
+		left: 10px;
+		height: 2px;
+		border-radius: 2px;
+		background: var(--color-diamond-500);
+	}
+
+	.lencana {
+		border-radius: 999px;
+		background: rgba(154, 169, 196, 0.12);
+		padding: 0 6px;
+		font-size: 11px;
+		line-height: 17px;
+		color: var(--color-secondary);
+	}
+
+	.isi-tab {
+		padding-top: 18px;
 	}
 
 	.kerangka {

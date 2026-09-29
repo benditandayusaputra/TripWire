@@ -33,6 +33,11 @@ func (h *MarketHandler) Teratas(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"stocks": saham, "meta": meta})
 }
 
+func (h *MarketHandler) DaftarSaham(c *fiber.Ctx) error {
+	saham, meta := h.market.DaftarSaham(c.Context())
+	return c.JSON(fiber.Map{"stocks": saham, "meta": meta})
+}
+
 func (h *MarketHandler) Credits(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"meta": h.market.Credits(c.Context())})
 }

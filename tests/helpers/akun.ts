@@ -93,16 +93,18 @@ export async function sesiMasuk(request: APIRequestContext, prefix: string) {
 
 export const KUNCI_TUR_WATCHLIST = 'tripwire:tur-watchlist';
 
+export async function lewatiTur(page: Page) {
+	await page.addInitScript((kunci) => {
+		try {
+			localStorage.setItem(kunci, 'dilewati-test');
+		} catch {
+			return;
+		}
+	}, KUNCI_TUR_WATCHLIST);
+}
+
 export async function masukLewatBrowser(page: Page, prefix: string, { tur = false } = {}) {
-	if (!tur) {
-		await page.addInitScript((kunci) => {
-			try {
-				localStorage.setItem(kunci, 'dilewati-test');
-			} catch {
-				return;
-			}
-		}, KUNCI_TUR_WATCHLIST);
-	}
+	if (!tur) await lewatiTur(page);
 	const akun = akunBaru(prefix);
 
 	await page.goto('/register');

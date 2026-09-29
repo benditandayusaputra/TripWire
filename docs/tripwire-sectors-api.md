@@ -19,7 +19,7 @@ TripWire memakai v2 dengan base URL `https://api.sectors.app/v2` dan header `Aut
 | Koordinat situs, maksimal tiga | `/mining/sites/{slug}/` | 1 per situs | 7 hari |
 | Universe ticker | `/companies/?limit=200&offset=` | 1 per halaman, sekitar 5 | 7 hari |
 | Harga harian untuk grafik dan garis tren watchlist | `/daily/{symbol}/?start={90 hari lalu}` | 1 | `SECTORS_CACHE_TTL` |
-| Saran saham berkapitalisasi terbesar | `/companies/?where=...&order_by=-market_cap&include_query_values=true&limit=10` | 1 | `SECTORS_CACHE_TTL` |
+| Daftar saham untuk saran dan modal Tambah saham | `/companies/?where=...&order_by=-market_cap&include_query_values=true&limit=200&offset=` | 1 per halaman, 5 halaman untuk 962 emiten | `SECTORS_CACHE_TTL` |
 
 `SECTORS_CACHE_TTL` bawaannya 24 jam. Data harian Sectors paling cepat berubah sekali sehari, jadi
 scheduler yang jalan tiap 6 jam hampir selalu dilayani cache.
@@ -37,11 +37,13 @@ hari. Parameter `start` berganti tiap hari sehingga biaya paling banyak 1 credit
 berapa pun pengguna yang membukanya. Endpoint TripWire-nya hanya melayani emiten yang ada di watchlist
 pemanggil.
 
-Saran saham memakai screener `/companies/` dengan `where=last_close_price > 0 and daily_close_change
-> -1 and market_cap > 0`, `order_by=-market_cap`, dan `include_query_values=true`. Diuji dengan data
-asli pada 29 September 2026: `query_values` hanya berisi field yang disebut di `where` atau
-`order_by`, dan simbol di `where` wajib berakhiran `.JK` (`symbol in ['BBCA.JK']`), tanpa akhiran
-hasilnya kosong tapi tetap ditagih 1 credit.
+Saran saham dan modal Tambah saham memakai screener `/companies/` dengan `where=last_close_price > 0
+and daily_close_change > -1 and market_cap > 0 and sector like '%'`, `order_by=-market_cap`,
+`include_query_values=true`, dan `limit=200`. Diuji dengan data asli pada 29 September 2026:
+`query_values` hanya berisi field yang disebut di `where` atau `order_by`, `sector like '%'` meloloskan
+semua 962 emiten sambil membawa nama sektor, dan simbol di `where` wajib berakhiran `.JK`
+(`symbol in ['BBCA.JK']`), tanpa akhiran hasilnya kosong tapi tetap ditagih 1 credit. `GET /market/top`
+hanya membaca halaman pertama, sedangkan `GET /market/stocks` membaca semua halaman saat modal dibuka.
 
 ## 2. Aturan Penagihan
 Diambil dari dokumentasi Sectors, dan diterapkan di `api/pkg/sectorsclient`:
@@ -67,6 +69,7 @@ pemakaian semua lingkungan.
 | Scan pertama untuk ANTM, MDKA, INCO, PTBA, BBCA | sekitar 70 |
 | Scan harian berikutnya untuk lima emiten yang sama | sekitar 30 |
 | Membuka watchlist berisi N emiten pertama kali dalam sehari | N untuk harga harian, ditambah 1 untuk saran saham |
+| Membuka modal Tambah saham pertama kali dalam sehari | 4 lagi untuk halaman screener sisanya |
 
 Verifikasi dengan data asli pada 28 September 2026 memakai 59 credit: 14 untuk eksplorasi manual,
 5 untuk universe ticker, dan 40 untuk insight ANTM, PTBA, PPGL, dan BBCA.
