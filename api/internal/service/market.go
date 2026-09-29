@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -50,10 +51,11 @@ type Kutipan struct {
 	Indeks          []string `json:"indices"`
 }
 
-type SahamTeratas struct {
+type SahamPasar struct {
 	Ticker          string   `json:"ticker"`
 	Nama            string   `json:"company_name"`
-	Harga           float64  `json:"last_close_price"`
+	Sektor          string   `json:"sector,omitempty"`
+	Harga           *float64 `json:"last_close_price"`
 	PerubahanHarian *float64 `json:"daily_close_change"`
 	Kapitalisasi    *float64 `json:"market_cap"`
 }
@@ -99,16 +101,17 @@ func (s *MarketService) meta(ctx context.Context, hasil *sectorsclient.Hasil) Ma
 	}
 }
 
-func (s *MarketService) Teratas(ctx context.Context) ([]SahamTeratas, MarketMeta, error) {
+func (s *MarketService) halamanSaham(ctx context.Context, offset int) ([]SahamPasar, int, *sectorsclient.Hasil, error) {
 	kueri := url.Values{
-		"where":                {"last_close_price > 0 and daily_close_change > -1 and market_cap > 0"},
+		"where":                {"last_close_price > 0 and daily_close_change > -1 and market_cap > 0 and sector like '%'"},
 		"order_by":             {"-market_cap"},
 		"include_query_values": {"true"},
-		"limit":                {strconv.Itoa(jumlahTeratas)},
+		"limit":                {strconv.Itoa(batasHalamanUniverse)},
+		"offset":               {strconv.Itoa(offset)},
 	}
 	hasil, err := s.client.Get(ctx, "/companies/?"+kueri.Encode(), 0, 1)
 	if err != nil {
-		return nil, MarketMeta{}, err
+		return nil, 0, nil, err
 	}
 
 	var isi struct {
@@ -118,29 +121,87 @@ func (s *MarketService) Teratas(ctx context.Context) ([]SahamTeratas, MarketMeta
 				Harga        angkaFleksibel `json:"last_close_price"`
 				Perubahan    angkaFleksibel `json:"daily_close_change"`
 				Kapitalisasi angkaFleksibel `json:"market_cap"`
+				Sektor       string         `json:"sector"`
 			} `json:"query_values"`
 		} `json:"results"`
+		Pagination struct {
+			HasNext    bool `json:"has_next"`
+			NextOffset *int `json:"next_offset"`
+		} `json:"pagination"`
 	}
 	if err := json.Unmarshal(hasil.Data, &isi); err != nil {
-		return nil, MarketMeta{}, fmt.Errorf("%w: screener emiten tidak terbaca", sectorsclient.ErrUpstreamGagal)
+		return nil, 0, nil, fmt.Errorf("%w: screener emiten tidak terbaca", sectorsclient.ErrUpstreamGagal)
 	}
 
-	saham := make([]SahamTeratas, 0, len(isi.Results))
+	saham := make([]SahamPasar, 0, len(isi.Results))
 	for _, baris := range isi.Results {
 		ticker, err := s.tickers.Lookup(baris.Symbol)
 		if err != nil || !baris.Nilai.Harga.Ada || baris.Nilai.Harga.Nilai <= 0 {
 			continue
 		}
-		saham = append(saham, SahamTeratas{
+		saham = append(saham, SahamPasar{
 			Ticker:          ticker.Code,
 			Nama:            ticker.Name,
-			Harga:           baris.Nilai.Harga.Nilai,
+			Sektor:          strings.TrimSpace(baris.Nilai.Sektor),
+			Harga:           baris.Nilai.Harga.ptr(),
 			PerubahanHarian: baris.Nilai.Perubahan.ptr(),
 			Kapitalisasi:    baris.Nilai.Kapitalisasi.ptr(),
 		})
 	}
 
-	return saham, s.meta(ctx, hasil), nil
+	berikut := 0
+	if isi.Pagination.HasNext && isi.Pagination.NextOffset != nil && *isi.Pagination.NextOffset > offset {
+		berikut = *isi.Pagination.NextOffset
+	}
+	return saham, berikut, hasil, nil
+}
+
+func (s *MarketService) Teratas(ctx context.Context) ([]SahamPasar, MarketMeta, error) {
+	saham, _, hasil, err := s.halamanSaham(ctx, 0)
+	if err != nil {
+		return nil, MarketMeta{}, err
+	}
+	return saham[:min(jumlahTeratas, len(saham))], s.meta(ctx, hasil), nil
+}
+
+func (s *MarketService) DaftarSaham(ctx context.Context) ([]SahamPasar, MarketMeta) {
+	pasar := map[string]SahamPasar{}
+	var meta MarketMeta
+	for offset, halaman := 0, 0; halaman < maksHalamanUniverse; halaman++ {
+		saham, berikut, hasil, err := s.halamanSaham(ctx, offset)
+		if err != nil {
+			break
+		}
+		meta = s.meta(ctx, hasil)
+		for _, satu := range saham {
+			pasar[satu.Ticker] = satu
+		}
+		if berikut == 0 {
+			break
+		}
+		offset = berikut
+	}
+
+	semua := s.tickers.Semua()
+	daftar := make([]SahamPasar, 0, len(semua))
+	for _, ticker := range semua {
+		satu, ada := pasar[ticker.Code]
+		if !ada {
+			satu = SahamPasar{Ticker: ticker.Code, Nama: ticker.Name}
+		}
+		daftar = append(daftar, satu)
+	}
+	sort.SliceStable(daftar, func(i, j int) bool {
+		return kapitalisasi(daftar[i]) > kapitalisasi(daftar[j])
+	})
+	return daftar, meta
+}
+
+func kapitalisasi(saham SahamPasar) float64 {
+	if saham.Kapitalisasi == nil {
+		return -1
+	}
+	return *saham.Kapitalisasi
 }
 
 func (s *MarketService) Kutipan(ctx context.Context, kode []string) map[string]Kutipan {

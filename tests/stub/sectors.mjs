@@ -523,7 +523,8 @@ createServer((req, res) => {
 						symbol,
 						last_close_price: terakhir.close,
 						daily_close_change: overview?.daily_close_change ?? terakhir.close / kemarin.close - 1,
-						market_cap: overview?.market_cap ?? terakhir.market_cap
+						market_cap: overview?.market_cap ?? terakhir.market_cap,
+						sector: overview?.sector ?? 'Basic Materials'
 					}
 				};
 			})

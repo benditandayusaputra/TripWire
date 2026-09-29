@@ -2,9 +2,9 @@
 	import { enhance } from '$app/forms';
 	import { Check, LoaderCircle, Plus } from 'lucide-svelte';
 	import LogoEmiten from './LogoEmiten.svelte';
-	import { formatHarga, formatRupiah, formatUbah, type SahamTeratas } from '$lib/watchlist';
+	import { formatHarga, formatRupiah, formatUbah, type SahamPasar } from '$lib/watchlist';
 
-	let { saham, dipantau, penuh }: { saham: SahamTeratas[]; dipantau: string[]; penuh: boolean } =
+	let { saham, dipantau, penuh }: { saham: SahamPasar[]; dipantau: string[]; penuh: boolean } =
 		$props();
 
 	let mengirim = $state('');

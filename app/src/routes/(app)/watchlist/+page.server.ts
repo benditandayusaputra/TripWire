@@ -8,7 +8,7 @@ import {
 	type Jadwal,
 	type Kutipan,
 	type Risiko,
-	type SahamTeratas,
+	type SahamPasar,
 	type Tren
 } from '$lib/watchlist';
 import type { Actions, PageServerLoad } from './$types';
@@ -32,10 +32,10 @@ async function ambilHarga(id: string, cookie: string): Promise<HasilHarga> {
 	}
 }
 
-async function ambilTeratas(cookie: string): Promise<SahamTeratas[]> {
+async function ambilTeratas(cookie: string): Promise<SahamPasar[]> {
 	try {
 		const { response, payload } = await panggilApi('/market/top', {}, cookie);
-		return response.ok ? ((payload?.stocks ?? []) as SahamTeratas[]) : [];
+		return response.ok ? ((payload?.stocks ?? []) as SahamPasar[]) : [];
 	} catch {
 		return [];
 	}
@@ -133,6 +133,7 @@ export const actions: Actions = {
 			);
 		}
 
+		if (form.get('tetap') === '1') return { aksi: 'tambah', sukses: true, ticker: item.ticker };
 		redirect(303, `/watchlist?emiten=${item.ticker}`);
 	},
 
