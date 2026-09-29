@@ -29,7 +29,9 @@
 	);
 
 	const tujuan = $derived(navigating.to?.url.pathname ?? page.url.pathname);
-	const lebar = $derived(['/(app)/dashboard', '/(app)/watchlist'].includes(page.route.id ?? ''));
+	const lebar = $derived(
+		['/(app)/dashboard', '/(app)/watchlist', '/(app)/stocks/[ticker]'].includes(page.route.id ?? '')
+	);
 
 	function aktif(href: string) {
 		return tujuan === href || tujuan.startsWith(`${href}/`);
