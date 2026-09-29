@@ -128,6 +128,7 @@ func Register(app *fiber.App, deps Dependencies) {
 	app.Get("/market/top", requireAuth, market.Teratas)
 	app.Get("/market/stocks", requireAuth, market.DaftarSaham)
 	app.Get("/market/:ticker", requireAuth, market.CompanyReport)
+	app.Get("/market/:ticker/profile", requireAuth, market.Profil)
 
 	verifikasi := NewIntegrityHandler(deps.Integrity)
 	app.Get("/insights/verify/:id", verifikasi.Verify)
