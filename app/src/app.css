@@ -237,6 +237,11 @@ button:disabled {
 	cursor: not-allowed;
 }
 
+.tw-primary[aria-busy='true'] {
+	opacity: 1;
+	cursor: progress;
+}
+
 .leaflet-container {
 	background: var(--color-void) !important;
 	font-family: var(--font-mono);
