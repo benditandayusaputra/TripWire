@@ -12,6 +12,7 @@
 		X
 	} from 'lucide-svelte';
 	import SkorBadge from '$lib/components/SkorBadge.svelte';
+	import { t } from '$lib/bahasa.svelte';
 	import GrafikEmiten from './GrafikEmiten.svelte';
 	import EditorKondisi from './EditorKondisi.svelte';
 	import LogoEmiten from './LogoEmiten.svelte';
@@ -154,6 +155,10 @@
 							: ''}
 					</p>
 				{/if}
+				<a href="/stocks/{item.ticker}" class="tautan-profil" data-testid="buka-profil">
+					{t('Pengelola dan pemilik', 'Management and owners')}
+					<ArrowUpRight class="size-3.5" aria-hidden="true" />
+				</a>
 			</div>
 		</div>
 		<div class="flex flex-none items-center gap-2">
@@ -700,6 +705,23 @@
 	@keyframes isi {
 		from {
 			transform: scaleX(0);
+		}
+	}
+
+	.tautan-profil {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding-top: 3px;
+		font-size: 12.5px;
+		font-weight: 500;
+		color: var(--color-diamond-300);
+		transition: color 0.2s ease;
+	}
+
+	@media (hover: hover) {
+		.tautan-profil:hover {
+			color: var(--color-diamond-100);
 		}
 	}
 

@@ -25,6 +25,14 @@ func (h *MarketHandler) CompanyReport(c *fiber.Ctx) error {
 	return c.JSON(report)
 }
 
+func (h *MarketHandler) Profil(c *fiber.Ctx) error {
+	profil, err := h.market.Profil(c.Context(), c.Params("ticker"))
+	if err != nil {
+		return sectorsError(c, err)
+	}
+	return c.JSON(profil)
+}
+
 func (h *MarketHandler) Teratas(c *fiber.Ctx) error {
 	saham, meta, err := h.market.Teratas(c.Context())
 	if err != nil {
