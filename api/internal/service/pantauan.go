@@ -245,16 +245,5 @@ func (s *MarketService) HargaHarian(ctx context.Context, kode string) (*SeriHarg
 	}
 	sort.Slice(seri, func(i, j int) bool { return seri[i].Tanggal < seri[j].Tanggal })
 
-	return &SeriHarga{
-		Ticker: kode,
-		Seri:   seri,
-		Meta: MarketMeta{
-			Cached:           hasil.Cached,
-			LatencyMS:        hasil.Latensi.Milliseconds(),
-			CreditsUsed:      hasil.Terpakai,
-			CreditsRemaining: hasil.Tersisa,
-			CreditBudget:     s.client.Budget(),
-			CircuitOpen:      s.client.CircuitTerbuka(ctx),
-		},
-	}, nil
+	return &SeriHarga{Ticker: kode, Seri: seri, Meta: s.meta(ctx, hasil)}, nil
 }

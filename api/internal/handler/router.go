@@ -125,6 +125,7 @@ func Register(app *fiber.App, deps Dependencies) {
 
 	market := NewMarketHandler(deps.Market)
 	app.Get("/market/credits", requireAuth, market.Credits)
+	app.Get("/market/top", requireAuth, market.Teratas)
 	app.Get("/market/:ticker", requireAuth, market.CompanyReport)
 
 	verifikasi := NewIntegrityHandler(deps.Integrity)

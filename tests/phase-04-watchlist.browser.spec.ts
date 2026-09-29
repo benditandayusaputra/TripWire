@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { API_URL, masukLewatBrowser, sesiMasuk } from './helpers/akun';
 
 function tangkapGalatKonsol(page: Page) {
@@ -11,7 +11,7 @@ function tangkapGalatKonsol(page: Page) {
 }
 
 async function tambah(page: Page, ticker: string) {
-	await page.getByLabel('Kode emiten').fill(ticker);
+	await page.getByLabel('Cari saham').fill(ticker);
 	await page.getByTestId('tambah-ticker').click();
 	await expect(page).toHaveURL(new RegExp(`emiten=${ticker}`));
 	await expect(page.getByTestId('panel-emiten')).toHaveAttribute('data-ticker', ticker);
@@ -19,6 +19,22 @@ async function tambah(page: Page, ticker: string) {
 
 async function siap(page: Page) {
 	await expect(page.getByTestId('status-langsung')).toHaveAttribute('data-terhubung', 'true');
+}
+
+async function tersorot(page: Page, sasaran: Locator) {
+	await expect
+		.poll(async () => {
+			const sorot = await page.getByTestId('tur-sorot').boundingBox();
+			const kotak = await sasaran.boundingBox();
+			if (!sorot || !kotak) return false;
+			return (
+				sorot.x <= kotak.x &&
+				sorot.y <= kotak.y &&
+				sorot.x + sorot.width >= kotak.x + kotak.width &&
+				sorot.y + sorot.height >= kotak.y + kotak.height
+			);
+		})
+		.toBe(true);
 }
 
 async function pindai(page: Page, ticker: string) {
@@ -87,7 +103,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await masukLewatBrowser(page, 'wl-tolak');
 
 		await page.goto('/watchlist');
-		await page.getByLabel('Kode emiten').fill('ZZZZ');
+		await page.getByLabel('Cari saham').fill('ZZZZ');
 		await page.getByTestId('tambah-ticker').click();
 
 		await expect(page.getByTestId('watchlist-error')).toContainText('IDX');
@@ -194,7 +210,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await page.goto('/watchlist');
 		await siap(page);
 		await page.keyboard.press('/');
-		await expect(page.getByLabel('Kode emiten')).toBeFocused();
+		await expect(page.getByLabel('Cari saham')).toBeFocused();
 		await page.keyboard.type('aneka');
 
 		const saran = page.getByRole('option', { name: /ANTM/ });
@@ -206,7 +222,7 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await expect(page).toHaveURL(/emiten=ANTM/);
 		await expect(page.getByTestId('watchlist-item').filter({ hasText: 'ANTM' })).toBeVisible();
 
-		await page.getByLabel('Kode emiten').fill('ANT');
+		await page.getByLabel('Cari saham').fill('ANT');
 		await expect(page.getByRole('option', { name: /ANTM/ })).toContainText('Dipantau');
 	});
 
@@ -252,5 +268,116 @@ test.describe('Fase 4: watchlist dari sisi pengguna', () => {
 		await expect(panel).toBeInViewport();
 		await page.keyboard.press('Escape');
 		await expect(page).toHaveURL(/\/watchlist$/);
+	});
+
+	test('kunjungan pertama memunculkan tur yang menjelaskan fungsi watchlist', async ({ page }) => {
+		await masukLewatBrowser(page, 'wl-tur', { tur: true });
+		const galat = tangkapGalatKonsol(page);
+
+		await page.goto('/watchlist');
+		const tur = page.getByRole('dialog');
+		await expect(tur).toContainText('Ini watchlist kamu');
+		await expect(tur).toContainText('Langkah 1 dari 6');
+		await expect(page.getByTestId('tur-sorot')).toHaveCount(0);
+
+		await page.getByTestId('tur-lanjut').click();
+		await expect(tur).toContainText('Tambah saham dari sini');
+		await tersorot(page, page.getByLabel('Cari saham'));
+
+		await page.getByTestId('tur-lanjut').click();
+		await expect(tur).toContainText('Cara membaca satu baris');
+		await expect(page.locator('[data-tur="baris"]')).toContainText('SIMU');
+		await tersorot(page, page.locator('[data-tur="baris"]'));
+
+		await page.getByTestId('tur-lanjut').click();
+		await expect(tur).toContainText('Lingkaran ini Red Flag Score');
+		await tersorot(page, page.locator('[data-tur="skor"]'));
+
+		await page.getByTestId('tur-lanjut').click();
+		await expect(tur).toContainText('Belum tahu mulai dari mana?');
+		await tersorot(page, page.getByTestId('saran-saham'));
+
+		await page.keyboard.press('ArrowRight');
+		await expect(tur).toContainText('Kabar datang ke sini');
+		await tersorot(page, page.getByTestId('nav-notifications'));
+		await page.getByRole('button', { name: 'Mulai memantau' }).click();
+		await expect(tur).toBeHidden();
+
+		await page.reload();
+		await siap(page);
+		await page.waitForTimeout(900);
+		await expect(tur).toBeHidden();
+
+		await page.getByTestId('mulai-tur').click();
+		await expect(tur).toContainText('Langkah 1 dari 6');
+		await page.keyboard.press('Escape');
+		await expect(tur).toBeHidden();
+		await expect(page.getByTestId('mulai-tur')).toBeFocused();
+
+		expect(galat).toEqual([]);
+	});
+
+	test('saran saham terbesar dari Sectors bisa langsung dipantau', async ({ page }) => {
+		await masukLewatBrowser(page, 'wl-saran');
+		await page.goto('/watchlist');
+
+		const saran = page.getByTestId('saran-item');
+		await expect(saran.first()).toHaveAttribute('data-ticker', 'BBCA');
+		await expect(saran.nth(1)).toHaveAttribute('data-ticker', 'BBRI');
+		await expect(saran.first()).toContainText('Bank Central Asia Tbk.');
+		await expect(saran.first()).toContainText('7.000');
+		await expect(saran.first()).toContainText('▲ 0,36%');
+
+		await siap(page);
+		await page.getByRole('button', { name: 'Pantau BBRI' }).click();
+		await expect(page).toHaveURL(/emiten=BBRI/);
+		await expect(page.getByTestId('watchlist-item').filter({ hasText: 'BBRI' })).toBeVisible();
+
+		await page.getByLabel('Cari saham').focus();
+		const populer = page.getByRole('listbox', {
+			name: 'Saham berkapitalisasi terbesar dari Sectors'
+		});
+		await expect(populer.getByRole('option').first()).toContainText('BBCA');
+		await expect(populer.getByRole('option', { name: /BBRI/ })).toContainText('Dipantau');
+	});
+
+	test('baris memakai harga dan tren harian Sectors walau saham belum dipindai', async ({
+		page
+	}) => {
+		await masukLewatBrowser(page, 'wl-tren');
+		await page.goto('/watchlist');
+		await tambah(page, 'BRMS');
+
+		const baris = page.getByTestId('watchlist-item').filter({ hasText: 'BRMS' });
+		await expect(baris.getByTestId('tren-harga')).toHaveAttribute('data-arah', /naik|turun|datar/);
+		await expect(baris).toContainText('1.000');
+		await expect(baris.getByTestId('cincin-skor')).toHaveAttribute('data-tier', 'none');
+		await expect(page.getByTestId('panel-emiten').getByTestId('harga-terakhir')).toHaveText('1.000');
+		await expect(page.getByText(/dari Sectors, bukan harga berjalan\. Garis kecil/)).toBeVisible();
+	});
+
+	test('tur muat di layar 390px dan melewati panel detail yang tersembunyi', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		await masukLewatBrowser(page, 'wl-tur-hp');
+
+		await page.goto('/watchlist');
+		await tambah(page, 'ADRO');
+		await siap(page);
+		await page.getByRole('link', { name: 'Tutup detail ADRO' }).click();
+		await expect(page).toHaveURL(/\/watchlist$/);
+
+		await page.getByTestId('mulai-tur').click();
+		const tur = page.getByRole('dialog');
+		await expect(tur).toContainText('Langkah 1 dari 5');
+		for (let langkah = 1; langkah <= 5; langkah += 1) {
+			await expect(tur).toContainText(`Langkah ${langkah} dari 5`);
+			const kotak = await tur.boundingBox();
+			expect(kotak?.x ?? -1).toBeGreaterThanOrEqual(0);
+			expect((kotak?.x ?? 0) + (kotak?.width ?? 999)).toBeLessThanOrEqual(390);
+			expect((kotak?.y ?? 0) + (kotak?.height ?? 999)).toBeLessThanOrEqual(844);
+			if (langkah < 5) await page.getByTestId('tur-lanjut').click();
+		}
+		await expect(tur).toContainText('Kabar datang ke sini');
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 	});
 });

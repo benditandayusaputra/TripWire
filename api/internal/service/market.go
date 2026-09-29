@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/benditandayusaputra/tripwire/api/pkg/sectorsclient"
@@ -15,6 +17,7 @@ var ErrPasarTidakTersedia = errors.New("service: data pasar sedang tidak tersedi
 const (
 	batasHalamanUniverse = 200
 	maksHalamanUniverse  = 10
+	jumlahTeratas        = 10
 )
 
 type MarketMeta struct {
@@ -47,6 +50,14 @@ type Kutipan struct {
 	Indeks          []string `json:"indices"`
 }
 
+type SahamTeratas struct {
+	Ticker          string   `json:"ticker"`
+	Nama            string   `json:"company_name"`
+	Harga           float64  `json:"last_close_price"`
+	PerubahanHarian *float64 `json:"daily_close_change"`
+	Kapitalisasi    *float64 `json:"market_cap"`
+}
+
 type MarketService struct {
 	client  *sectorsclient.Client
 	tickers *TickerService
@@ -73,15 +84,63 @@ func (s *MarketService) CompanyReport(ctx context.Context, rawTicker string) (*M
 		Ticker:      ticker.Code,
 		CompanyName: ticker.Name,
 		Data:        hasil.Data,
-		Meta: MarketMeta{
-			Cached:           hasil.Cached,
-			LatencyMS:        hasil.Latensi.Milliseconds(),
-			CreditsUsed:      hasil.Terpakai,
-			CreditsRemaining: hasil.Tersisa,
-			CreditBudget:     s.client.Budget(),
-			CircuitOpen:      s.client.CircuitTerbuka(ctx),
-		},
+		Meta:        s.meta(ctx, hasil),
 	}, nil
+}
+
+func (s *MarketService) meta(ctx context.Context, hasil *sectorsclient.Hasil) MarketMeta {
+	return MarketMeta{
+		Cached:           hasil.Cached,
+		LatencyMS:        hasil.Latensi.Milliseconds(),
+		CreditsUsed:      hasil.Terpakai,
+		CreditsRemaining: hasil.Tersisa,
+		CreditBudget:     s.client.Budget(),
+		CircuitOpen:      s.client.CircuitTerbuka(ctx),
+	}
+}
+
+func (s *MarketService) Teratas(ctx context.Context) ([]SahamTeratas, MarketMeta, error) {
+	kueri := url.Values{
+		"where":                {"last_close_price > 0 and daily_close_change > -1 and market_cap > 0"},
+		"order_by":             {"-market_cap"},
+		"include_query_values": {"true"},
+		"limit":                {strconv.Itoa(jumlahTeratas)},
+	}
+	hasil, err := s.client.Get(ctx, "/companies/?"+kueri.Encode(), 0, 1)
+	if err != nil {
+		return nil, MarketMeta{}, err
+	}
+
+	var isi struct {
+		Results []struct {
+			Symbol string `json:"symbol"`
+			Nilai  struct {
+				Harga        angkaFleksibel `json:"last_close_price"`
+				Perubahan    angkaFleksibel `json:"daily_close_change"`
+				Kapitalisasi angkaFleksibel `json:"market_cap"`
+			} `json:"query_values"`
+		} `json:"results"`
+	}
+	if err := json.Unmarshal(hasil.Data, &isi); err != nil {
+		return nil, MarketMeta{}, fmt.Errorf("%w: screener emiten tidak terbaca", sectorsclient.ErrUpstreamGagal)
+	}
+
+	saham := make([]SahamTeratas, 0, len(isi.Results))
+	for _, baris := range isi.Results {
+		ticker, err := s.tickers.Lookup(baris.Symbol)
+		if err != nil || !baris.Nilai.Harga.Ada || baris.Nilai.Harga.Nilai <= 0 {
+			continue
+		}
+		saham = append(saham, SahamTeratas{
+			Ticker:          ticker.Code,
+			Nama:            ticker.Name,
+			Harga:           baris.Nilai.Harga.Nilai,
+			PerubahanHarian: baris.Nilai.Perubahan.ptr(),
+			Kapitalisasi:    baris.Nilai.Kapitalisasi.ptr(),
+		})
+	}
+
+	return saham, s.meta(ctx, hasil), nil
 }
 
 func (s *MarketService) Kutipan(ctx context.Context, kode []string) map[string]Kutipan {

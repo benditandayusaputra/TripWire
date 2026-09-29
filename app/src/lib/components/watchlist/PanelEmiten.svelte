@@ -14,6 +14,7 @@
 	import SkorBadge from '$lib/components/SkorBadge.svelte';
 	import GrafikEmiten from './GrafikEmiten.svelte';
 	import EditorKondisi from './EditorKondisi.svelte';
+	import LogoEmiten from './LogoEmiten.svelte';
 	import { tierDariSkor } from '$lib/skor';
 	import {
 		formatRingkas,
@@ -34,12 +35,14 @@
 		type ItemWatchlist,
 		type Jadwal,
 		type Kutipan,
+		type Penutupan,
 		type Risiko
 	} from '$lib/watchlist';
 
 	let {
 		item,
 		kutipan,
+		penutupan,
 		risiko,
 		jadwal,
 		harga,
@@ -49,6 +52,7 @@
 	}: {
 		item: ItemWatchlist;
 		kutipan: Kutipan | null;
+		penutupan: Penutupan | null;
 		risiko: Risiko | null;
 		jadwal: Jadwal;
 		harga: Promise<HasilHarga> | null;
@@ -62,7 +66,7 @@
 	let yakinHapus = $state(false);
 
 	const aksi = (nama: string) => `?emiten=${item.ticker}&/${nama}`;
-	const ubah = $derived(formatUbah(kutipan?.daily_close_change));
+	const ubah = $derived(formatUbah(penutupan?.ubah));
 	const redFlag = $derived(risiko?.red_flag ?? null);
 	const skor = $derived(redFlag?.score ?? null);
 	const selisihSkor = $derived(
@@ -106,27 +110,32 @@
 	tabindex="-1"
 	aria-labelledby="judul-panel"
 >
-	<header class="flex items-start justify-between gap-3">
-		<div class="min-w-0 space-y-1">
-			<div class="flex items-center gap-2">
-				<span
-					id="judul-panel"
-					class="tw-data bg-raised text-ink rounded-md px-2 py-0.5 text-[14px] font-semibold tracking-wide"
-				>
-					{item.ticker}
-				</span>
-				{#each kutipan?.indices ?? [] as indeks (indeks)}
-					<span class="chip">{indeks}</span>
-				{/each}
+	<header class="flex items-start justify-between gap-3" data-tur="detail">
+		<div class="flex min-w-0 items-center gap-3">
+			<LogoEmiten kode={item.ticker} ukuran={46} />
+			<div class="min-w-0 space-y-0.5">
+				<div class="flex flex-wrap items-center gap-1.5">
+					<span id="judul-panel" class="tw-data text-ink text-[17px] font-semibold tracking-wide">
+						{item.ticker}
+					</span>
+					{#each (kutipan?.indices ?? []).slice(0, 3) as indeks (indeks)}
+						<span class="chip">{indeks}</span>
+					{/each}
+					{#if (kutipan?.indices.length ?? 0) > 3}
+						<span class="chip" title={kutipan?.indices.slice(3).join(', ')}
+							>+{(kutipan?.indices.length ?? 0) - 3}</span
+						>
+					{/if}
+				</div>
+				<p class="text-secondary truncate text-[13.5px]">{item.company_name}</p>
+				{#if kutipan?.sector}
+					<p class="text-muted truncate text-[12px]">
+						{kutipan.sector}{kutipan.sub_sector && kutipan.sub_sector !== kutipan.sector
+							? `, ${kutipan.sub_sector}`
+							: ''}
+					</p>
+				{/if}
 			</div>
-			<p class="text-ink truncate text-[15px] font-medium">{item.company_name}</p>
-			{#if kutipan?.sector}
-				<p class="text-muted truncate text-[12px]">
-					{kutipan.sector}{kutipan.sub_sector && kutipan.sub_sector !== kutipan.sector
-						? `, ${kutipan.sub_sector}`
-						: ''}
-				</p>
-			{/if}
 		</div>
 		<div class="flex flex-none items-center gap-2">
 			<SkorBadge {skor} size="md" />
@@ -142,44 +151,38 @@
 	</header>
 
 	<div class="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-		{#if kutipan}
+		{#if penutupan}
 			<div>
-				<p class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+				<p class="flex flex-wrap items-center gap-x-3 gap-y-1">
 					<span
 						data-testid="harga-terakhir"
 						class="tw-data text-ink text-[30px] leading-none font-medium"
 					>
-						{formatHarga(kutipan.last_close_price)}
+						{formatHarga(penutupan.harga)}
 					</span>
-					<span
-						data-testid="perubahan-harian"
-						class="tw-data text-[14px] font-medium {ubah.arah > 0
-							? 'text-naik'
-							: ubah.arah < 0
-								? 'text-turun'
-								: 'text-secondary'}"
-					>
+					<span data-testid="perubahan-harian" class="pil-ubah" data-arah={ubah.arah}>
 						{ubah.teks}
 					</span>
 				</p>
 				<p class="text-muted mt-1.5 text-[12px]">
-					Harga penutupan{kutipan.latest_close_date
-						? ` ${tanggalPendek(kutipan.latest_close_date)}`
-						: ''}, bukan harga berjalan
+					Harga penutupan{penutupan.tanggal ? ` ${tanggalPendek(penutupan.tanggal)}` : ''} dari Sectors,
+					bukan harga berjalan
 				</p>
 			</div>
-			<dl class="flex gap-5 text-right">
-				<div>
-					<dt class="text-muted text-[11.5px]">Kapitalisasi</dt>
-					<dd class="tw-data text-ink mt-0.5 text-[14px]">{formatRupiah(kutipan.market_cap)}</dd>
-				</div>
-				{#if kutipan.market_cap_rank}
+			{#if kutipan}
+				<dl class="flex gap-5 text-right">
 					<div>
-						<dt class="text-muted text-[11.5px]">Peringkat</dt>
-						<dd class="tw-data text-ink mt-0.5 text-[14px]">#{kutipan.market_cap_rank}</dd>
+						<dt class="text-muted text-[11.5px]">Kapitalisasi</dt>
+						<dd class="tw-data text-ink mt-0.5 text-[14px]">{formatRupiah(kutipan.market_cap)}</dd>
 					</div>
-				{/if}
-			</dl>
+					{#if kutipan.market_cap_rank}
+						<div>
+							<dt class="text-muted text-[11.5px]">Peringkat</dt>
+							<dd class="tw-data text-ink mt-0.5 text-[14px]">#{kutipan.market_cap_rank}</dd>
+						</div>
+					{/if}
+				</dl>
+			{/if}
 		{:else}
 			{#await harga then hasilHarga}
 				{@const seri = hasilHarga?.seri ?? []}
@@ -458,6 +461,27 @@
 		box-shadow:
 			0 1px 0 rgba(255, 255, 255, 0.05) inset,
 			0 40px 100px -50px rgba(74, 158, 255, 0.4);
+	}
+
+	.pil-ubah {
+		border-radius: 8px;
+		background: rgba(154, 169, 196, 0.1);
+		padding: 2px 8px;
+		font-family: var(--font-mono);
+		font-size: 14px;
+		font-weight: 500;
+		font-variant-numeric: tabular-nums;
+		color: var(--color-secondary);
+	}
+
+	.pil-ubah[data-arah='1'] {
+		background: color-mix(in srgb, var(--color-naik) 15%, transparent);
+		color: var(--color-naik);
+	}
+
+	.pil-ubah[data-arah='-1'] {
+		background: color-mix(in srgb, var(--color-turun) 15%, transparent);
+		color: var(--color-turun);
 	}
 
 	.chip {

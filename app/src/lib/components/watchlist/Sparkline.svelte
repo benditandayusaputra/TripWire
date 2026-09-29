@@ -1,43 +1,94 @@
 <script lang="ts">
-	let { nilai, warna, label }: { nilai: number[]; warna: string; label: string } = $props();
+	let { nilai, label }: { nilai: number[]; label: string } = $props();
 
-	const LEBAR = 76;
-	const TINGGI = 26;
+	const id = $props.id();
+	const LEBAR = 72;
+	const TINGGI = 28;
 
+	const arah = $derived(Math.sign(nilai[nilai.length - 1] - nilai[0]));
 	const titik = $derived.by(() => {
-		if (nilai.length === 0) return [] as [number, number][];
-		const deret = nilai.length === 1 ? [nilai[0], nilai[0]] : nilai;
-		const langkah = LEBAR / (deret.length - 1);
-		const y = (skor: number) => 3 + (1 - skor / 100) * (TINGGI - 6);
-		return deret.flatMap((skor, i): [number, number][] =>
-			i === 0
-				? [[0, y(skor)]]
-				: [
-						[i * langkah, y(deret[i - 1])],
-						[i * langkah, y(skor)]
-					]
-		);
+		const rendah = Math.min(...nilai);
+		const rentang = Math.max(...nilai) - rendah || 1;
+		const langkah = LEBAR / (nilai.length - 1);
+		return nilai.map((harga, i) => [
+			i * langkah,
+			3 + (1 - (harga - rendah) / rentang) * (TINGGI - 6)
+		]);
 	});
+	const garis = $derived(
+		titik.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join('')
+	);
 </script>
 
-{#if titik.length}
-	<svg
-		viewBox="0 0 {LEBAR} {TINGGI}"
-		class="block h-[26px] w-[76px] overflow-visible"
-		role="img"
-		aria-label={label}
-	>
-		<line x1="0" x2={LEBAR} y1={TINGGI - 3} y2={TINGGI - 3} stroke="rgba(180,205,255,.1)" />
-		<polyline
-			points={titik.map(([x, y]) => `${x},${y}`).join(' ')}
-			fill="none"
-			stroke={warna}
-			stroke-width="1.75"
-			stroke-linejoin="round"
-			stroke-linecap="round"
-		/>
-		<circle cx={titik.at(-1)?.[0]} cy={titik.at(-1)?.[1]} r="2.5" fill={warna} />
-	</svg>
-{:else}
-	<span class="text-muted tw-data text-[11px]" aria-label={label}>belum ada</span>
-{/if}
+<svg
+	viewBox="0 0 {LEBAR} {TINGGI}"
+	class="tren"
+	data-testid="tren-harga"
+	data-arah={arah > 0 ? 'naik' : arah < 0 ? 'turun' : 'datar'}
+	preserveAspectRatio="none"
+	role="img"
+	aria-label={label}
+>
+	<defs>
+		<linearGradient id="isi-{id}" x1="0" x2="0" y1="0" y2="1">
+			<stop offset="0" stop-color="currentColor" stop-opacity="0.26" />
+			<stop offset="1" stop-color="currentColor" stop-opacity="0" />
+		</linearGradient>
+	</defs>
+	<line x1="0" x2={LEBAR} y1={titik[0][1]} y2={titik[0][1]} class="dasar" />
+	<path d="{garis}L{LEBAR} {TINGGI}L0 {TINGGI}Z" fill="url(#isi-{id})" class="area" />
+	<path d={garis} pathLength="1" class="jejak" />
+</svg>
+
+<style>
+	.tren {
+		display: block;
+		width: 100%;
+		height: 28px;
+		overflow: visible;
+		color: var(--color-muted);
+	}
+
+	.tren[data-arah='naik'] {
+		color: var(--color-naik);
+	}
+
+	.tren[data-arah='turun'] {
+		color: var(--color-turun);
+	}
+
+	.dasar {
+		stroke: rgba(180, 205, 255, 0.22);
+		stroke-dasharray: 2 3;
+		vector-effect: non-scaling-stroke;
+	}
+
+	.jejak {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.6;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		stroke-dasharray: 1;
+		animation: gambar 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.area {
+		animation: muncul 0.9s ease both 0.2s;
+	}
+
+	@keyframes gambar {
+		from {
+			stroke-dashoffset: 1;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
+	@keyframes muncul {
+		from {
+			opacity: 0;
+		}
+	}
+</style>

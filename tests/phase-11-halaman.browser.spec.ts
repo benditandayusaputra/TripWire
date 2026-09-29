@@ -14,7 +14,7 @@ function tangkapGalatKonsol(page: Page) {
 
 async function siapkanInsight(page: Page, ticker: string, jenis = 'red-flag') {
 	await page.goto('/watchlist');
-	await page.getByLabel('Kode emiten').fill(ticker);
+	await page.getByLabel('Cari saham').fill(ticker);
 	await page.getByTestId('tambah-ticker').click();
 	await expect(page.getByTestId('watchlist-item').filter({ hasText: ticker })).toBeVisible();
 
