@@ -16,6 +16,7 @@
 	import { HARI_NOTIFIKASI, lilin, skorPada } from '$lib/components/beranda/simulasi';
 	import { emiten } from '$lib/emiten';
 	import { presenceStore } from '$lib/stores/presenceStore.svelte';
+	import { bahasa, t } from '$lib/bahasa.svelte';
 	import { tierDariSkor } from '$lib/skor';
 	import {
 		BATAS_WATCHLIST,
@@ -31,42 +32,63 @@
 
 	const KUNCI_TUR = 'tripwire:tur-watchlist';
 
-	const LANGKAH_TUR: LangkahTur[] = [
+	const LANGKAH_TUR = $derived<LangkahTur[]>([
 		{
-			judul: 'Ini watchlist kamu',
-			isi: 'Daftar saham yang kamu minta TripWire jaga. Setiap hari TripWire membaca data saham ini dari Sectors dan mencari tanda bahaya, misalnya orang dalam yang ramai menjual atau saham yang pernah dihentikan bursa.'
+			judul: t('Ini watchlist kamu', 'This is your watchlist'),
+			isi: t(
+				'Daftar saham yang kamu minta TripWire jaga. Setiap hari TripWire membaca data saham ini dari Sectors dan mencari tanda bahaya, misalnya orang dalam yang ramai menjual atau saham yang pernah dihentikan bursa.',
+				'The stocks you asked TripWire to watch. Every day TripWire reads their data from Sectors and looks for red flags, such as insiders selling heavily or a stock that has had a trading suspension.'
+			)
 		},
 		{
 			target: '[data-tur="cari"]',
-			judul: 'Tambah saham dari sini',
-			isi: 'Klik untuk membuka daftar semua saham BEI lengkap dengan harga dari Sectors. Cari lewat kode atau nama, saring per sektor, lalu tekan Pantau. Beberapa saham bisa ditambah sekaligus.'
+			judul: t('Tambah saham dari sini', 'Add stocks from here'),
+			isi: t(
+				'Klik untuk membuka daftar semua saham BEI lengkap dengan harga dari Sectors. Cari lewat kode atau nama, saring per sektor, lalu tekan Pantau. Beberapa saham bisa ditambah sekaligus.',
+				'Click to open the full list of IDX stocks with prices from Sectors. Search by ticker or name, filter by sector, then press Watch. You can add several stocks at once.'
+			)
 		},
 		{
 			target: '[data-tur="baris"]',
-			judul: 'Cara membaca satu baris',
-			isi: 'Dari kiri: kode dan nama saham, garis harga sebulan terakhir, lalu harga penutupan dan perubahannya. Hijau dengan ▲ berarti naik, merah dengan ▼ berarti turun.'
+			judul: t('Cara membaca satu baris', 'How to read a row'),
+			isi: t(
+				'Dari kiri: kode dan nama saham, garis harga sebulan terakhir, lalu harga penutupan dan perubahannya. Hijau dengan ▲ berarti naik, merah dengan ▼ berarti turun.',
+				'From the left: the ticker and company name, the price line for the past month, then the closing price and its change. Green with ▲ means up, red with ▼ means down.'
+			)
 		},
 		{
 			target: '[data-tur="skor"]',
-			judul: 'Lingkaran ini Red Flag Score',
-			isi: 'Skor 0 sampai 100 dari tiga sinyal tata kelola. Makin tinggi, makin banyak tanda bahaya: Rendah sampai 30, Sedang sampai 60, Tinggi sampai 85, lalu Kritis. Ikon jam pasir berarti saham itu belum dipindai.'
+			judul: t('Lingkaran ini Red Flag Score', 'This ring is the Red Flag Score'),
+			isi: t(
+				'Skor 0 sampai 100 dari tiga sinyal tata kelola. Makin tinggi, makin banyak tanda bahaya: Rendah sampai 30, Sedang sampai 60, Tinggi sampai 85, lalu Kritis. Ikon jam pasir berarti saham itu belum dipindai.',
+				'A score from 0 to 100 built from three governance signals. The higher it is, the more red flags: Low up to 30, Moderate up to 60, High up to 85, then Critical. An hourglass icon means the stock has not been scanned yet.'
+			)
 		},
 		{
 			target: '[data-tur="saran"]',
-			judul: 'Belum tahu mulai dari mana?',
-			isi: 'Ini saham dengan kapitalisasi terbesar di BEI menurut Sectors. Tekan Pantau dan saham itu langsung masuk watchlist dengan cek harian.'
+			judul: t('Belum tahu mulai dari mana?', 'Not sure where to start?'),
+			isi: t(
+				'Ini saham dengan kapitalisasi terbesar di BEI menurut Sectors. Tekan Pantau dan saham itu langsung masuk watchlist dengan cek harian.',
+				'These are the largest stocks by market cap on the IDX, according to Sectors. Press Watch and the stock goes straight into your watchlist with a daily check.'
+			)
 		},
 		{
 			target: '[data-tur="detail"]',
-			judul: 'Detail setiap saham',
-			isi: 'Pilih satu baris untuk melihat detailnya. Tab Harga berisi grafik tiga bulan, tab Risiko berisi alasan di balik skor, dan tab Pemantauan untuk mengatur kapan TripWire memeriksa serta mengabarimu.'
+			judul: t('Detail setiap saham', 'Details for each stock'),
+			isi: t(
+				'Pilih satu baris untuk melihat detailnya. Tab Harga berisi grafik tiga bulan, tab Risiko berisi alasan di balik skor, dan tab Pemantauan untuk mengatur kapan TripWire memeriksa serta mengabarimu.',
+				'Select a row to see its details. The Price tab has a three-month chart, the Risk tab explains the reasons behind the score, and the Monitoring tab lets you set when TripWire checks and alerts you.'
+			)
 		},
 		{
 			target: '[data-tur="kabar"]',
-			judul: 'Kabar datang ke sini',
-			isi: 'Begitu skor melewati batas yang kamu atur, notifikasi masuk ke menu ini lengkap dengan alasannya. Notifikasi push ke HP bisa dinyalakan di halaman Notifikasi.'
+			judul: t('Kabar datang ke sini', 'Updates land here'),
+			isi: t(
+				'Begitu skor melewati batas yang kamu atur, notifikasi masuk ke menu ini lengkap dengan alasannya. Notifikasi push ke HP bisa dinyalakan di halaman Notifikasi.',
+				'Once a score crosses the threshold you set, an alert lands in this menu along with the reasons. Push alerts to your phone can be turned on from the Alerts page.'
+			)
 		}
-	];
+	]);
 
 	const contohSeri = lilin
 		.slice(0, HARI_NOTIFIKASI + 1)
@@ -198,7 +220,7 @@
 </script>
 
 <svelte:head>
-	<title>Watchlist TripWire</title>
+	<title>{t('Watchlist TripWire', 'TripWire Watchlist')}</title>
 </svelte:head>
 
 <svelte:window onkeydown={pintasan} />
@@ -208,8 +230,10 @@
 		<div class="max-w-2xl space-y-1.5">
 			<h1 class="tw-title text-ink">Watchlist</h1>
 			<p class="text-secondary text-[14px] leading-relaxed">
-				Saham yang kamu minta TripWire jaga. Harganya dari Sectors, dan setiap saham dipindai
-				otomatis untuk mencari tanda bahaya tata kelola sebelum terlihat di harga.
+				{t(
+					'Saham yang kamu minta TripWire jaga. Harganya dari Sectors, dan setiap saham dipindai otomatis untuk mencari tanda bahaya tata kelola sebelum terlihat di harga.',
+					'Stocks you asked TripWire to watch. Prices come from Sectors, and every stock is scanned automatically for governance red flags before they show up in the price.'
+				)}
 			</p>
 		</div>
 		<div class="flex flex-wrap items-center gap-2.5">
@@ -220,7 +244,7 @@
 				onclick={() => tur?.mulai()}
 			>
 				<CircleHelp class="size-4" aria-hidden="true" />
-				Cara pakai
+				{t('Cara pakai', 'How it works')}
 			</button>
 			<p
 				data-testid="status-langsung"
@@ -229,11 +253,21 @@
 				class:aktif={presenceStore.terhubung}
 			>
 				<span class="titik" aria-hidden="true"></span>
-				{presenceStore.terhubung ? 'Pembaruan langsung' : 'Menyambungkan'}
+				{presenceStore.terhubung
+					? t('Pembaruan langsung', 'Live updates')
+					: t('Menyambungkan', 'Connecting')}
 			</p>
-			<p class="slot" title="Batas watchlist {BATAS_WATCHLIST} saham">
+			<p
+				class="slot"
+				title={t(
+					`Batas watchlist ${BATAS_WATCHLIST} saham`,
+					`Watchlist limit: ${BATAS_WATCHLIST} stocks`
+				)}
+			>
 				<span class="tw-data text-ink">{data.items.length}</span>
-				<span class="text-muted">dari {BATAS_WATCHLIST} saham</span>
+				<span class="text-muted"
+					>{t(`dari ${BATAS_WATCHLIST} saham`, `of ${BATAS_WATCHLIST} stocks`)}</span
+				>
 			</p>
 		</div>
 	</header>
@@ -247,12 +281,20 @@
 		>
 			<BellRing class="text-diamond-300 size-4 flex-none" aria-hidden="true" />
 			<span>
-				Insight baru <span class="tw-data text-ink font-semibold">{kabar.ticker}</span>
-				{#if kabar.skor !== null}
-					dengan skor <span class="tw-data font-semibold {tierDariSkor(kabar.skor).text}"
-						>{Math.round(kabar.skor)}</span
-					>
-				{/if}, watchlist sudah diperbarui.
+				{#if bahasa() === 'en'}
+					New insight for <span class="tw-data text-ink font-semibold">{kabar.ticker}</span
+					>{#if kabar.skor !== null}{' '}with a score of
+						<span class="tw-data font-semibold {tierDariSkor(kabar.skor).text}"
+							>{Math.round(kabar.skor)}</span
+						>{/if}. Your watchlist has been updated.
+				{:else}
+					Insight baru <span class="tw-data text-ink font-semibold">{kabar.ticker}</span>
+					{#if kabar.skor !== null}
+						dengan skor <span class="tw-data font-semibold {tierDariSkor(kabar.skor).text}"
+							>{Math.round(kabar.skor)}</span
+						>
+					{/if}, watchlist sudah diperbarui.
+				{/if}
 			</span>
 		</p>
 	{/if}
@@ -276,21 +318,26 @@
 		<section class="kosong" aria-labelledby="judul-kosong">
 			<div class="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
 				<div class="space-y-2.5">
-					<h2 id="judul-kosong" class="tw-heading text-ink">Watchlist kamu masih kosong</h2>
+					<h2 id="judul-kosong" class="tw-heading text-ink">
+						{t('Watchlist kamu masih kosong', 'Your watchlist is empty')}
+					</h2>
 					<p
 						data-testid="watchlist-kosong"
 						class="text-secondary max-w-md text-[14px] leading-relaxed"
 					>
-						Tambahkan saham pertama lewat kolom cari, atau pilih dari daftar di bawah. TripWire
-						langsung mengambil harganya dari Sectors dan memasang cek harian supaya tanda bahayanya
-						ikut dipindai.
+						{t(
+							'Tambahkan saham pertama lewat kolom cari, atau pilih dari daftar di bawah. TripWire langsung mengambil harganya dari Sectors dan memasang cek harian supaya tanda bahayanya ikut dipindai.',
+							'Add your first stock with the search box, or pick one from the list below. TripWire pulls its price from Sectors right away and sets up a daily check so its red flags get scanned too.'
+						)}
 					</p>
 				</div>
 
 				<figure class="contoh">
 					<figcaption class="text-muted flex items-center justify-between gap-3 px-1 text-[12px]">
-						<span>Begini satu baris nanti terlihat</span>
-						<span class="tw-data text-[11px]">contoh, emiten fiktif</span>
+						<span>{t('Begini satu baris nanti terlihat', 'This is how a row will look')}</span>
+						<span class="tw-data text-[11px]"
+							>{t('contoh, emiten fiktif', 'example, fictional company')}</span
+						>
 					</figcaption>
 					<div class="mt-2">
 						<BarisSaham
@@ -303,9 +350,9 @@
 						/>
 					</div>
 					<ul class="keterangan">
-						<li>Garis harga sebulan</li>
-						<li>Harga penutupan dan perubahannya</li>
-						<li>Red Flag Score 0 sampai 100</li>
+						<li>{t('Garis harga sebulan', 'One-month price line')}</li>
+						<li>{t('Harga penutupan dan perubahannya', 'Closing price and its change')}</li>
+						<li>{t('Red Flag Score 0 sampai 100', 'Red Flag Score from 0 to 100')}</li>
 					</ul>
 				</figure>
 			</div>
@@ -313,9 +360,14 @@
 			<div class="mt-7" data-tur="saran">
 				<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
 					<div>
-						<h3 class="text-ink text-[15px] font-medium">Mulai dari saham terbesar di BEI</h3>
+						<h3 class="text-ink text-[15px] font-medium">
+							{t('Mulai dari saham terbesar di BEI', 'Start with the largest stocks on the IDX')}
+						</h3>
 						<p class="text-muted text-[12px]">
-							Harga penutupan dan kapitalisasi pasar dari Sectors
+							{t(
+								'Harga penutupan dan kapitalisasi pasar dari Sectors',
+								'Closing prices and market cap from Sectors'
+							)}
 						</p>
 					</div>
 					<button
@@ -325,12 +377,15 @@
 						onclick={() => pemilih?.buka()}
 					>
 						<List class="size-4" aria-hidden="true" />
-						Lihat semua saham
+						{t('Lihat semua saham', 'See all stocks')}
 					</button>
 				</div>
 				<div class="mt-2">
 					{#if !teratasSiap}
-						<ul class="grid gap-x-6 sm:grid-cols-2" aria-label="Memuat saran saham">
+						<ul
+							class="grid gap-x-6 sm:grid-cols-2"
+							aria-label={t('Memuat saran saham', 'Loading stock suggestions')}
+						>
 							{#each [0, 1, 2, 3, 4, 5] as urutan (urutan)}
 								<li class="kerangka-saran"><span></span><span></span><span></span></li>
 							{/each}
@@ -343,7 +398,11 @@
 								<form method="POST" action="?/tambah" use:enhance>
 									<input type="hidden" name="ticker" value={kode} />
 									<input type="hidden" name="pantau_harian" value="on" />
-									<button type="submit" class="chip-cadangan" title="Pantau {nama}">
+									<button
+										type="submit"
+										class="chip-cadangan"
+										title={t(`Pantau ${nama}`, `Watch ${nama}`)}
+									>
 										<Plus class="size-3" aria-hidden="true" />
 										<span class="tw-data text-ink font-semibold">{kode}</span>
 										<span class="text-muted hidden sm:inline">{nama}</span>
@@ -415,16 +474,16 @@
 
 	.langsung.aktif .titik {
 		background: var(--color-diamond-300);
-		box-shadow: 0 0 0 0 rgba(143, 208, 255, 0.6);
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-diamond-300) 60%, transparent);
 		animation: denyut 2s ease-out infinite;
 	}
 
 	@keyframes denyut {
 		70% {
-			box-shadow: 0 0 0 7px rgba(143, 208, 255, 0);
+			box-shadow: 0 0 0 7px transparent;
 		}
 		100% {
-			box-shadow: 0 0 0 0 rgba(143, 208, 255, 0);
+			box-shadow: 0 0 0 0 transparent;
 		}
 	}
 
@@ -442,9 +501,9 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		border: 1px solid rgba(143, 208, 255, 0.28);
+		border: 1px solid color-mix(in srgb, var(--color-diamond-300) 28%, transparent);
 		border-radius: 14px;
-		background: rgba(20, 28, 46, 0.9);
+		background: color-mix(in srgb, var(--color-raised) 90%, transparent);
 		padding: 10px 14px;
 		font-size: 13px;
 		color: var(--color-secondary);
@@ -468,7 +527,7 @@
 	.contoh {
 		border: 1px solid var(--edge);
 		border-radius: 18px;
-		background: rgba(8, 11, 18, 0.5);
+		background: color-mix(in srgb, var(--color-void) 50%, transparent);
 		padding: 12px 10px 14px;
 	}
 
@@ -508,7 +567,7 @@
 	.kerangka-saran span {
 		height: 14px;
 		border-radius: 6px;
-		background: rgba(180, 205, 255, 0.08);
+		background: color-mix(in srgb, var(--kilau) 8%, transparent);
 		animation: denyut-kerangka 1.4s ease-in-out infinite;
 	}
 
@@ -555,7 +614,7 @@
 		display: block;
 		overflow-y: auto;
 		overscroll-behavior: contain;
-		background: rgba(8, 11, 18, 0.78);
+		background: var(--tirai);
 		backdrop-filter: blur(8px);
 		padding: 12px 8px 24px;
 		animation: naik-lembar 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);

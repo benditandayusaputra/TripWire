@@ -3,6 +3,7 @@
 	import { Check, LoaderCircle, Plus } from 'lucide-svelte';
 	import LogoEmiten from './LogoEmiten.svelte';
 	import { formatHarga, formatRupiah, formatUbah, type SahamPasar } from '$lib/watchlist';
+	import { t } from '$lib/bahasa.svelte';
 
 	let { saham, dipantau, penuh }: { saham: SahamPasar[]; dipantau: string[]; penuh: boolean } =
 		$props();
@@ -52,7 +53,7 @@
 					type="submit"
 					class="tombol-pantau"
 					disabled={penuh || sudah || mengirim !== ''}
-					aria-label="Pantau {satu.ticker}"
+					aria-label={t(`Pantau ${satu.ticker}`, `Watch ${satu.ticker}`)}
 				>
 					{#if mengirim === satu.ticker}
 						<LoaderCircle class="size-3.5 animate-spin" aria-hidden="true" />
@@ -61,7 +62,9 @@
 					{:else}
 						<Plus class="size-3.5" aria-hidden="true" />
 					{/if}
-					<span class="hidden sm:inline">{sudah ? 'Dipantau' : 'Pantau'}</span>
+					<span class="hidden sm:inline"
+						>{sudah ? t('Dipantau', 'Watching') : t('Pantau', 'Watch')}</span
+					>
 				</button>
 			</form>
 		</li>

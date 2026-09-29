@@ -8,6 +8,7 @@
 	import { ArrowLeft, ArrowRight } from 'lucide-svelte';
 	import Mark from '$lib/components/Mark.svelte';
 	import { gerakDikurangi } from '$lib/terlihat';
+	import { t } from '$lib/bahasa.svelte';
 
 	let {
 		langkah,
@@ -174,9 +175,9 @@
 			<div class="flex items-center justify-between gap-3">
 				<p class="tw-data text-diamond-300 flex items-center gap-2 text-[11.5px]">
 					<Mark size={9} />
-					Langkah {ke + 1} dari {aktif.length}
+					{t(`Langkah ${ke + 1} dari ${aktif.length}`, `Step ${ke + 1} of ${aktif.length}`)}
 				</p>
-				<button type="button" class="lewati" onclick={tutup}>Lewati tur</button>
+				<button type="button" class="lewati" onclick={tutup}>{t('Lewati tur', 'Skip tour')}</button>
 			</div>
 
 			<div aria-live="polite">
@@ -204,7 +205,7 @@
 							onclick={() => pindah(-1)}
 						>
 							<ArrowLeft class="size-3.5" aria-hidden="true" />
-							Kembali
+							{t('Kembali', 'Back')}
 						</button>
 					{/if}
 					<button
@@ -214,7 +215,7 @@
 						class="tw-primary px-3.5 py-1.5 text-[13px]"
 						onclick={() => pindah(1)}
 					>
-						{terakhir ? 'Mulai memantau' : 'Lanjut'}
+						{terakhir ? t('Mulai memantau', 'Start monitoring') : t('Lanjut', 'Next')}
 						{#if !terakhir}<ArrowRight class="size-3.5" aria-hidden="true" />{/if}
 					</button>
 				</span>
@@ -236,7 +237,7 @@
 	}
 
 	.penutup.redup {
-		background: rgba(5, 8, 14, 0.74);
+		background: var(--tirai);
 		backdrop-filter: blur(2px);
 	}
 
@@ -244,7 +245,7 @@
 		position: absolute;
 		border-radius: 16px;
 		box-shadow:
-			0 0 0 9999px rgba(5, 8, 14, 0.74),
+			0 0 0 9999px var(--tirai),
 			0 0 0 2px var(--color-diamond-500),
 			0 0 36px 6px rgba(74, 158, 255, 0.32);
 		pointer-events: none;
@@ -254,9 +255,9 @@
 		position: absolute;
 		border: 1px solid var(--edge-strong);
 		border-radius: 18px;
-		background: linear-gradient(180deg, #17213a, #111a2d);
+		background: linear-gradient(180deg, var(--color-raised), var(--color-base));
 		padding: 16px 18px 16px;
-		box-shadow: 0 30px 80px -24px rgba(0, 0, 0, 0.85);
+		box-shadow: 0 30px 80px -24px color-mix(in srgb, var(--bayang) 85%, transparent);
 	}
 
 	.lewati {

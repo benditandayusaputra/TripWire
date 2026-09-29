@@ -3,6 +3,7 @@
 	import { AtSign, KeyRound, LoaderCircle, User, UserPlus } from 'lucide-svelte';
 	import AuthShell from '$lib/components/AuthShell.svelte';
 	import Field from '$lib/components/Field.svelte';
+	import { t } from '$lib/bahasa.svelte';
 
 	let { form } = $props();
 
@@ -20,10 +21,16 @@
 </script>
 
 <svelte:head>
-	<title>Daftar TripWire</title>
+	<title>{t('Daftar TripWire', 'Sign up for TripWire')}</title>
 </svelte:head>
 
-<AuthShell title="Buat akun" subtitle="Pantau emiten IDX dan terima peringatan lebih awal.">
+<AuthShell
+	title={t('Buat akun', 'Create an account')}
+	subtitle={t(
+		'Pantau emiten IDX dan terima peringatan lebih awal.',
+		'Monitor IDX stocks and get early warnings.'
+	)}
+>
 	{#snippet children()}
 		<form
 			method="POST"
@@ -48,11 +55,11 @@
 
 			<Field
 				id="full_name"
-				label="Nama lengkap"
+				label={t('Nama lengkap', 'Full name')}
 				bind:value={fullName}
 				error={fieldErrors.full_name}
 				autocomplete="name"
-				placeholder="Nama kamu"
+				placeholder={t('Nama kamu', 'Your name')}
 				icon={User}
 			/>
 
@@ -63,7 +70,7 @@
 				bind:value={email}
 				error={fieldErrors.email}
 				autocomplete="email"
-				placeholder="nama@email.com"
+				placeholder={t('nama@email.com', 'name@email.com')}
 				icon={AtSign}
 			/>
 
@@ -74,9 +81,12 @@
 				bind:value={password}
 				error={fieldErrors.password}
 				autocomplete="new-password"
-				placeholder="Minimal 10 karakter"
+				placeholder={t('Minimal 10 karakter', 'At least 10 characters')}
 				icon={KeyRound}
-				hint="Minimal 10 karakter, memuat huruf dan angka."
+				hint={t(
+					'Minimal 10 karakter, memuat huruf dan angka.',
+					'At least 10 characters, with letters and numbers.'
+				)}
 			/>
 
 			<button type="submit" disabled={submitting} aria-busy={submitting} class="tw-primary w-full">
@@ -85,7 +95,7 @@
 				{:else}
 					<UserPlus class="size-4" aria-hidden="true" />
 				{/if}
-				{submitting ? 'Memproses' : 'Daftar'}
+				{submitting ? t('Memproses', 'Processing') : t('Daftar', 'Sign up')}
 			</button>
 		</form>
 	{/snippet}

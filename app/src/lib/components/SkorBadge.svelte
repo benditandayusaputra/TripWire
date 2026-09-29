@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { bulatkanSkor, tierDariSkor } from '$lib/skor';
+	import { t } from '$lib/bahasa.svelte';
 
 	let { skor, size = 'md', showLabel = true } = $props();
 
@@ -16,7 +17,7 @@
 			class="rounded-glass-lg border-line bg-void/50 flex flex-col items-center justify-center border px-4 py-3"
 		>
 			<span class="font-display text-secondary text-xl leading-none font-semibold">Info</span>
-			<span class="tw-overline mt-1.5">Tanpa skor</span>
+			<span class="tw-overline mt-1.5">{t('Tanpa skor', 'No score')}</span>
 		</div>
 	{:else}
 		<div

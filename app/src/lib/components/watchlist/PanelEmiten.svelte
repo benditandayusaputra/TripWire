@@ -16,6 +16,7 @@
 	import EditorKondisi from './EditorKondisi.svelte';
 	import LogoEmiten from './LogoEmiten.svelte';
 	import { tierDariSkor } from '$lib/skor';
+	import { lokal, t } from '$lib/bahasa.svelte';
 	import {
 		formatRingkas,
 		judulInsight,
@@ -64,11 +65,11 @@
 		tab?: TabPanel;
 	} = $props();
 
-	const TAB: { kunci: TabPanel; label: string }[] = [
-		{ kunci: 'harga', label: 'Harga' },
-		{ kunci: 'risiko', label: 'Risiko' },
-		{ kunci: 'pemantauan', label: 'Pemantauan' }
-	];
+	const TAB: { kunci: TabPanel; label: string }[] = $derived([
+		{ kunci: 'harga', label: t('Harga', 'Price') },
+		{ kunci: 'risiko', label: t('Risiko', 'Risk') },
+		{ kunci: 'pemantauan', label: t('Pemantauan', 'Monitoring') }
+	]);
 
 	const IKON_PERISTIWA = { jual: UserMinus, beli: UserPlus, kepemilikan: ChartPie, suspensi: Ban };
 
@@ -162,7 +163,7 @@
 				href="/watchlist"
 				data-sveltekit-noscroll
 				class="tutup-lembar border-line text-secondary grid size-8 place-items-center rounded-lg border lg:hidden"
-				aria-label="Tutup detail {item.ticker}"
+				aria-label={t(`Tutup detail ${item.ticker}`, `Close ${item.ticker} details`)}
 			>
 				<X class="size-4" aria-hidden="true" />
 			</a>
@@ -184,19 +185,21 @@
 					</span>
 				</p>
 				<p class="text-muted mt-1.5 text-[12px]">
-					Harga penutupan{penutupan.tanggal ? ` ${tanggalPendek(penutupan.tanggal)}` : ''} dari Sectors,
-					bukan harga berjalan
+					{t(
+						`Harga penutupan${penutupan.tanggal ? ` ${tanggalPendek(penutupan.tanggal)}` : ''} dari Sectors, bukan harga berjalan`,
+						`Closing price${penutupan.tanggal ? ` for ${tanggalPendek(penutupan.tanggal)}` : ''} from Sectors, not a live price`
+					)}
 				</p>
 			</div>
 			{#if kutipan}
 				<dl class="flex gap-5 text-right">
 					<div>
-						<dt class="text-muted text-[11.5px]">Kapitalisasi</dt>
+						<dt class="text-muted text-[11.5px]">{t('Kapitalisasi', 'Market cap')}</dt>
 						<dd class="tw-data text-ink mt-0.5 text-[14px]">{formatRupiah(kutipan.market_cap)}</dd>
 					</div>
 					{#if kutipan.market_cap_rank}
 						<div>
-							<dt class="text-muted text-[11.5px]">Peringkat</dt>
+							<dt class="text-muted text-[11.5px]">{t('Peringkat', 'Rank')}</dt>
 							<dd class="tw-data text-ink mt-0.5 text-[14px]">#{kutipan.market_cap_rank}</dd>
 						</div>
 					{/if}
@@ -229,20 +232,29 @@
 							</span>
 						</p>
 						<p class="text-muted mt-1.5 text-[12px]">
-							Harga penutupan {tanggalPendek(seri[seri.length - 1].date)} dari data harian. Kapitalisasi
-							muncul setelah pemindaian pertama.
+							{t(
+								`Harga penutupan ${tanggalPendek(seri[seri.length - 1].date)} dari data harian. Kapitalisasi muncul setelah pemindaian pertama.`,
+								`Closing price for ${tanggalPendek(seri[seri.length - 1].date)} from daily data. Market cap appears after the first scan.`
+							)}
 						</p>
 					</div>
 				{:else}
 					<p class="text-secondary text-[13px]">
-						Harga {item.ticker} muncul setelah pemindaian pertama mengambil laporan emitennya dari Sectors.
+						{t(
+							`Harga ${item.ticker} muncul setelah pemindaian pertama mengambil laporan emitennya dari Sectors.`,
+							`The ${item.ticker} price appears after the first scan pulls its company report from Sectors.`
+						)}
 					</p>
 				{/if}
 			{/await}
 		{/if}
 	</div>
 
-	<div class="tab" role="tablist" aria-label="Rincian {item.ticker}">
+	<div
+		class="tab"
+		role="tablist"
+		aria-label={t(`Rincian ${item.ticker}`, `${item.ticker} details`)}
+	>
 		{#each TAB as satu (satu.kunci)}
 			<button
 				type="button"
@@ -275,7 +287,10 @@
 			<div class="kerangka" aria-live="polite">
 				<LoaderCircle class="text-diamond-300 size-5 animate-spin" aria-hidden="true" />
 				<span class="text-secondary text-[13px]"
-					>Memuat harga harian {item.ticker} dari Sectors</span
+					>{t(
+						`Memuat harga harian ${item.ticker} dari Sectors`,
+						`Loading daily prices for ${item.ticker} from Sectors`
+					)}</span
 				>
 			</div>
 		{:then hasil}
@@ -292,9 +307,9 @@
 					{peristiwa}
 				/>
 				<dl class="mt-4 grid grid-cols-3 gap-2.5">
-					{#each [{ label: '1 bulan', nilai: kinerja(seri, 21) }, { label: '3 bulan', nilai: kinerja(seri, 999) }] as sel (sel.label)}
+					{#each [{ label: t('Kinerja 1 bulan', '1-month return'), nilai: kinerja(seri, 21) }, { label: t('Kinerja 3 bulan', '3-month return'), nilai: kinerja(seri, 999) }] as sel (sel.label)}
 						<div class="sel">
-							<dt class="text-muted text-[11.5px]">Kinerja {sel.label}</dt>
+							<dt class="text-muted text-[11.5px]">{sel.label}</dt>
 							<dd
 								class="tw-data mt-0.5 text-[14px] {sel.nilai && sel.nilai.arah > 0
 									? 'text-naik'
@@ -309,28 +324,35 @@
 					<div class="sel">
 						<dt class="text-muted text-[11.5px]">Volume</dt>
 						<dd class="tw-data text-ink mt-0.5 text-[14px]">
-							{seri.at(-1)?.volume ? `${formatRingkas(seri.at(-1)?.volume ?? 0)} lbr` : '-'}
+							{seri.at(-1)?.volume
+								? `${formatRingkas(seri.at(-1)?.volume ?? 0)} ${t('lbr', 'shares')}`
+								: '-'}
 						</dd>
 					</div>
 				</dl>
 			{:else}
 				<p data-testid="harga-kosong" class="kerangka text-secondary text-[13px]">
-					{hasil?.[0].galat || `Belum ada data harga harian untuk ${item.ticker}.`}
+					{hasil?.[0].galat ||
+						t(
+							`Belum ada data harga harian untuk ${item.ticker}.`,
+							`No daily price data for ${item.ticker} yet.`
+						)}
 				</p>
 			{/if}
 		{/await}
 		{#if posisi52 !== null && kutipan}
 			<div class="mt-5">
 				<div class="text-muted flex justify-between text-[11.5px]">
-					<span>Terendah 52 minggu</span>
-					<span>Tertinggi 52 minggu</span>
+					<span>{t('Terendah 52 minggu', '52-week low')}</span>
+					<span>{t('Tertinggi 52 minggu', '52-week high')}</span>
 				</div>
 				<div
 					class="rentang mt-1.5"
 					role="img"
-					aria-label="Harga {formatHarga(kutipan.last_close_price)} berada di {Math.round(
-						posisi52 * 100
-					)} persen rentang 52 minggu"
+					aria-label={t(
+						`Harga ${formatHarga(kutipan.last_close_price)} berada di ${Math.round(posisi52 * 100)} persen rentang 52 minggu`,
+						`Price ${formatHarga(kutipan.last_close_price)} sits at ${Math.round(posisi52 * 100)} percent of the 52-week range`
+					)}
 				>
 					<span class="penanda-rentang" style="left:{posisi52 * 100}%"></span>
 				</div>
@@ -353,10 +375,11 @@
 			<div class="flex items-center justify-between gap-3">
 				<h3 id="judul-risiko" class="tw-overline flex items-center gap-2">
 					<ShieldAlert class="size-3.5" aria-hidden="true" />
-					Tata kelola
+					{t('Tata kelola', 'Governance')}
 				</h3>
 				{#if redFlag}
-					<span class="text-muted text-[11.5px]">dihitung {waktuRelatif(redFlag.generated_at)}</span
+					<span class="text-muted text-[11.5px]"
+						>{t('dihitung', 'calculated')} {waktuRelatif(redFlag.generated_at)}</span
 					>
 				{/if}
 			</div>
@@ -371,13 +394,16 @@
 					>
 					{#if selisihSkor !== null && selisihSkor !== 0}
 						<span class="tw-data text-secondary text-[12px]">
-							{selisihSkor > 0 ? 'naik' : 'turun'}
-							{Math.abs(selisihSkor)} dari sebelumnya
+							{selisihSkor > 0 ? t('naik', 'up') : t('turun', 'down')}
+							{Math.abs(selisihSkor)}
+							{t('dari sebelumnya', 'from previous')}
 						</span>
 					{/if}
 					{#if redFlag.multiplier && redFlag.multiplier > 1}
 						<span class="chip ml-auto"
-							>Pola silang ×{redFlag.multiplier.toLocaleString('id-ID')}</span
+							>{t('Pola silang', 'Cross pattern')} ×{redFlag.multiplier.toLocaleString(
+								lokal()
+							)}</span
 						>
 					{/if}
 				</div>
@@ -398,12 +424,15 @@
 					{/each}
 				</ul>
 				<a href="/insights/{redFlag.id}" class="tautan">
-					Buka rincian dan sumber datanya
+					{t('Buka rincian dan sumber datanya', 'Open details and data sources')}
 					<ArrowUpRight class="size-3.5" aria-hidden="true" />
 				</a>
 			{:else}
 				<p class="text-secondary text-[13px]">
-					Belum ada skor. Skor pertama muncul setelah putaran pemindaian berikutnya memeriksa {item.ticker}.
+					{t(
+						`Belum ada skor. Skor pertama muncul setelah putaran pemindaian berikutnya memeriksa ${item.ticker}.`,
+						`No score yet. The first score appears after the next scan run checks ${item.ticker}.`
+					)}
 				</p>
 			{/if}
 		</section>
@@ -413,7 +442,9 @@
 			{@const peristiwa = peristiwaDari(daftar.find((satu) => satu.insight_type === 'red_flag'))}
 			{#if plusData && peristiwa.length}
 				<section class="space-y-2.5" aria-labelledby="judul-peristiwa">
-					<h3 id="judul-peristiwa" class="tw-overline">Peristiwa pendukung</h3>
+					<h3 id="judul-peristiwa" class="tw-overline">
+						{t('Peristiwa pendukung', 'Supporting events')}
+					</h3>
 					<ol data-testid="daftar-peristiwa" class="space-y-1.5">
 						{#each peristiwa.slice(0, 6) as satu, urutan (urutan)}
 							{@const Ikon = IKON_PERISTIWA[satu.jenis]}
@@ -430,7 +461,9 @@
 			{/if}
 			{#if daftar.length}
 				<section class="space-y-2" aria-labelledby="judul-insight">
-					<h3 id="judul-insight" class="tw-overline">Insight terbaru {item.ticker}</h3>
+					<h3 id="judul-insight" class="tw-overline">
+						{t(`Insight terbaru ${item.ticker}`, `Latest insights for ${item.ticker}`)}
+					</h3>
 					<ul class="space-y-1.5">
 						{#each berbeda(daftar) as insight (insight.id)}
 							<li>
@@ -462,13 +495,17 @@
 		<EditorKondisi {item} jadwal={jadwal.conditions} galat={galatKondisi} />
 
 		<section class="border-line space-y-3 border-t pt-4" aria-labelledby="judul-pengaturan">
-			<h3 id="judul-pengaturan" class="tw-overline">Pengaturan {item.ticker}</h3>
+			<h3 id="judul-pengaturan" class="tw-overline">
+				{t(`Pengaturan ${item.ticker}`, `${item.ticker} settings`)}
+			</h3>
 
 			<form method="POST" action={aksi('ubahTampilan')} use:enhance class="space-y-1.5">
 				<input type="hidden" name="item_id" value={item.id} />
-				<p id="label-tampilan" class="text-secondary text-[12.5px] font-medium">Tampilan data</p>
+				<p id="label-tampilan" class="text-secondary text-[12.5px] font-medium">
+					{t('Tampilan data', 'Data display')}
+				</p>
 				<div class="segmen" role="group" aria-labelledby="label-tampilan">
-					{#each [['insight_only', 'Insight saja'], ['insight_plus_data', 'Insight plus data pendukung']] as [nilai, label] (nilai)}
+					{#each [['insight_only', t('Insight saja', 'Insight only')], ['insight_plus_data', t('Insight plus data pendukung', 'Insight plus supporting data')]] as [nilai, label] (nilai)}
 						<button
 							type="submit"
 							name="data_display_pref"
@@ -490,17 +527,22 @@
 				<form method="POST" action="?/hapus" use:enhance class="konfirmasi">
 					<input type="hidden" name="item_id" value={item.id} />
 					<p class="text-ink text-[13px]">
-						Hapus {item.ticker} beserta {item.conditions.length} kondisinya dari watchlist?
+						{t(
+							`Hapus ${item.ticker} beserta ${item.conditions.length} kondisinya dari watchlist?`,
+							`Remove ${item.ticker} and its ${item.conditions.length} ${
+								item.conditions.length === 1 ? 'condition' : 'conditions'
+							} from your watchlist?`
+						)}
 					</p>
 					<div class="flex gap-2">
 						<button
 							type="button"
 							class="tw-ghost px-3 py-1.5 text-[13px]"
-							onclick={() => (yakinHapus = false)}>Batal</button
+							onclick={() => (yakinHapus = false)}>{t('Batal', 'Cancel')}</button
 						>
 						<button type="submit" data-testid="konfirmasi-hapus" class="tombol-hapus">
 							<Trash2 class="size-3.5" aria-hidden="true" />
-							Ya, hapus
+							{t('Ya, hapus', 'Yes, remove')}
 						</button>
 					</div>
 				</form>
@@ -512,7 +554,7 @@
 					onclick={() => (yakinHapus = true)}
 				>
 					<Trash2 class="size-3.5" aria-hidden="true" />
-					Hapus {item.ticker} dari watchlist
+					{t(`Hapus ${item.ticker} dari watchlist`, `Remove ${item.ticker} from watchlist`)}
 				</button>
 			{/if}
 		</section>
@@ -527,13 +569,13 @@
 		background: var(--color-base);
 		padding: 20px;
 		box-shadow:
-			0 1px 0 rgba(255, 255, 255, 0.05) inset,
+			0 1px 0 color-mix(in srgb, var(--cahaya) 5%, transparent) inset,
 			0 40px 100px -50px rgba(74, 158, 255, 0.4);
 	}
 
 	.pil-ubah {
 		border-radius: 8px;
-		background: rgba(154, 169, 196, 0.1);
+		background: color-mix(in srgb, var(--color-secondary) 10%, transparent);
 		padding: 2px 8px;
 		font-family: var(--font-mono);
 		font-size: 14px;
@@ -565,7 +607,11 @@
 		position: relative;
 		height: 6px;
 		border-radius: 999px;
-		background: linear-gradient(90deg, rgba(180, 205, 255, 0.1), rgba(180, 205, 255, 0.28));
+		background: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--kilau) 10%, transparent),
+			color-mix(in srgb, var(--kilau) 28%, transparent)
+		);
 	}
 
 	.penanda-rentang {
@@ -620,7 +666,7 @@
 
 	.lencana {
 		border-radius: 999px;
-		background: rgba(154, 169, 196, 0.12);
+		background: color-mix(in srgb, var(--color-secondary) 12%, transparent);
 		padding: 0 6px;
 		font-size: 11px;
 		line-height: 17px;
@@ -646,7 +692,7 @@
 	.sel {
 		border: 1px solid var(--edge-soft);
 		border-radius: 12px;
-		background: rgba(255, 255, 255, 0.02);
+		background: color-mix(in srgb, var(--cahaya) 2%, transparent);
 		padding: 8px 10px;
 	}
 
@@ -686,7 +732,7 @@
 		height: 6px;
 		overflow: hidden;
 		border-radius: 999px;
-		background: rgba(180, 205, 255, 0.08);
+		background: color-mix(in srgb, var(--kilau) 8%, transparent);
 	}
 
 	.isi {
@@ -725,7 +771,7 @@
 		gap: 4px;
 		border: 1px solid var(--edge);
 		border-radius: 12px;
-		background: rgba(8, 11, 18, 0.55);
+		background: color-mix(in srgb, var(--color-void) 55%, transparent);
 		padding: 4px;
 	}
 

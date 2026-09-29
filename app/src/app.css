@@ -134,6 +134,31 @@ body {
 }
 
 @utility tw-gelap {
+	--color-void: #080b12;
+	--color-base: #0d1220;
+	--color-raised: #141c2e;
+	--color-line: #1e2a42;
+	--color-muted: #8493ae;
+	--color-secondary: #9aa9c4;
+	--color-ink: #eaf0fa;
+	--color-diamond-900: #0f2540;
+	--color-diamond-700: #1b4a8c;
+	--color-diamond-500: #4a9eff;
+	--color-diamond-300: #8fd0ff;
+	--color-diamond-100: #d6ecff;
+	--color-tier-low: #3ee0b8;
+	--color-tier-moderate: #f5c544;
+	--color-tier-high: #ff8a3d;
+	--color-tier-critical: #ff4d6a;
+	--color-naik: #1faf7a;
+	--color-turun: #f53e36;
+	--kilau: #b4cdff;
+	--cahaya: #ffffff;
+	--bayang: #000;
+	--tirai: rgba(5, 8, 14, 0.74);
+	--edge: color-mix(in srgb, var(--kilau) 13%, transparent);
+	--edge-soft: color-mix(in srgb, var(--kilau) 10%, transparent);
+	--edge-strong: color-mix(in srgb, var(--kilau) 20%, transparent);
 	color-scheme: dark;
 	color: var(--color-ink);
 }

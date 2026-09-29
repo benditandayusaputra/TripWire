@@ -33,6 +33,7 @@
 		type Notifikasi,
 		type RingkasanNotifikasi
 	} from '$lib/api/notifications';
+	import { t } from '$lib/bahasa.svelte';
 	import { waktuRelatif } from '$lib/insight';
 	import { judulNotifikasi, kelompokPerHari, tautanFilter, TIER_URUT } from '$lib/notifikasi';
 	import { pushStore } from '$lib/pwa.svelte';
@@ -96,25 +97,25 @@
 	const daftarTab = $derived([
 		{
 			kunci: 'all',
-			label: 'Semua',
+			label: t('Semua', 'All'),
 			jumlah: ringkasan.total,
 			href: tautan({ status: null, type: null })
 		},
 		{
 			kunci: 'unread',
-			label: 'Belum dibaca',
+			label: t('Belum dibaca', 'Unread'),
 			jumlah: ringkasan.unread,
 			href: tautan({ status: 'unread', type: null })
 		},
 		{
 			kunci: 'red_flag',
-			label: 'Red flag',
+			label: t('Red flag', 'Red flags'),
 			jumlah: ringkasan.red_flag,
 			href: tautan({ status: null, type: 'red_flag' })
 		},
 		{
 			kunci: 'market',
-			label: 'Intelijen pasar',
+			label: t('Intelijen pasar', 'Market intelligence'),
 			jumlah: ringkasan.market_intelligence,
 			href: tautan({ status: null, type: 'market_intelligence', tier: null })
 		}
@@ -126,8 +127,9 @@
 	);
 	const tren30 = $derived.by(() => {
 		const selisih = ringkasan.last_30_days - ringkasan.previous_30_days;
-		if (selisih === 0) return 'sama dengan 30 hari sebelumnya';
-		return `${selisih > 0 ? '▲' : '▼'} ${Math.abs(selisih)} dari 30 hari sebelumnya`;
+		if (selisih === 0) return t('sama dengan 30 hari sebelumnya', 'same as the previous 30 days');
+		const arah = `${selisih > 0 ? '▲' : '▼'} ${Math.abs(selisih)}`;
+		return t(`${arah} dari 30 hari sebelumnya`, `${arah} vs the previous 30 days`);
 	});
 	const jumlahDibaca = $derived(ringkasan.total - ringkasan.unread);
 
@@ -166,7 +168,10 @@
 		try {
 			await aksi();
 		} catch (err) {
-			galat = err instanceof Error ? err.message : 'Aksi gagal, coba lagi.';
+			galat =
+				err instanceof Error
+					? err.message
+					: t('Aksi gagal, coba lagi.', 'Something went wrong, please try again.');
 		} finally {
 			sibuk = '';
 		}
@@ -239,7 +244,10 @@
 			daftar = [...daftar, ...hasil.notifications.filter((satu) => !ada.has(satu.id))];
 			kursor = hasil.next_cursor;
 		} catch (err) {
-			galat = err instanceof Error ? err.message : 'Gagal memuat notifikasi berikutnya.';
+			galat =
+				err instanceof Error
+					? err.message
+					: t('Gagal memuat notifikasi berikutnya.', "Couldn't load more alerts.");
 		} finally {
 			memuat = false;
 		}
@@ -251,26 +259,32 @@
 </script>
 
 <svelte:head>
-	<title>{ringkasan.unread > 0 ? `(${ringkasan.unread}) ` : ''}Notifikasi TripWire</title>
+	<title
+		>{ringkasan.unread > 0 ? `(${ringkasan.unread}) ` : ''}{t(
+			'Notifikasi TripWire',
+			'TripWire Alerts'
+		)}</title
+	>
 </svelte:head>
 
 <div class="space-y-6">
 	<header class="flex flex-wrap items-end justify-between gap-4">
 		<div class="space-y-1.5">
-			<p class="tw-overline">Pusat notifikasi</p>
+			<p class="tw-overline">{t('Pusat notifikasi', 'Alert center')}</p>
 			<h1 class="tw-title text-ink flex items-center gap-3">
-				Notifikasi
+				{t('Notifikasi', 'Alerts')}
 				<span class="lonceng" class:bunyi={berbunyi}>
 					<BellRing class="text-diamond-300 size-6" aria-hidden="true" />
 				</span>
 			</h1>
 			<p class="tw-caption max-w-xl">
-				Peringatan risiko dan pembaruan analisis dari saham di watchlist kamu, masuk begitu skornya
-				melewati batas yang kamu atur.
+				{t(
+					'Peringatan risiko dan pembaruan analisis dari saham di watchlist kamu, masuk begitu skornya melewati batas yang kamu atur.',
+					'Risk warnings and analysis updates for stocks on your watchlist, delivered as soon as a score crosses the threshold you set.'
+				)}
 				{#if ringkasan.last_sent_at}
-					Terakhir masuk <span class="tw-data text-secondary"
-						>{waktuRelatif(ringkasan.last_sent_at)}</span
-					>.
+					{t('Terakhir masuk', 'Last received')}
+					<span class="tw-data text-secondary">{waktuRelatif(ringkasan.last_sent_at)}</span>.
 				{/if}
 			</p>
 		</div>
@@ -283,7 +297,7 @@
 				class:hidup={presenceStore.terhubung}
 			>
 				<span class="denyut" aria-hidden="true"></span>
-				{presenceStore.terhubung ? 'Langsung' : 'Menyambungkan'}
+				{presenceStore.terhubung ? t('Langsung', 'Live') : t('Menyambungkan', 'Connecting')}
 			</span>
 			<button
 				type="button"
@@ -293,21 +307,28 @@
 				onclick={tandaiSemua}
 			>
 				<CheckCheck class="size-4" aria-hidden="true" />
-				{sibuk === 'semua' ? 'Menandai' : 'Tandai semua dibaca'}
+				{sibuk === 'semua'
+					? t('Menandai', 'Marking')
+					: t('Tandai semua dibaca', 'Mark all as read')}
 			</button>
 		</div>
 	</header>
 
 	<dl class="grid grid-cols-2 gap-3 lg:grid-cols-4" data-testid="kpi-notifikasi">
 		<div class="tile">
-			<dt class="text-muted text-[12px]">Belum dibaca</dt>
+			<dt class="text-muted text-[12px]">{t('Belum dibaca', 'Unread')}</dt>
 			<dd data-testid="kpi-belum" class="tw-data text-ink mt-1.5 text-[26px] leading-none">
 				{ringkasan.unread}
 			</dd>
-			<dd class="text-secondary mt-2 text-[12px]">dari {ringkasan.total} notifikasi</dd>
+			<dd class="text-secondary mt-2 text-[12px]">
+				{t(
+					`dari ${ringkasan.total} notifikasi`,
+					`of ${ringkasan.total} ${ringkasan.total === 1 ? 'alert' : 'alerts'}`
+				)}
+			</dd>
 		</div>
 		<div class="tile">
-			<dt class="text-muted text-[12px]">Kritis 7 hari</dt>
+			<dt class="text-muted text-[12px]">{t('Kritis 7 hari', 'Critical in 7 days')}</dt>
 			<dd
 				data-testid="kpi-kritis"
 				class="tw-data text-ink mt-1.5 flex items-center gap-2 text-[26px] leading-none"
@@ -317,17 +338,17 @@
 					<span class="tanda-kritis" aria-hidden="true"></span>
 				{/if}
 			</dd>
-			<dd class="text-secondary mt-2 text-[12px]">skor 86 ke atas</dd>
+			<dd class="text-secondary mt-2 text-[12px]">{t('skor 86 ke atas', 'score 86 and up')}</dd>
 		</div>
 		<div class="tile">
-			<dt class="text-muted text-[12px]">Masuk 30 hari</dt>
+			<dt class="text-muted text-[12px]">{t('Masuk 30 hari', 'Received in 30 days')}</dt>
 			<dd data-testid="kpi-30-hari" class="tw-data text-ink mt-1.5 text-[26px] leading-none">
 				{ringkasan.last_30_days}
 			</dd>
 			<dd class="text-secondary tw-data mt-2 text-[11.5px]">{tren30}</dd>
 		</div>
 		<div class="tile">
-			<dt class="text-muted text-[12px]">Skor tertinggi 30 hari</dt>
+			<dt class="text-muted text-[12px]">{t('Skor tertinggi 30 hari', 'Top score in 30 days')}</dt>
 			{#if ringkasan.peak_30_days}
 				{@const puncak = ringkasan.peak_30_days}
 				{@const info = tierDariSkor(puncak.score)}
@@ -349,7 +370,9 @@
 				</dd>
 			{:else}
 				<dd class="tw-data text-muted mt-1.5 text-[26px] leading-none">-</dd>
-				<dd class="text-secondary mt-2 text-[12px]">belum ada red flag</dd>
+				<dd class="text-secondary mt-2 text-[12px]">
+					{t('belum ada red flag', 'no red flags yet')}
+				</dd>
 			{/if}
 		</div>
 	</dl>
@@ -363,7 +386,7 @@
 						class="text-ink flex items-center gap-2 text-[15px] font-semibold"
 					>
 						<Inbox class="text-secondary size-4" aria-hidden="true" />
-						Kotak masuk
+						{t('Kotak masuk', 'Inbox')}
 					</h2>
 					{#if filterAktif}
 						<a
@@ -371,12 +394,12 @@
 							data-testid="reset-filter"
 							class="text-diamond-300 text-[12.5px] hover:underline"
 						>
-							Reset filter
+							{t('Reset filter', 'Clear filters')}
 						</a>
 					{/if}
 				</div>
 
-				<nav class="tab-bar" aria-label="Kategori notifikasi">
+				<nav class="tab-bar" aria-label={t('Kategori notifikasi', 'Alert categories')}>
 					{#each daftarTab as satu (satu.kunci)}
 						<a
 							href={satu.href}
@@ -393,7 +416,11 @@
 				</nav>
 
 				<div class="flex flex-wrap items-center gap-2">
-					<div class="flex flex-wrap gap-1.5" role="group" aria-label="Tingkat risiko">
+					<div
+						class="flex flex-wrap gap-1.5"
+						role="group"
+						aria-label={t('Tingkat risiko', 'Risk level')}
+					>
 						{#each TIER_URUT as tier (tier)}
 							{@const info = tierDariSkor(WAKIL_TIER[tier])}
 							<a
@@ -415,14 +442,14 @@
 					</div>
 
 					<label class="ml-auto">
-						<span class="sr-only">Filter emiten</span>
+						<span class="sr-only">{t('Filter emiten', 'Filter by stock')}</span>
 						<select
 							data-testid="filter-emiten"
 							class="pilih"
 							value={data.filter.ticker}
 							onchange={(event) => pilihEmiten(event.currentTarget.value)}
 						>
-							<option value="">Semua emiten</option>
+							<option value="">{t('Semua emiten', 'All stocks')}</option>
 							{#each pilihanEmiten as satu (satu.ticker)}
 								<option value={satu.ticker}>{satu.ticker} ({satu.total})</option>
 							{/each}
@@ -435,7 +462,7 @@
 				<p class="tw-overline flex items-center gap-2">
 					<span class="titik-langsung" class:hidup={presenceStore.terhubung} aria-hidden="true"
 					></span>
-					Baru masuk
+					{t('Baru masuk', 'Just in')}
 					{#if presenceStore.insightBaru.length}
 						<button
 							type="button"
@@ -444,7 +471,7 @@
 							disabled={sibuk !== ''}
 							onclick={serapLive}
 						>
-							Tampilkan di daftar
+							{t('Tampilkan di daftar', 'Show in list')}
 						</button>
 					{/if}
 				</p>
@@ -463,7 +490,7 @@
 									{judulNotifikasi(insight)}
 								</span>
 								<span class="text-secondary block truncate text-[12px]">
-									{insight.company_name} · baru saja
+									{insight.company_name} · {t('baru saja', 'just now')}
 								</span>
 							</span>
 							{#if insight.insight_type === 'red_flag'}
@@ -474,13 +501,16 @@
 								class="text-diamond-300 inline-flex flex-none items-center gap-1 text-[12.5px] hover:underline"
 								onclick={(event) => buka(event, { id: insight.notification_id })}
 							>
-								Lihat
+								{t('Lihat', 'View')}
 								<ArrowUpRight class="size-3.5" aria-hidden="true" />
 							</a>
 						</li>
 					{:else}
 						<li data-testid="insight-live-kosong" class="text-muted text-[12.5px]">
-							Belum ada insight baru sejak halaman ini dibuka.
+							{t(
+								'Belum ada insight baru sejak halaman ini dibuka.',
+								'No new insights since you opened this page.'
+							)}
 						</li>
 					{/each}
 				</ul>
@@ -517,17 +547,22 @@
 								disabled={memuat}
 								onclick={muatLagi}
 							>
-								{memuat ? 'Memuat' : 'Muat lebih banyak'}
+								{memuat ? t('Memuat', 'Loading') : t('Muat lebih banyak', 'Load more')}
 							</button>
 						{:else}
-							<p class="text-muted text-[12.5px]">Semua notifikasi sudah ditampilkan.</p>
+							<p class="text-muted text-[12.5px]">
+								{t('Semua notifikasi sudah ditampilkan.', 'All alerts are shown.')}
+							</p>
 						{/if}
 
 						{#if jumlahDibaca > 0}
 							{#if konfirmasiBersih}
 								<span class="flex items-center gap-2 text-[12.5px]">
 									<span class="text-secondary"
-										>Hapus {jumlahDibaca} notifikasi yang sudah dibaca?</span
+										>{t(
+											`Hapus ${jumlahDibaca} notifikasi yang sudah dibaca?`,
+											`Delete ${jumlahDibaca} read ${jumlahDibaca === 1 ? 'alert' : 'alerts'}?`
+										)}</span
 									>
 									<button
 										type="button"
@@ -536,14 +571,14 @@
 										disabled={sibuk !== ''}
 										onclick={bersihkan}
 									>
-										Hapus
+										{t('Hapus', 'Delete')}
 									</button>
 									<button
 										type="button"
 										class="text-muted hover:text-ink px-1"
 										onclick={() => (konfirmasiBersih = false)}
 									>
-										Batal
+										{t('Batal', 'Cancel')}
 									</button>
 								</span>
 							{:else}
@@ -554,17 +589,24 @@
 									onclick={() => (konfirmasiBersih = true)}
 								>
 									<Trash2 class="size-3.5" aria-hidden="true" />
-									Bersihkan yang sudah dibaca
+									{t('Bersihkan yang sudah dibaca', 'Clear read alerts')}
 								</button>
 							{/if}
 						{/if}
 					</div>
 				{:else if filterAktif}
 					<div data-testid="kosong-filter" class="kosong">
-						<p class="text-ink text-[14px] font-medium">Tidak ada notifikasi yang cocok</p>
-						<p class="tw-caption">Coba ubah kategori, tingkat risiko, atau emitennya.</p>
+						<p class="text-ink text-[14px] font-medium">
+							{t('Tidak ada notifikasi yang cocok', 'No matching alerts')}
+						</p>
+						<p class="tw-caption">
+							{t(
+								'Coba ubah kategori, tingkat risiko, atau emitennya.',
+								'Try a different category, risk level, or stock.'
+							)}
+						</p>
 						<a href="/notifications" class="tw-ghost mt-2 px-3.5 py-2 text-[13px]"
-							>Lihat semua notifikasi</a
+							>{t('Lihat semua notifikasi', 'View all alerts')}</a
 						>
 					</div>
 				{:else}
@@ -572,12 +614,18 @@
 						<span class="lingkar-kosong">
 							<BellRing class="text-diamond-300 size-5" aria-hidden="true" />
 						</span>
-						<p class="text-ink text-[15px] font-medium">Belum ada notifikasi</p>
-						<p class="tw-caption max-w-sm">
-							Notifikasi muncul begitu insight baru dibuat untuk saham di watchlist kamu dan lolos
-							kondisi yang kamu atur.
+						<p class="text-ink text-[15px] font-medium">
+							{t('Belum ada notifikasi', 'No alerts yet')}
 						</p>
-						<a href="/watchlist" class="tw-primary mt-2 px-4 py-2 text-[13.5px]">Atur watchlist</a>
+						<p class="tw-caption max-w-sm">
+							{t(
+								'Notifikasi muncul begitu insight baru dibuat untuk saham di watchlist kamu dan lolos kondisi yang kamu atur.',
+								'Alerts appear as soon as a new insight is created for a stock on your watchlist and meets the conditions you set.'
+							)}
+						</p>
+						<a href="/watchlist" class="tw-primary mt-2 px-4 py-2 text-[13.5px]"
+							>{t('Atur watchlist', 'Manage watchlist')}</a
+						>
 					</div>
 				{/if}
 
@@ -587,16 +635,19 @@
 			</div>
 		</section>
 
-		<aside class="min-w-0 space-y-5" aria-label="Ringkasan dan pengaturan notifikasi">
+		<aside
+			class="min-w-0 space-y-5"
+			aria-label={t('Ringkasan dan pengaturan notifikasi', 'Alert summary and settings')}
+		>
 			<Panel
-				judul="Aktivitas 30 hari"
-				keterangan="Notifikasi per hari, waktu WIB"
+				judul={t('Aktivitas 30 hari', '30-day activity')}
+				keterangan={t('Notifikasi per hari, waktu WIB', 'Alerts per day, WIB (UTC+7)')}
 				ikon={ChartColumn}
 				testid="panel-aktivitas"
 			>
 				<GrafikAktivitas hari={ringkasan.daily} />
 				<div class="border-line mt-5 border-t pt-4">
-					<p class="tw-overline mb-2">Sebaran tingkat risiko</p>
+					<p class="tw-overline mb-2">{t('Sebaran tingkat risiko', 'Risk level breakdown')}</p>
 					<SebaranTier
 						jumlah={ringkasan}
 						tautan={(tier) => tautan({ tier, type: null })}
@@ -606,8 +657,11 @@
 			</Panel>
 
 			<Panel
-				judul="Emiten paling sering"
-				keterangan="Urut dari jumlah notifikasi 30 hari"
+				judul={t('Emiten paling sering', 'Most alerted stocks')}
+				keterangan={t(
+					'Urut dari jumlah notifikasi 30 hari',
+					'Ranked by alerts in the last 30 days'
+				)}
 				ikon={Activity}
 				testid="panel-emiten"
 			>
@@ -618,13 +672,18 @@
 						aktif={data.filter.ticker}
 					/>
 				{:else}
-					<p class="text-muted text-[12.5px]">Belum ada emiten yang memicu notifikasi.</p>
+					<p class="text-muted text-[12.5px]">
+						{t(
+							'Belum ada emiten yang memicu notifikasi.',
+							'No stocks have triggered an alert yet.'
+						)}
+					</p>
 				{/if}
 			</Panel>
 
 			<Panel
-				judul="Saluran pengiriman"
-				keterangan="Cara TripWire mengabari kamu"
+				judul={t('Saluran pengiriman', 'Delivery channels')}
+				keterangan={t('Cara TripWire mengabari kamu', 'How TripWire keeps you posted')}
 				ikon={BellRing}
 				testid="panel-pengiriman"
 			>
@@ -632,14 +691,17 @@
 			</Panel>
 
 			<Panel
-				judul="Aturan peringatan"
-				keterangan="Kondisi yang menentukan insight mana yang dikirim"
+				judul={t('Aturan peringatan', 'Alert rules')}
+				keterangan={t(
+					'Kondisi yang menentukan insight mana yang dikirim',
+					'Conditions that decide which insights get sent'
+				)}
 				ikon={SlidersHorizontal}
 				testid="panel-aturan"
 			>
 				{#snippet aksi()}
 					<a href="/watchlist" class="text-diamond-300 flex-none text-[12.5px] hover:underline"
-						>Atur</a
+						>{t('Atur', 'Manage')}</a
 					>
 				{/snippet}
 				<PanelAturan emiten={data.watchlist} />
@@ -711,11 +773,11 @@
 
 	@keyframes denyut {
 		0% {
-			box-shadow: 0 0 0 0 rgba(62, 224, 184, 0.55);
+			box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-tier-low) 55%, transparent);
 		}
 		70%,
 		100% {
-			box-shadow: 0 0 0 7px rgba(62, 224, 184, 0);
+			box-shadow: 0 0 0 7px color-mix(in srgb, var(--color-tier-low) 0%, transparent);
 		}
 	}
 
@@ -732,7 +794,7 @@
 	@media (hover: hover) {
 		.tile:hover {
 			transform: translateY(-2px);
-			border-color: rgba(180, 205, 255, 0.22);
+			border-color: color-mix(in srgb, var(--kilau) 22%, transparent);
 		}
 	}
 
@@ -849,7 +911,7 @@
 
 	.langsung {
 		margin: 14px 16px 0;
-		border: 1px dashed rgba(143, 208, 255, 0.22);
+		border: 1px dashed color-mix(in srgb, var(--color-diamond-300) 22%, transparent);
 		border-radius: 14px;
 		background:
 			radial-gradient(420px 120px at 0% 0%, rgba(74, 158, 255, 0.08), transparent 70%),
@@ -861,7 +923,7 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		border: 1px solid rgba(143, 208, 255, 0.28);
+		border: 1px solid color-mix(in srgb, var(--color-diamond-300) 28%, transparent);
 		border-radius: 12px;
 		background: var(--color-raised);
 		padding: 10px 12px;
@@ -890,7 +952,7 @@
 		font-size: 11px;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		color: #7b8ca8;
+		color: light-dark(#5c6982, #7b8ca8);
 	}
 
 	.kosong {

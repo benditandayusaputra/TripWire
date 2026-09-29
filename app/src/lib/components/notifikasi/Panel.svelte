@@ -57,7 +57,7 @@
 
 	@media (hover: hover) {
 		.panel:hover {
-			border-color: rgba(180, 205, 255, 0.2);
+			border-color: color-mix(in srgb, var(--kilau) 20%, transparent);
 		}
 	}
 
