@@ -3,6 +3,7 @@
 	import { LogOut, MonitorSmartphone, TriangleAlert } from 'lucide-svelte';
 	import Mark from '$lib/components/Mark.svelte';
 	import { formatTanggal, waktuRelatif } from '$lib/insight';
+	import { t } from '$lib/bahasa.svelte';
 
 	let { data, form } = $props();
 
@@ -10,15 +11,18 @@
 </script>
 
 <svelte:head>
-	<title>Perangkat yang login TripWire</title>
+	<title>{t('Perangkat yang login TripWire', 'TripWire logged-in devices')}</title>
 </svelte:head>
 
 <section class="space-y-7">
 	<header class="space-y-1.5">
-		<p class="tw-overline">Akun</p>
-		<h1 class="tw-title text-ink">Perangkat yang login</h1>
+		<p class="tw-overline">{t('Akun', 'Account')}</p>
+		<h1 class="tw-title text-ink">{t('Perangkat yang login', 'Logged-in devices')}</h1>
 		<p class="tw-caption">
-			Satu baris adalah satu perangkat dengan sesi aktif. Cabut yang tidak kamu kenali.
+			{t(
+				'Satu baris adalah satu perangkat dengan sesi aktif. Cabut yang tidak kamu kenali.',
+				"Each row is one device with an active session. Revoke any you don't recognize."
+			)}
 		</p>
 	</header>
 
@@ -44,14 +48,19 @@
 					<MonitorSmartphone class="text-diamond-300 mt-0.5 size-5 flex-none" aria-hidden="true" />
 					<div class="min-w-0">
 						<p class="text-ink truncate text-[14px]">
-							{sesi.device_label ?? 'Perangkat tidak dikenal'}
+							{sesi.device_label ?? t('Perangkat tidak dikenal', 'Unknown device')}
 						</p>
 						<p class="tw-data text-muted mt-1 text-[12px]">
-							{sesi.ip_address ?? 'IP tidak tercatat'} · aktif {waktuRelatif(
-								sesi.last_used_at ?? sesi.issued_at
+							{sesi.ip_address ?? t('IP tidak tercatat', 'IP not recorded')} · {t(
+								'aktif',
+								'active'
 							)}
+							{waktuRelatif(sesi.last_used_at ?? sesi.issued_at)}
 						</p>
-						<p class="tw-overline mt-1">Berlaku sampai {formatTanggal(sesi.expires_at)} WIB</p>
+						<p class="tw-overline mt-1">
+							{t('Berlaku sampai', 'Valid until')}
+							{formatTanggal(sesi.expires_at)} WIB
+						</p>
 					</div>
 				</div>
 
@@ -61,14 +70,14 @@
 						class="tw-overline text-tier-low inline-flex items-center gap-2"
 					>
 						<Mark size={7} color="var(--color-tier-low)" />
-						Perangkat ini
+						{t('Perangkat ini', 'This device')}
 					</span>
 				{:else}
 					<form method="POST" action="?/cabut" use:enhance>
 						<input type="hidden" name="session_id" value={sesi.id} />
 						<button type="submit" data-testid="cabut-sesi" class="tw-ghost text-[13px]">
 							<LogOut class="size-3.5" aria-hidden="true" />
-							Cabut
+							{t('Cabut', 'Revoke')}
 						</button>
 					</form>
 				{/if}
@@ -80,7 +89,7 @@
 		<form method="POST" action="?/cabutLainnya" use:enhance>
 			<button type="submit" data-testid="cabut-semua" class="tw-ghost">
 				<LogOut class="size-4" aria-hidden="true" />
-				Cabut semua perangkat lain ({lain})
+				{t('Cabut semua perangkat lain', 'Revoke all other devices')} ({lain})
 			</button>
 		</form>
 	{/if}

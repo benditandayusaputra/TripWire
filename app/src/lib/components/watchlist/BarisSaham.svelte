@@ -3,6 +3,7 @@
 	import LogoEmiten from './LogoEmiten.svelte';
 	import Sparkline from './Sparkline.svelte';
 	import { formatHarga, formatUbah, type Penutupan } from '$lib/watchlist';
+	import { t } from '$lib/bahasa.svelte';
 
 	let {
 		kode,
@@ -60,11 +61,14 @@
 		{#if tren && tren.length > 1 && arahBulan}
 			<Sparkline
 				nilai={tren}
-				label="Harga {kode} sebulan terakhir {arahBulan.arah > 0
-					? 'naik'
+				label="{t(
+					`Harga ${kode} sebulan terakhir`,
+					`${kode} price over the past month`
+				)} {arahBulan.arah > 0
+					? t('naik', 'up')
 					: arahBulan.arah < 0
-						? 'turun'
-						: 'tetap'} {arahBulan.teks.slice(2)}"
+						? t('turun', 'down')
+						: t('tetap', 'unchanged')} {arahBulan.teks.slice(2)}"
 			/>
 		{:else if memuat}
 			<span class="kerangka h-5 w-full" aria-hidden="true"></span>
@@ -79,15 +83,21 @@
 			<span class="kerangka h-3.5 w-14" aria-hidden="true"></span>
 			<span class="kerangka mt-1.5 h-3 w-11" aria-hidden="true"></span>
 		{:else}
-			<span class="text-muted text-[11.5px] leading-tight">Belum ada harga</span>
+			<span class="text-muted text-[11.5px] leading-tight"
+				>{t('Belum ada harga', 'No price yet')}</span
+			>
 		{/if}
 	</span>
 
 	<span class="kolom-risiko" data-tur={tur ? 'skor' : undefined}>
 		<CincinSkor {skor} />
 		{#if selisih !== 0}
-			<span class="selisih" title="Berubah {selisih} dari pemindaian sebelumnya"
-				>{selisih > 0 ? '+' : ''}{selisih}</span
+			<span
+				class="selisih"
+				title={t(
+					`Berubah ${selisih} dari pemindaian sebelumnya`,
+					`Changed by ${selisih} since the previous scan`
+				)}>{selisih > 0 ? '+' : ''}{selisih}</span
 			>
 		{/if}
 	</span>
@@ -129,7 +139,7 @@
 
 	@media (hover: hover) {
 		a.baris:hover {
-			background: rgba(255, 255, 255, 0.035);
+			background: color-mix(in srgb, var(--cahaya) 3.5%, transparent);
 		}
 	}
 
@@ -211,7 +221,7 @@
 	.pil {
 		margin-top: 3px;
 		border-radius: 6px;
-		background: rgba(154, 169, 196, 0.1);
+		background: color-mix(in srgb, var(--color-secondary) 10%, transparent);
 		padding: 1px 6px;
 		font-family: var(--font-mono);
 		font-size: 11.5px;
@@ -255,9 +265,9 @@
 		border-radius: 6px;
 		background: linear-gradient(
 			90deg,
-			rgba(180, 205, 255, 0.06),
-			rgba(180, 205, 255, 0.14),
-			rgba(180, 205, 255, 0.06)
+			color-mix(in srgb, var(--kilau) 6%, transparent),
+			color-mix(in srgb, var(--kilau) 14%, transparent),
+			color-mix(in srgb, var(--kilau) 6%, transparent)
 		);
 		background-size: 200% 100%;
 		animation: kilau 1.4s ease-in-out infinite;

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { cubicOut } from 'svelte/easing';
 	import { Tween } from 'svelte/motion';
+	import { lokal, t } from '$lib/bahasa.svelte';
 	import { tierDariSkor } from '$lib/skor';
 	import { gerakDikurangi, saatTerlihat } from '$lib/terlihat';
 	import { PENGALI_POLA_SILANG, subSkor } from './simulasi';
@@ -10,12 +11,14 @@
 	const R = 128;
 	const TEBAL = 18;
 
-	const TIER = [
-		{ dari: 0, sampai: 30, contoh: 15 },
-		{ dari: 30, sampai: 60, contoh: 45 },
-		{ dari: 60, sampai: 85, contoh: 73 },
-		{ dari: 85, sampai: 100, contoh: 93 }
-	].map((item) => ({ ...item, info: tierDariSkor(item.contoh) }));
+	const TIER = $derived(
+		[
+			{ dari: 0, sampai: 30, contoh: 15 },
+			{ dari: 30, sampai: 60, contoh: 45 },
+			{ dari: 60, sampai: 85, contoh: 73 },
+			{ dari: 85, sampai: 100, contoh: 93 }
+		].map((item) => ({ ...item, info: tierDariSkor(item.contoh) }))
+	);
 
 	const PILIHAN = [
 		{ sinyal: 1, pengali: 1 },
@@ -23,7 +26,7 @@
 		{ sinyal: 3, pengali: 1.6 }
 	];
 
-	const desimal = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 });
+	const desimal = $derived(new Intl.NumberFormat(lokal(), { maximumFractionDigits: 1 }));
 	const dasar = subSkor.reduce((jumlah, item) => jumlah + item.bobot * item.nilai, 0);
 
 	let pengali = $state(PENGALI_POLA_SILANG);
@@ -58,7 +61,15 @@
 
 <div class="space-y-6" {@attach amati}>
 	<div class="mx-auto max-w-95">
-		<svg viewBox="0 0 340 200" class="block w-full" role="img" aria-label="Red Flag Score {skor} dari 100, {info.label}">
+		<svg
+			viewBox="0 0 340 200"
+			class="block w-full"
+			role="img"
+			aria-label={t(
+				`Red Flag Score ${skor} dari 100, ${info.label}`,
+				`Red Flag Score ${skor} out of 100, ${info.label}`
+			)}
+		>
 			{#each TIER as item, urutan (item.dari)}
 				<path
 					d={busur(item.dari + (urutan ? 0.3 : 0), item.sampai - (urutan < 3 ? 0.3 : 0))}
@@ -77,8 +88,11 @@
 			<text x={CX - R} y={CY + 24} text-anchor="middle" class="label-batas">0</text>
 			<text x={CX + R} y={CY + 24} text-anchor="middle" class="label-batas">100</text>
 
-			<text x={CX} y={CY - 44} text-anchor="middle" class="angka">{Math.round(tampil.current)}</text>
-			<text x={CX} y={CY - 22} text-anchor="middle" class="label-tier" fill={info.color}>{info.label}</text>
+			<text x={CX} y={CY - 44} text-anchor="middle" class="angka">{Math.round(tampil.current)}</text
+			>
+			<text x={CX} y={CY - 22} text-anchor="middle" class="label-tier" fill={info.color}
+				>{info.label}</text
+			>
 
 			<g style="transform: rotate({tampil.current * 1.8}deg)" class="jarum">
 				<path d="M{CX} {CY - 5} L{CX - R + 30} {CY} L{CX} {CY + 5} Z" />
@@ -88,7 +102,10 @@
 		</svg>
 	</div>
 
-	<ul class="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Kategori skor">
+	<ul
+		class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+		aria-label={t('Kategori skor', 'Score categories')}
+	>
 		{#each TIER as item (item.dari)}
 			<li
 				class="kategori border-line rounded-lg border px-3 py-2"
@@ -98,14 +115,21 @@
 			>
 				<span class="mb-1.5 block h-1 w-6 rounded-full" style="background:{item.info.color}"></span>
 				<span class="text-ink block text-[13px] font-medium">{item.info.label}</span>
-				<span class="tw-data text-muted block text-[11.5px]">{item.info.range.replace(' sampai ', ' s.d. ')}</span>
+				<span class="tw-data text-muted block text-[11.5px]"
+					>{item.info.range.replace(' sampai ', t(' s.d. ', ' to '))}</span
+				>
 			</li>
 		{/each}
 	</ul>
 
 	<div class="border-line bg-void/50 space-y-4 rounded-xl border p-4">
 		<div class="space-y-2">
-			<p class="text-secondary text-[13px]" id="label-pola">Sinyal yang muncul berdekatan dalam 30 hari</p>
+			<p class="text-secondary text-[13px]" id="label-pola">
+				{t(
+					'Sinyal yang muncul berdekatan dalam 30 hari',
+					'Signals appearing close together within 30 days'
+				)}
+			</p>
 			<div class="grid grid-cols-3 gap-1.5" role="group" aria-labelledby="label-pola">
 				{#each PILIHAN as item (item.sinyal)}
 					<button
@@ -114,8 +138,14 @@
 						aria-pressed={pengali === item.pengali}
 						onclick={() => (pengali = item.pengali)}
 					>
-						<span class="block text-[13px] font-medium">{item.sinyal} sinyal</span>
-						<span class="tw-data block text-[12px] opacity-80">×{desimal.format(item.pengali)}</span>
+						<span class="block text-[13px] font-medium">
+							{t(
+								`${item.sinyal} sinyal`,
+								`${item.sinyal} ${item.sinyal === 1 ? 'signal' : 'signals'}`
+							)}
+						</span>
+						<span class="tw-data block text-[12px] opacity-80">×{desimal.format(item.pengali)}</span
+						>
 					</button>
 				{/each}
 			</div>
@@ -124,15 +154,19 @@
 		<div class="tw-data text-secondary space-y-1 text-[12.5px] leading-relaxed">
 			<p>
 				{#each subSkor as item, urutan (item.kunci)}
-					{urutan ? ' + ' : ''}<span class="whitespace-nowrap">({desimal.format(item.bobot)} × {item.nilai})</span>
+					{urutan ? ' + ' : ''}<span class="whitespace-nowrap"
+						>({desimal.format(item.bobot)} × {item.nilai})</span
+					>
 				{/each}
-				<span class="whitespace-nowrap">= <span class="text-ink">{desimal.format(dasar)}</span></span>
+				<span class="whitespace-nowrap"
+					>= <span class="text-ink">{desimal.format(dasar)}</span></span
+				>
 			</p>
 			<p>
 				{desimal.format(dasar)} × <span class="text-diamond-300">{desimal.format(pengali)}</span> =
 				<span class="text-ink">{mentah}</span>
 				{#if mentah > 100}
-					<span class="text-muted">, dibatasi jadi 100</span>
+					<span class="text-muted">{t(', dibatasi jadi 100', ', capped at 100')}</span>
 				{/if}
 			</p>
 		</div>
@@ -191,14 +225,14 @@
 	}
 
 	.kategori.aktif {
-		border-color: rgba(180, 205, 255, 0.28);
-		background: rgba(255, 255, 255, 0.03);
+		border-color: color-mix(in srgb, var(--kilau) 28%, transparent);
+		background: color-mix(in srgb, var(--cahaya) 3%, transparent);
 	}
 
 	@media (hover: hover) {
 		.kategori:hover {
 			transform: translateY(-2px);
-			border-color: rgba(180, 205, 255, 0.35);
+			border-color: color-mix(in srgb, var(--kilau) 35%, transparent);
 		}
 	}
 

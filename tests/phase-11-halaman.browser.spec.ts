@@ -95,6 +95,10 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(page.getByTestId('dashboard-heading')).toContainText(akun.fullName);
 		await expect(page.getByTestId('ringkasan')).toBeVisible();
 		await expect(page.getByTestId('feed-kosong')).toBeVisible();
+		await expect(page.getByTestId('mulai').getByRole('link', { name: /Buka watchlist/ })).toHaveAttribute(
+			'href',
+			'/watchlist'
+		);
 
 		await siapkanInsight(page, 'ANTM');
 
@@ -108,6 +112,148 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(page.getByTestId('insight-card').first()).toBeVisible();
 
 		expect(galat).toEqual([]);
+	});
+
+	test('dashboard memuat indeks, denyut pasar, penggerak, arus asing, sektor, dan peta pasar', async ({
+		page
+	}) => {
+		await masukLewatBrowser(page, 'halaman-dashboard-pasar');
+		const galat = tangkapGalatKonsol(page);
+
+		await page.goto('/dashboard');
+		await expect(page.getByTestId('status-live')).toHaveAttribute('data-terhubung', 'true');
+
+		const grafik = page.getByTestId('grafik-indeks');
+		const nilai = page.getByTestId('nilai-indeks');
+		await expect(grafik).toHaveAttribute('data-kode', 'IHSG');
+		await expect(nilai).toHaveText(/^\d{1,3}(\.\d{3})*,\d{2}$/);
+		const ihsg = (await nilai.textContent()) ?? '';
+		await expect(page.getByTestId('kalimat-ringkas')).toContainText('IHSG ditutup');
+
+		const slider = grafik.getByRole('slider', { name: 'Telusuri grafik IHSG per hari' });
+		await slider.focus();
+		await page.keyboard.press('Home');
+		await expect(slider).toHaveAttribute('aria-valuenow', '1');
+		await page.keyboard.press('End');
+		await expect(slider).toHaveAttribute('aria-valuetext', new RegExp(`IHSG ${ihsg}`));
+
+		await page.getByTestId('tab-indeks-lq45').click();
+		await expect(grafik).toHaveAttribute('data-kode', 'LQ45');
+		await expect(nilai).toHaveText(/^\d{3},\d{2}$/);
+
+		const denyut = page.getByTestId('panel-denyut');
+		await expect(denyut.getByTestId('lebar-pasar')).toHaveAttribute(
+			'aria-label',
+			'5 saham naik, 4 turun, 1 tetap'
+		);
+		await expect(denyut.getByTestId('sebaran-perubahan')).toHaveAttribute(
+			'aria-label',
+			/^0 saham turun 5% atau lebih, 1 saham turun 2 sampai 5%, 3 saham turun kurang dari 2%, 1 saham tidak berubah, 5 saham naik kurang dari 2%/
+		);
+		await expect(denyut).toContainText('Infrastruktur');
+
+		const penggerak = page.getByTestId('panel-penggerak');
+		const itemPenggerak = penggerak.getByTestId('penggerak-item');
+		await expect(itemPenggerak.first()).toHaveAttribute('data-ticker', 'INCO');
+		await penggerak.getByTestId('tab-penggerak-turun').click();
+		await expect(itemPenggerak.first()).toHaveAttribute('data-ticker', 'MDKA');
+		await expect(itemPenggerak.first()).toContainText('▼ 2,13%');
+
+		const asing = page.getByTestId('panel-asing');
+		await expect(asing.getByTestId('asing-item').first()).toHaveAttribute('data-ticker', 'ANTM');
+		await asing.getByTestId('tab-asing-jual').click();
+		await expect(asing.getByTestId('asing-item').first()).toHaveAttribute('data-ticker', 'BBRI');
+
+		const sektor = page.getByTestId('panel-sektor').getByTestId('sektor-item');
+		await expect(sektor).toHaveCount(4);
+		await expect(sektor.first()).toHaveAttribute('data-sektor', 'Infrastructures');
+
+		const petak = (kode: string) => page.locator(`[data-testid="petak-pasar"][data-ticker="${kode}"]`);
+		await expect(page.getByTestId('petak-pasar')).toHaveCount(10);
+		const luas = async (kode: string) => {
+			const kotak = await petak(kode).boundingBox();
+			return (kotak?.width ?? 0) * (kotak?.height ?? 0);
+		};
+		expect(await luas('BBCA')).toBeGreaterThan(await luas('BBRI'));
+		expect(await luas('BBRI')).toBeGreaterThan(await luas('ITMG'));
+
+		await penggerak.getByTestId('tab-penggerak-besar').click();
+		const tlkm = penggerak.locator('[data-testid="penggerak-item"][data-ticker="TLKM"]');
+		await tlkm.getByRole('button', { name: 'Pantau TLKM' }).click();
+		await expect(tlkm.getByRole('button', { name: 'TLKM sudah dipantau' })).toBeDisabled();
+		await expect(page.getByTestId('baris-watchlist').filter({ hasText: 'TLKM' })).toBeVisible();
+		await expect(petak('TLKM')).toHaveClass(/dipantau/);
+
+		expect(galat).toEqual([]);
+	});
+
+	test('dashboard menampilkan tabel watchlist, kinerja, sorotan skor, peta risiko, dan orang dalam', async ({
+		page
+	}) => {
+		await masukLewatBrowser(page, 'halaman-dashboard-watchlist');
+		const galat = tangkapGalatKonsol(page);
+
+		await siapkanInsight(page, 'PTBA');
+		await siapkanInsight(page, 'ANTM');
+
+		await page.goto('/dashboard');
+		await expect(page.getByTestId('status-live')).toHaveAttribute('data-terhubung', 'true');
+
+		const baris = page.getByTestId('baris-watchlist');
+		await expect(baris).toHaveCount(2);
+		await expect(baris.first()).toHaveAttribute('data-ticker', 'ANTM');
+		await expect(baris.filter({ hasText: 'ANTM' })).toContainText('3.230');
+		await expect(baris.filter({ hasText: 'ANTM' })).toContainText('▼ 1,22%');
+		await expect(baris.filter({ hasText: 'PTBA' })).toContainText('▲ 0,76%');
+		await expect(baris.first().getByTestId('tren-harga')).toBeVisible();
+
+		const sorotan = page.getByTestId('sorotan-emiten');
+		await expect(sorotan).toHaveAttribute('data-ticker', 'ANTM');
+		await expect(sorotan).toContainText('Rentang 52 minggu');
+
+		await baris.filter({ hasText: 'PTBA' }).getByRole('button', { name: /PTBA/ }).click();
+		await expect(sorotan).toHaveAttribute('data-ticker', 'PTBA');
+		await expect(sorotan.getByTestId('harga-sorotan')).toHaveText('2.650');
+
+		await page.getByTestId('petak-risiko').filter({ hasText: 'ANTM' }).click();
+		await expect(sorotan).toHaveAttribute('data-ticker', 'ANTM');
+
+		const urutSaham = page.getByRole('button', { name: 'Saham', exact: true });
+		await urutSaham.click();
+		await expect(baris.first()).toHaveAttribute('data-ticker', 'ANTM');
+		await urutSaham.click();
+		await expect(baris.first()).toHaveAttribute('data-ticker', 'PTBA');
+
+		const legenda = page.getByTestId('legenda-kinerja');
+		await expect(legenda).toHaveCount(3);
+		await expect(page.locator('[data-testid="legenda-kinerja"][data-kode="IHSG"]')).toBeVisible();
+
+		await expect(page.getByTestId('panel-orang-dalam')).toContainText('Direktur Utama');
+		await expect(page.getByTestId('kalimat-ringkas')).toContainText('ANTM');
+		await expect(page.getByTestId('jadwal-pindai')).toContainText('Pemindaian berikutnya');
+
+		expect(galat).toEqual([]);
+	});
+
+	test('status bursa mengikuti jadwal perdagangan BEI dalam WIB', async ({ page }) => {
+		await masukLewatBrowser(page, 'halaman-bursa');
+		const status = page.getByTestId('status-bursa');
+
+		await page.clock.setFixedTime(new Date('2026-09-29T03:15:00Z'));
+		await page.goto('/dashboard');
+		await expect(status).toContainText('Sesi I berjalan');
+		await expect(status).toHaveAttribute('data-buka', 'true');
+
+		await page.clock.setFixedTime(new Date('2026-10-02T05:00:00Z'));
+		await page.reload();
+		await expect(status).toContainText('Istirahat siang');
+		await expect(status).toContainText('Sesi II mulai 14.00 WIB');
+		await expect(status).toHaveAttribute('data-buka', 'false');
+
+		await page.clock.setFixedTime(new Date('2026-10-03T03:00:00Z'));
+		await page.reload();
+		await expect(status).toContainText('Bursa tutup');
+		await expect(status).toContainText('Buka Senin 09.00 WIB');
 	});
 
 	test('detail insight menampilkan sub skor, data pendukung, dan badge signature', async ({
@@ -224,13 +370,13 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(page.getByTestId('avatar-inisial')).toBeVisible();
 
 		await page.getByLabel('Nama lengkap').fill('Nama Sudah Diubah');
-		await page.getByLabel('Tema').selectOption('light');
+		await page.getByLabel('Zona waktu').selectOption('Asia/Makassar');
 		await page.getByTestId('simpan-profil').click();
 
 		await expect(page.getByTestId('profil-tersimpan')).toBeVisible();
 		await page.reload();
 		await expect(page.getByLabel('Nama lengkap')).toHaveValue('Nama Sudah Diubah');
-		await expect(page.getByLabel('Tema')).toHaveValue('light');
+		await expect(page.getByLabel('Zona waktu')).toHaveValue('Asia/Makassar');
 
 		await page.getByTestId('tautan-sesi').click();
 		await expect(page).toHaveURL(/\/account\/sessions/);

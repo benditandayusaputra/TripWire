@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { panggilApi, pesanGalat } from '$lib/server/api';
+import { teks } from '$lib/bahasa.svelte';
 import type { Actions, PageServerLoad } from './$types';
 
 type Sesi = {
@@ -26,7 +27,7 @@ export const load: PageServerLoad = async ({ request }) => {
 };
 
 export const actions: Actions = {
-	cabut: async ({ request, cookies }) => {
+	cabut: async ({ request, cookies, locals }) => {
 		const form = await request.formData();
 		const id = String(form.get('session_id') ?? '');
 
@@ -37,13 +38,18 @@ export const actions: Actions = {
 		);
 
 		if (!response.ok) {
-			return fail(response.status, { error: pesanGalat(payload, 'Gagal mencabut sesi') });
+			return fail(response.status, {
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal mencabut sesi', 'Could not revoke the session')
+				)
+			});
 		}
 
 		return { sukses: true };
 	},
 
-	cabutLainnya: async ({ request, cookies }) => {
+	cabutLainnya: async ({ request, cookies, locals }) => {
 		const { response, payload } = await panggilApi(
 			'/account/sessions',
 			{ method: 'DELETE', headers: csrfHeader(cookies) },
@@ -51,7 +57,12 @@ export const actions: Actions = {
 		);
 
 		if (!response.ok) {
-			return fail(response.status, { error: pesanGalat(payload, 'Gagal mencabut sesi lain') });
+			return fail(response.status, {
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal mencabut sesi lain', 'Could not revoke the other sessions')
+				)
+			});
 		}
 
 		return { sukses: true, dicabut: payload?.revoked ?? 0 };

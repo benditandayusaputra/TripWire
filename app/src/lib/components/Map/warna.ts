@@ -1,14 +1,19 @@
-type WarnaKomoditas = { variabel: string; latar: string };
+type WarnaKomoditas = { penanda: string; latar: string };
 
 const WARNA: Record<string, WarnaKomoditas> = {
-	nickel: { variabel: '--color-tier-high', latar: 'bg-tier-high' },
-	copper: { variabel: '--color-tier-high', latar: 'bg-tier-high' },
-	bauxite: { variabel: '--color-tier-moderate', latar: 'bg-tier-moderate' },
-	gold: { variabel: '--color-tier-low', latar: 'bg-tier-low' },
-	silver: { variabel: '--color-secondary', latar: 'bg-secondary' },
-	coal: { variabel: '--color-secondary', latar: 'bg-secondary' }
+	nickel: { penanda: 'fill-tier-high stroke-tier-high', latar: 'bg-tier-high' },
+	copper: { penanda: 'fill-tier-high stroke-tier-high', latar: 'bg-tier-high' },
+	bauxite: { penanda: 'fill-tier-moderate stroke-tier-moderate', latar: 'bg-tier-moderate' },
+	gold: { penanda: 'fill-tier-low stroke-tier-low', latar: 'bg-tier-low' },
+	silver: { penanda: 'fill-secondary stroke-secondary', latar: 'bg-secondary' },
+	coal: { penanda: 'fill-secondary stroke-secondary', latar: 'bg-secondary' }
 };
 
 export function warnaKomoditas(nama: string): WarnaKomoditas {
-	return WARNA[nama.toLowerCase()] ?? { variabel: '--color-diamond-300', latar: 'bg-diamond-300' };
+	return (
+		WARNA[nama.toLowerCase()] ?? {
+			penanda: 'fill-diamond-300 stroke-diamond-300',
+			latar: 'bg-diamond-300'
+		}
+	);
 }

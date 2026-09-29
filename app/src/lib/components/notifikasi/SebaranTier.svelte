@@ -69,7 +69,7 @@
 
 	@media (hover: hover) {
 		.baris:hover {
-			background: rgba(255, 255, 255, 0.04);
+			background: color-mix(in srgb, var(--cahaya) 4%, transparent);
 		}
 	}
 
@@ -86,7 +86,7 @@
 		flex: 1;
 		overflow: hidden;
 		border-radius: 999px;
-		background: rgba(180, 205, 255, 0.08);
+		background: color-mix(in srgb, var(--kilau) 8%, transparent);
 	}
 
 	.isi {

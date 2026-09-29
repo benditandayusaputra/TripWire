@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { TriangleAlert } from 'lucide-svelte';
+	import { t } from '$lib/bahasa.svelte';
 </script>
 
 <div
@@ -9,8 +10,14 @@
 	<TriangleAlert class="text-tier-moderate mt-0.5 size-4 flex-none" aria-hidden="true" />
 	<p class="text-secondary text-[13.5px] leading-relaxed">
 		<span class="text-ink font-medium"
-			>Informasi dan analisis, bukan rekomendasi beli atau jual.</span
+			>{t(
+				'Informasi dan analisis, bukan rekomendasi beli atau jual.',
+				'Information and analysis, not a recommendation to buy or sell.'
+			)}</span
 		>
-		TripWire tidak berlisensi sebagai penasihat investasi. Semua keputusan transaksi ada di tangan kamu.
+		{t(
+			'TripWire tidak berlisensi sebagai penasihat investasi. Semua keputusan transaksi ada di tangan kamu.',
+			'TripWire is not a licensed investment adviser. Every trading decision is yours to make.'
+		)}
 	</p>
 </div>

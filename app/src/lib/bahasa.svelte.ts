@@ -1,3 +1,4 @@
+import { browser } from '$app/environment';
 import { page } from '$app/state';
 
 export type Bahasa = 'id' | 'en';
@@ -8,10 +9,23 @@ export const TEMA: Tema[] = ['dark', 'light', 'system'];
 
 const SETAHUN = 60 * 60 * 24 * 365;
 
-const pilihan = $state<{ bahasa: Bahasa | null }>({ bahasa: null });
+function dariCookie(nama: string, daftar: string[]) {
+	const nilai = browser ? document.cookie.match(new RegExp(`(?:^|; )${nama}=([^;]*)`))?.[1] : '';
+	return nilai && daftar.includes(nilai) ? nilai : null;
+}
+
+const pilihan = $state({ bahasa: dariCookie('tw_bahasa', BAHASA) as Bahasa | null });
+
+const temaCookie = dariCookie('tw_tema', TEMA);
+if (temaCookie) document.documentElement.dataset.tema = temaCookie;
 
 export function bahasa(): Bahasa {
-	return pilihan.bahasa ?? (page.data.bahasa as Bahasa | undefined) ?? 'id';
+	if (pilihan.bahasa) return pilihan.bahasa;
+	try {
+		return (page.data.bahasa as Bahasa | undefined) ?? 'id';
+	} catch {
+		return 'id';
+	}
 }
 
 export function teks(kode: Bahasa, id: string, en: string) {
