@@ -37,6 +37,7 @@ type Dependencies struct {
 func Register(app *fiber.App, deps Dependencies) {
 	cfg := deps.Config
 
+	app.Use(middleware.Language())
 	app.Use(middleware.SecurityHeaders(cfg.IsProduction()))
 	app.Use(middleware.CORS(cfg.FrontendURL))
 
