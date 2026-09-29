@@ -66,6 +66,8 @@ Akses: **Publik** (gak perlu login) · **User** (butuh access token valid) · **
 | GET | /watchlist/:id/prices | User (owner) | Harga harian 90 hari (open, high, low, close, volume) dari Sectors `/daily/`, 1 credit per emiten per hari, dilayani cache setelahnya. Halaman watchlist memanggilnya untuk setiap baris, dipakai sebagai garis tren sebulan dan harga penutupan emiten yang belum dipindai |
 | GET | /market/top | User | Sepuluh saham berkapitalisasi terbesar dari halaman pertama screener Sectors `/companies/` (kode, nama, sektor, harga penutupan, perubahan harian, kapitalisasi), 1 credit lalu dilayani cache. Dipakai sebagai saran saham di watchlist |
 | GET | /market/stocks | User | Seluruh emiten di daftar ticker IDX untuk modal Tambah saham, diurutkan kapitalisasi. Harga, perubahan, kapitalisasi, dan sektor diambil dari semua halaman screener (sekitar 5 credit per hari, halaman pertama dibagi dengan `/market/top`). Kalau Sectors tidak bisa dipanggil, emiten tetap dikirim dengan harga `null` |
+| GET | /market/index/:code | User | Nilai penutupan harian indeks `ihsg`, `lq45`, atau `idx30` selama 90 hari dari Sectors `/index-daily/`, 1 credit per indeks per hari. Kode lain ditolak 422 sebelum sampai ke Sectors. Dipakai grafik indeks di dashboard |
+| GET | /market/foreign-flow | User | Sepuluh saham dengan net beli asing terbesar dan sepuluh dengan net jual asing terbesar pada hari bursa terakhir dari Sectors `/foreign-flow/`, 2 credit per hari |
 | POST | /watchlist | User | Tambah ticker baru |
 | PATCH | /watchlist/:id | User (owner) | Ubah data_display_pref |
 | DELETE | /watchlist/:id | User (owner) | Hapus dari watchlist |
