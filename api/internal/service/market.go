@@ -33,6 +33,20 @@ type MarketReport struct {
 	Data        json.RawMessage `json:"data"`
 }
 
+type Kutipan struct {
+	Ticker          string   `json:"ticker"`
+	Harga           float64  `json:"last_close_price"`
+	TanggalTutup    string   `json:"latest_close_date,omitempty"`
+	PerubahanHarian *float64 `json:"daily_close_change"`
+	Kapitalisasi    *float64 `json:"market_cap"`
+	Peringkat       *float64 `json:"market_cap_rank"`
+	Tertinggi52     *float64 `json:"high_52w"`
+	Terendah52      *float64 `json:"low_52w"`
+	Sektor          string   `json:"sector,omitempty"`
+	SubSektor       string   `json:"sub_sector,omitempty"`
+	Indeks          []string `json:"indices"`
+}
+
 type MarketService struct {
 	client  *sectorsclient.Client
 	tickers *TickerService
@@ -68,6 +82,68 @@ func (s *MarketService) CompanyReport(ctx context.Context, rawTicker string) (*M
 			CircuitOpen:      s.client.CircuitTerbuka(ctx),
 		},
 	}, nil
+}
+
+func (s *MarketService) Kutipan(ctx context.Context, kode []string) map[string]Kutipan {
+	hasil := map[string]Kutipan{}
+	for _, satu := range kode {
+		data, ada := s.client.Terakhir(ctx, pathLaporan(satu))
+		if !ada {
+			continue
+		}
+		if kutipan, ok := uraiKutipan(satu, data); ok {
+			hasil[satu] = kutipan
+		}
+	}
+	return hasil
+}
+
+func uraiKutipan(kode string, data json.RawMessage) (Kutipan, bool) {
+	var isi struct {
+		Overview struct {
+			Sector        string                               `json:"sector"`
+			SubSector     string                               `json:"sub_sector"`
+			MarketCap     angkaFleksibel                       `json:"market_cap"`
+			MarketCapRank angkaFleksibel                       `json:"market_cap_rank"`
+			Harga         angkaFleksibel                       `json:"last_close_price"`
+			TanggalTutup  string                               `json:"latest_close_date"`
+			Perubahan     angkaFleksibel                       `json:"daily_close_change"`
+			Rentang       map[string]map[string]angkaFleksibel `json:"all_time_price"`
+			Indices       []string                             `json:"indices"`
+		} `json:"overview"`
+	}
+	_ = json.Unmarshal(data, &isi)
+
+	o := isi.Overview
+	if !o.Harga.Ada || o.Harga.Nilai <= 0 {
+		return Kutipan{}, false
+	}
+
+	ujung := func(kunci string) *float64 {
+		for _, nilai := range o.Rentang[kunci] {
+			return nilai.ptr()
+		}
+		return nil
+	}
+
+	indeks := o.Indices
+	if indeks == nil {
+		indeks = []string{}
+	}
+
+	return Kutipan{
+		Ticker:          kode,
+		Harga:           o.Harga.Nilai,
+		TanggalTutup:    o.TanggalTutup,
+		PerubahanHarian: o.Perubahan.ptr(),
+		Kapitalisasi:    o.MarketCap.ptr(),
+		Peringkat:       o.MarketCapRank.ptr(),
+		Tertinggi52:     ujung("52_w_high"),
+		Terendah52:      ujung("52_w_low"),
+		Sektor:          o.Sector,
+		SubSektor:       o.SubSector,
+		Indeks:          indeks,
+	}, true
 }
 
 func (s *MarketService) Credits(ctx context.Context) MarketMeta {

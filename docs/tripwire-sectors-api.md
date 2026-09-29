@@ -18,9 +18,21 @@ TripWire memakai v2 dengan base URL `https://api.sectors.app/v2` dan header `Aut
 | Daftar situs tambang | `/mining/sites/?company={slug}&limit=30` | 1 | 7 hari |
 | Koordinat situs, maksimal tiga | `/mining/sites/{slug}/` | 1 per situs | 7 hari |
 | Universe ticker | `/companies/?limit=200&offset=` | 1 per halaman, sekitar 5 | 7 hari |
+| Harga harian untuk grafik watchlist | `/daily/{symbol}/?start={90 hari lalu}` | 1 | `SECTORS_CACHE_TTL` |
 
 `SECTORS_CACHE_TTL` bawaannya 24 jam. Data harian Sectors paling cepat berubah sekali sehari, jadi
 scheduler yang jalan tiap 6 jam hampir selalu dilayani cache.
+
+Setiap respons yang berhasil juga disalin ke `sectors:salinan:<path>` selama 14 hari. Salinan ini tidak
+pernah dipakai untuk menghitung insight, hanya untuk kutipan harga di `GET /watchlist` (field `quotes`),
+yang dibaca dari cache laporan emiten atau salinannya tanpa memanggil Sectors dan tanpa memakai credit.
+Emiten yang belum pernah dipindai tidak punya kutipan sampai scan pertamanya.
+
+Harga harian hanya diambil saat pengguna membuka detail satu emiten di watchlist, tidak ikut scan
+terjadwal. Respons `/daily/` berupa array polos berisi `symbol, date, open, high, low, close, volume,
+market_cap`, sekitar 62 hari bursa untuk jendela 90 hari. Parameter `start` berganti tiap hari
+sehingga biaya paling banyak 1 credit per emiten per hari, berapa pun pengguna yang membukanya.
+Endpoint TripWire-nya hanya melayani emiten yang ada di watchlist pemanggil.
 
 ## 2. Aturan Penagihan
 Diambil dari dokumentasi Sectors, dan diterapkan di `api/pkg/sectorsclient`:
@@ -45,6 +57,7 @@ pemakaian semua lingkungan.
 | Market Intelligence emiten tambang pertama kali dalam seminggu | 7 sampai 10 |
 | Scan pertama untuk ANTM, MDKA, INCO, PTBA, BBCA | sekitar 70 |
 | Scan harian berikutnya untuk lima emiten yang sama | sekitar 30 |
+| Grafik harga satu emiten di detail watchlist | 1 per hari, pembuka berikutnya dilayani cache |
 
 Verifikasi dengan data asli pada 28 September 2026 memakai 59 credit: 14 untuk eksplorasi manual,
 5 untuk universe ticker, dan 40 untuk insight ANTM, PTBA, PPGL, dan BBCA.

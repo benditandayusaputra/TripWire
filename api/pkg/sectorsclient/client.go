@@ -27,6 +27,8 @@ const (
 	keyKegagalan      = "sectors:circuit:kegagalan"
 	prefixCache       = "sectors:cache:"
 	prefixTidakAda    = "sectors:cache404:"
+	prefixSalinan     = "sectors:salinan:"
+	ttlSalinan        = 14 * 24 * time.Hour
 	biayaTidakAda     = 1
 )
 
@@ -136,6 +138,7 @@ func (c *Client) Get(ctx context.Context, path string, ttl time.Duration, biaya 
 	if err := c.redis.Set(ctx, cacheKey, []byte(data), ttl).Err(); err != nil {
 		return nil, err
 	}
+	c.redis.Set(ctx, prefixSalinan+kunci, []byte(data), ttlSalinan)
 
 	return &Hasil{
 		Data:      data,
@@ -146,6 +149,16 @@ func (c *Client) Get(ctx context.Context, path string, ttl time.Duration, biaya 
 		CacheKey:  cacheKey,
 		SumberURL: c.opts.BaseURL + path,
 	}, nil
+}
+
+func (c *Client) Terakhir(ctx context.Context, path string) (json.RawMessage, bool) {
+	kunci := strings.TrimPrefix(path, "/")
+	for _, awalan := range []string{prefixCache, prefixSalinan} {
+		if data, err := c.redis.Get(ctx, awalan+kunci).Bytes(); err == nil && len(data) > 0 {
+			return data, true
+		}
+	}
+	return nil, false
 }
 
 func (c *Client) ambilUpstream(ctx context.Context, path string) (json.RawMessage, error) {
