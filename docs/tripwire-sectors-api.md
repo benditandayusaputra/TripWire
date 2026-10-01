@@ -23,7 +23,7 @@ TripWire memakai v2 dengan base URL `https://api.sectors.app/v2` dan header `Aut
 | Universe ticker | `/companies/?limit=200&offset=` | 1 per halaman, sekitar 5 | 7 hari |
 | Grafik indeks IHSG, LQ45, IDX30 di dashboard | `/index-daily/{kode}/?start={90 hari lalu}` | 1 per indeks | `SECTORS_CACHE_TTL` |
 | Net beli dan net jual asing teratas | `/foreign-flow/?limit=10&order_by=-net_foreign_inflow` dan `order_by=net_foreign_inflow` | 2 | `SECTORS_CACHE_TTL` |
-| Harga harian untuk grafik dan garis tren watchlist | `/daily/{symbol}/?start={90 hari lalu}` | 1 | `SECTORS_CACHE_TTL` |
+| Harga harian untuk grafik, garis tren watchlist, dan halaman saham | `/daily/{symbol}/?start={90 hari lalu}` | 1 | `SECTORS_CACHE_TTL` |
 | Daftar saham untuk saran dan modal Tambah saham | `/companies/?where=...&order_by=-market_cap&include_query_values=true&limit=200&offset=` | 1 per halaman, 5 halaman untuk 962 emiten | `SECTORS_CACHE_TTL` |
 
 `SECTORS_CACHE_TTL` bawaannya 24 jam. Data harian Sectors paling cepat berubah sekali sehari, jadi
@@ -94,6 +94,8 @@ pemakaian semua lingkungan.
 | Scan harian berikutnya untuk lima emiten yang sama | sekitar 15, sebelumnya sekitar 30 saat laporan diambil utuh tiap hari |
 | Membuka watchlist berisi N emiten pertama kali dalam sehari | N untuk harga harian, ditambah 1 untuk saran saham |
 | Membuka modal Tambah saham pertama kali dalam sehari | 4 lagi untuk halaman screener sisanya |
+| Membuka halaman saham emiten yang belum pernah dibuka siapa pun | 5 (harga harian 1, ringkasan 1, kepemilikan 1, direksi 1, komposisi 1), lalu 1 sampai 2 per hari karena direksi, komposisi, dan kepemilikan disimpan 7 hari |
+| Menekan Pantau pada saham yang belum pernah dipindai | sama dengan scan pertama emiten itu, dijalankan langsung lewat `POST /watchlist/:id/scan`, bukan menunggu jadwal |
 
 Verifikasi dengan data asli pada 28 September 2026 memakai 59 credit: 14 untuk eksplorasi manual,
 5 untuk universe ticker, dan 40 untuk insight ANTM, PTBA, PPGL, dan BBCA.

@@ -95,24 +95,31 @@
 						style="left:{kotak.x}px; top:{kotak.y}px; width:{kotak.w}px; height:{kotak.h}px; {gaya(
 							kotak.data.daily_close_change
 						)}"
-						title="{kotak.data.ticker}, {kotak.data.company_name}, {ubah.teks}, {formatRupiah(
-							kotak.data.market_cap
-						)}"
-						aria-label={t(
-							`${kotak.data.ticker}, ${namaSektor(kotak.data.sector ?? '')}, ${kataArah(ubah.arah)} ${ubah.angka}, kapitalisasi ${formatRupiah(kotak.data.market_cap)}`,
-							`${kotak.data.ticker}, ${namaSektor(kotak.data.sector ?? '')}, ${kataArah(ubah.arah)} ${ubah.angka}, market cap ${formatRupiah(kotak.data.market_cap)}`
-						)}
 					>
-						{#if kotak.w > 46 && kotak.h > 26}
-							<span
-								class="kode"
-								style="font-size:{Math.min(16, Math.max(10.5, Math.sqrt(kotak.w * kotak.h) / 7))}px"
-								>{kotak.data.ticker}</span
-							>
-							{#if kotak.h > 42}
-								<span class="ubah">{ubah.teks}</span>
+						<a
+							href="/stocks/{kotak.data.ticker}"
+							class="isi-petak"
+							title="{kotak.data.ticker}, {kotak.data.company_name}, {ubah.teks}, {formatRupiah(
+								kotak.data.market_cap
+							)}"
+							aria-label={t(
+								`${kotak.data.ticker}, ${namaSektor(kotak.data.sector ?? '')}, ${kataArah(ubah.arah)} ${ubah.angka}, kapitalisasi ${formatRupiah(kotak.data.market_cap)}`,
+								`${kotak.data.ticker}, ${namaSektor(kotak.data.sector ?? '')}, ${kataArah(ubah.arah)} ${ubah.angka}, market cap ${formatRupiah(kotak.data.market_cap)}`
+							)}
+						>
+							{#if kotak.w > 46 && kotak.h > 26}
+								<span
+									class="kode"
+									style="font-size:{Math.min(
+										16,
+										Math.max(10.5, Math.sqrt(kotak.w * kotak.h) / 7)
+									)}px">{kotak.data.ticker}</span
+								>
+								{#if kotak.h > 42}
+									<span class="ubah">{ubah.teks}</span>
+								{/if}
 							{/if}
-						{/if}
+						</a>
 					</li>
 				{/each}
 			</ul>
@@ -178,16 +185,27 @@
 
 	.petak {
 		position: absolute;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
 		overflow: hidden;
 		border: 1px solid var(--color-base);
 		border-radius: 4px;
 		color: var(--teks);
 		text-align: center;
 		transition: filter 0.2s ease;
+	}
+
+	.isi-petak {
+		display: flex;
+		width: 100%;
+		height: 100%;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		color: inherit;
+	}
+
+	.isi-petak:focus-visible {
+		outline: 2px solid var(--color-diamond-300);
+		outline-offset: -2px;
 	}
 
 	@media (hover: hover) {

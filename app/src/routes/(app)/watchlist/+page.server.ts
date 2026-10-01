@@ -143,6 +143,12 @@ export const actions: Actions = {
 			);
 		}
 
+		await panggilApi(
+			`/watchlist/${item.id}/scan`,
+			{ method: 'POST', headers: csrfHeader(cookies) },
+			cookie
+		).catch(() => null);
+
 		if (form.get('tetap') === '1') return { aksi: 'tambah', sukses: true, ticker: item.ticker };
 		redirect(303, `/watchlist?emiten=${item.ticker}`);
 	},
