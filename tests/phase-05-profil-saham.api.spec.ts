@@ -23,6 +23,7 @@ test.describe('Fase 5: profil emiten, pengelola, dan pemegang saham', () => {
 	}) => {
 		const { sesi } = await sesiMasuk(request, 'profil-saham');
 		lupakanCache(
+			'company/report/ANTM/?sections=ownership',
 			'company/report/ANTM/?sections=management',
 			'company/shareholders-composition/ANTM/'
 		);
@@ -38,8 +39,8 @@ test.describe('Fase 5: profil emiten, pengelola, dan pemegang saham', () => {
 		const profil = await pertama.json();
 
 		expect(profil.meta.cached).toBe(false);
-		expect(await panggilanStub(request)).toBe(stubAwal + 3);
-		expect((await kredit()) - kreditAwal).toBe(6);
+		expect(await panggilanStub(request)).toBe(stubAwal + 4);
+		expect((await kredit()) - kreditAwal).toBe(4);
 
 		expect(profil.ticker).toBe('ANTM');
 		expect(profil.company_name).toBe('Aneka Tambang Tbk.');
@@ -96,8 +97,8 @@ test.describe('Fase 5: profil emiten, pengelola, dan pemegang saham', () => {
 
 		const kedua = await sesi.kirim('get', '/market/ANTM/profile');
 		expect((await kedua.json()).meta.cached).toBe(true);
-		expect(await panggilanStub(request)).toBe(stubAwal + 3);
-		expect((await kredit()) - kreditAwal).toBe(6);
+		expect(await panggilanStub(request)).toBe(stubAwal + 4);
+		expect((await kredit()) - kreditAwal).toBe(4);
 	});
 
 	test('profil tetap tampil saat Sectors belum punya data direksi atau komposisi', async ({

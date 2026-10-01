@@ -118,7 +118,7 @@ func (s *MarketService) Profil(ctx context.Context, rawTicker string) (*ProfilEm
 		return nil, v
 	}
 
-	laporan, err := s.client.Get(ctx, pathLaporan(ticker.Code), 0, biayaLaporan)
+	laporan, err := ambilLaporan(ctx, s.client, ticker.Code, "overview", "ownership")
 	if err != nil {
 		return nil, err
 	}
