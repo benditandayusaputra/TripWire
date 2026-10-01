@@ -23,6 +23,17 @@ type Run = {
 	catatan: string[];
 };
 
+type Kredit = {
+	credits_used: number;
+	credits_remaining: number;
+	credit_budget: number;
+	circuit_open: boolean;
+	credit_threshold: number;
+	daily_usage: { date: string; credits: number }[];
+	daily_average: number | null;
+	days_left: number | null;
+};
+
 type Pengguna = {
 	id: string;
 	email: string;
@@ -53,12 +64,17 @@ export const load: PageServerLoad = async ({ request }) => {
 			total_insight: 0,
 			kondisi_aktif: 0
 		}) as Statistik,
-		credits: (credits.payload?.credits ?? {
+		credits: {
 			credits_used: 0,
 			credits_remaining: 0,
 			credit_budget: 0,
-			circuit_open: false
-		}) as Record<string, number | boolean>,
+			circuit_open: false,
+			credit_threshold: 0,
+			daily_usage: [],
+			daily_average: null,
+			days_left: null,
+			...(credits.payload?.credits ?? {})
+		} as Kredit,
 		terakhir: (scheduler.payload?.scheduler?.terakhir ?? null) as Run | null,
 		riwayat: (scheduler.payload?.scheduler?.riwayat ?? []) as Run[],
 		users: (users.payload?.users ?? []) as Pengguna[]

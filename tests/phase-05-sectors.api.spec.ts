@@ -1,5 +1,7 @@
+import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
-import { sesiMasuk } from './helpers/akun';
+import { akunBaru, daftarLewatApi, jadikanAdmin, SesiApi, sesiMasuk } from './helpers/akun';
+import { denganCaptcha } from './helpers/captcha';
 
 const STUB_URL = `http://127.0.0.1:${process.env.SECTORS_STUB_PORT ?? '8899'}`;
 
@@ -8,6 +10,17 @@ const CACHE_TTL_MS = 2000;
 async function statistikStub(request: import('@playwright/test').APIRequestContext) {
 	const response = await request.get(`${STUB_URL}/__stub/stats`);
 	return (await response.json()).upstream_calls as number;
+}
+
+function lupakanLaporan(kode: string) {
+	execFileSync('redis-cli', [
+		'-n',
+		'1',
+		'DEL',
+		...['overview', 'valuation', 'financials', 'ownership'].map(
+			(bagian) => `sectors:cache:company/report/${kode}/?sections=${bagian}`
+		)
+	]);
 }
 
 async function tungguCacheKedaluwarsa() {
@@ -19,6 +32,7 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		const { sesi } = await sesiMasuk(request, 'sectors-cache');
 		const ticker = 'ANTM';
 
+		lupakanLaporan(ticker);
 		await tungguCacheKedaluwarsa();
 		const sebelum = await statistikStub(request);
 
@@ -36,7 +50,7 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		expect(isiPertama.meta.cached).toBe(false);
 
 		const setelahPertama = await statistikStub(request);
-		expect(setelahPertama).toBe(sebelum + 1);
+		expect(setelahPertama).toBe(sebelum + 4);
 
 		const kedua = await sesi.kirim('get', `/market/${ticker}`);
 		expect(kedua.status()).toBe(200);
@@ -71,6 +85,7 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 	test('laporan emiten v2 ditagih satu credit per section yang diminta', async ({ request }) => {
 		const { sesi } = await sesiMasuk(request, 'sectors-biaya');
 
+		lupakanLaporan('TLKM');
 		await tungguCacheKedaluwarsa();
 		const sebelum = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
 
@@ -80,6 +95,67 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 
 		const sesudah = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
 		expect(sesudah - sebelum).toBe(4);
+	});
+
+	test('bagian laporan yang jarang berubah disimpan seminggu, hanya ringkasan harga yang disegarkan', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-bagian');
+		const kredit = async () =>
+			(await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used as number;
+
+		lupakanLaporan('PTBA');
+		const stubAwal = await statistikStub(request);
+		const kreditAwal = await kredit();
+
+		const pertama = await (await sesi.kirim('get', '/market/PTBA')).json();
+		expect(pertama.meta.cached).toBe(false);
+		expect(await statistikStub(request)).toBe(stubAwal + 4);
+		expect((await kredit()) - kreditAwal).toBe(4);
+
+		await tungguCacheKedaluwarsa();
+
+		const kedua = await (await sesi.kirim('get', '/market/PTBA')).json();
+		expect(kedua.meta.cached).toBe(false);
+		expect(await statistikStub(request)).toBe(stubAwal + 5);
+		expect((await kredit()) - kreditAwal).toBe(5);
+		expect(kedua.data).toEqual(pertama.data);
+	});
+
+	test('pemakaian credit dicatat per hari dan admin melihat perkiraan sisa hari', async ({
+		request
+	}) => {
+		const akun = akunBaru('sectors-harian-admin');
+		await daftarLewatApi(request, akun);
+		jadikanAdmin(akun.email);
+
+		const sesi = new SesiApi(request);
+		const masuk = await sesi.kirim('post', '/auth/login', {
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password })
+		});
+		expect(masuk.status()).toBe(200);
+
+		const bacaKredit = async () => (await (await sesi.kirim('get', '/admin/system/credits')).json()).credits;
+		const hariIni = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
+
+		const awal = await bacaKredit();
+		expect(awal.daily_usage).toHaveLength(7);
+		expect(awal.daily_usage.at(-1).date).toBe(hariIni);
+		expect(awal.credit_threshold).toBe(100);
+
+		lupakanLaporan('ADRO');
+		expect((await sesi.kirim('get', '/market/ADRO')).status()).toBe(200);
+
+		const sesudah = await bacaKredit();
+		expect(sesudah.daily_usage.at(-1).credits).toBe(awal.daily_usage.at(-1).credits + 4);
+		expect(sesudah.credits_used).toBe(awal.credits_used + 4);
+		expect(sesudah.daily_average).toBeGreaterThan(0);
+		expect(sesudah.days_left).toBe(
+			Math.max(
+				0,
+				Math.floor((sesudah.credits_remaining - sesudah.credit_threshold) / sesudah.daily_average)
+			)
+		);
 	});
 
 	test('kutipan harga watchlist dibaca dari salinan laporan tanpa memanggil Sectors lagi', async ({

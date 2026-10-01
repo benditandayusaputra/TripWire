@@ -109,7 +109,7 @@ func (s *MarketService) CompanyReport(ctx context.Context, rawTicker string) (*M
 		return nil, v
 	}
 
-	hasil, err := s.client.Get(ctx, pathLaporan(ticker.Code), 0, biayaLaporan)
+	hasil, err := ambilLaporan(ctx, s.client, ticker.Code, semuaBagianLaporan...)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +344,7 @@ func (s *MarketService) halamanAsing(ctx context.Context, urutan string) ([]Arus
 func (s *MarketService) Kutipan(ctx context.Context, kode []string) map[string]Kutipan {
 	hasil := map[string]Kutipan{}
 	for _, satu := range kode {
-		data, ada := s.client.Terakhir(ctx, pathLaporan(satu))
+		data, ada := s.client.Terakhir(ctx, pathLaporan(satu, "overview"))
 		if !ada {
 			continue
 		}

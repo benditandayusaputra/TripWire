@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
 	"net/url"
 	"strconv"
 	"strings"
@@ -25,8 +26,6 @@ const (
 	ModeStandar = "standard"
 	ModeTambang = "mining_deep"
 
-	bagianLaporan      = "overview,valuation,financials,ownership"
-	biayaLaporan       = 4
 	batasHalaman       = 30
 	jumlahSitusDetail  = 3
 	ttlReferensi       = 7 * 24 * time.Hour
@@ -36,6 +35,13 @@ const (
 )
 
 var (
+	semuaBagianLaporan = []string{"overview", "valuation", "financials", "ownership"}
+	ttlBagianLaporan   = map[string]time.Duration{
+		"overview":   0,
+		"valuation":  ttlReferensi,
+		"financials": ttlReferensi,
+		"ownership":  ttlReferensi,
+	}
 	kataKunciTambang = []string{"coal", "metal", "mineral", "mining", "gold", "nickel", "copper", "tambang"}
 	satuanLogamMulia = map[string]string{"gold": "USD/oz", "silver": "USD/oz", "platinum": "USD/oz", "palladium": "USD/oz"}
 )
@@ -71,8 +77,40 @@ func NewInsightService(
 	return &InsightService{client: client, tickers: tickers, integrity: integrity, notifikasi: notifikasi}
 }
 
-func pathLaporan(kode string) string {
-	return fmt.Sprintf("/company/report/%s/?sections=%s", url.PathEscape(kode), bagianLaporan)
+func pathLaporan(kode, bagian string) string {
+	return fmt.Sprintf("/company/report/%s/?sections=%s", url.PathEscape(kode), bagian)
+}
+
+func ambilLaporan(ctx context.Context, client *sectorsclient.Client, kode string, bagian ...string) (*sectorsclient.Hasil, error) {
+	mulai := time.Now()
+	gabungan := map[string]json.RawMessage{}
+	semuaCache := true
+
+	for _, satu := range bagian {
+		hasil, err := client.Get(ctx, pathLaporan(kode, satu), ttlBagianLaporan[satu], 1)
+		if err != nil {
+			return nil, err
+		}
+		var isi map[string]json.RawMessage
+		if err := json.Unmarshal(hasil.Data, &isi); err != nil {
+			return nil, fmt.Errorf("%w: laporan %s tidak terbaca", sectorsclient.ErrUpstreamGagal, kode)
+		}
+		maps.Copy(gabungan, isi)
+		semuaCache = semuaCache && hasil.Cached
+	}
+
+	data, err := json.Marshal(gabungan)
+	if err != nil {
+		return nil, err
+	}
+	terpakai, tersisa := client.Kredit(ctx)
+	return &sectorsclient.Hasil{
+		Data:     data,
+		Cached:   semuaCache,
+		Latensi:  time.Since(mulai),
+		Terpakai: terpakai,
+		Tersisa:  tersisa,
+	}, nil
 }
 
 func (s *InsightService) simpan(ctx context.Context, insight *Insight) (*Insight, error) {
@@ -106,7 +144,7 @@ func (s *InsightService) RedFlag(ctx context.Context, rawTicker string) (*Insigh
 	sekarang := time.Now()
 	jejak := baruJejak()
 
-	laporan, err := s.laporan(ctx, ticker.Code, jejak)
+	laporan, err := s.laporan(ctx, ticker.Code, jejak, "ownership")
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +188,7 @@ func (s *InsightService) MarketIntelligence(ctx context.Context, rawTicker strin
 	sekarang := time.Now()
 	jejak := baruJejak()
 
-	laporan, err := s.laporan(ctx, ticker.Code, jejak)
+	laporan, err := s.laporan(ctx, ticker.Code, jejak, "overview", "valuation", "financials")
 	if err != nil {
 		return nil, err
 	}
@@ -273,10 +311,16 @@ func (s *InsightService) ambil(ctx context.Context, jejak *jejakPanggilan, path 
 	return nil
 }
 
-func (s *InsightService) laporan(ctx context.Context, kode string, jejak *jejakPanggilan) (*laporanEmiten, error) {
-	var mentah laporanMentah
-	if err := s.ambil(ctx, jejak, pathLaporan(kode), 0, biayaLaporan, &mentah); err != nil {
+func (s *InsightService) laporan(ctx context.Context, kode string, jejak *jejakPanggilan, bagian ...string) (*laporanEmiten, error) {
+	hasil, err := ambilLaporan(ctx, s.client, kode, bagian...)
+	if err != nil {
 		return nil, err
+	}
+	jejak.catat(pathLaporan(kode, bagian[0]), hasil)
+
+	var mentah laporanMentah
+	if err := json.Unmarshal(hasil.Data, &mentah); err != nil {
+		return nil, fmt.Errorf("%w: laporan %s tidak terbaca", sectorsclient.ErrUpstreamGagal, kode)
 	}
 	return mentah.urai(), nil
 }

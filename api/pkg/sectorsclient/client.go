@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,9 +29,18 @@ const (
 	prefixCache       = "sectors:cache:"
 	prefixTidakAda    = "sectors:cache404:"
 	prefixSalinan     = "sectors:salinan:"
+	prefixHarian      = "sectors:credit:harian:"
 	ttlSalinan        = 14 * 24 * time.Hour
+	ttlHarian         = 40 * 24 * time.Hour
 	biayaTidakAda     = 1
 )
+
+var zonaWIB = time.FixedZone("WIB", 7*60*60)
+
+type PemakaianHari struct {
+	Tanggal string `json:"date"`
+	Credit  int64  `json:"credits"`
+}
 
 type Options struct {
 	BaseURL         string
@@ -124,7 +134,7 @@ func (c *Client) Get(ctx context.Context, path string, ttl time.Duration, biaya 
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrTidakDitemukan):
-			c.redis.IncrBy(ctx, keyCreditTerpakai, biayaTidakAda)
+			c.tagih(ctx, biayaTidakAda)
 			c.redis.Set(ctx, prefixTidakAda+kunci, "1", ttl)
 		case errors.Is(err, ErrUpstreamGagal):
 			c.catatKegagalan(ctx)
@@ -133,7 +143,7 @@ func (c *Client) Get(ctx context.Context, path string, ttl time.Duration, biaya 
 	}
 
 	c.redis.Del(ctx, keyKegagalan)
-	terpakai, _ := c.redis.IncrBy(ctx, keyCreditTerpakai, biaya).Result()
+	terpakai := c.tagih(ctx, biaya)
 
 	if err := c.redis.Set(ctx, cacheKey, []byte(data), ttl).Err(); err != nil {
 		return nil, err
@@ -208,6 +218,35 @@ func (c *Client) catatKegagalan(ctx context.Context) {
 		c.redis.Set(ctx, keyCircuit, "1", c.opts.CircuitCooldown)
 		c.redis.Del(ctx, keyKegagalan)
 	}
+}
+
+func (c *Client) tagih(ctx context.Context, biaya int64) int64 {
+	terpakai, _ := c.redis.IncrBy(ctx, keyCreditTerpakai, biaya).Result()
+	kunci := prefixHarian + time.Now().In(zonaWIB).Format("2006-01-02")
+	c.redis.IncrBy(ctx, kunci, biaya)
+	c.redis.Expire(ctx, kunci, ttlHarian)
+	return terpakai
+}
+
+func (c *Client) PemakaianHarian(ctx context.Context, hari int) []PemakaianHari {
+	sekarang := time.Now().In(zonaWIB)
+	hasil := make([]PemakaianHari, hari)
+	kunci := make([]string, hari)
+	for i := range hasil {
+		hasil[i].Tanggal = sekarang.AddDate(0, 0, i-hari+1).Format("2006-01-02")
+		kunci[i] = prefixHarian + hasil[i].Tanggal
+	}
+
+	nilai, err := c.redis.MGet(ctx, kunci...).Result()
+	if err != nil {
+		return hasil
+	}
+	for i, satu := range nilai {
+		if teks, ok := satu.(string); ok {
+			hasil[i].Credit, _ = strconv.ParseInt(teks, 10, 64)
+		}
+	}
+	return hasil
 }
 
 func (c *Client) Kredit(ctx context.Context) (terpakai, tersisa int64) {

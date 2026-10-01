@@ -7,7 +7,8 @@ TripWire memakai v2 dengan base URL `https://api.sectors.app/v2` dan header `Aut
 
 | Kebutuhan | Endpoint | Biaya | Cache |
 |---|---|---|---|
-| Laporan emiten (dipakai Red Flag, Market Intelligence, `/market/:ticker`, dan profil saham) | `/company/report/{symbol}/?sections=overview,valuation,financials,ownership` | 4 | `SECTORS_CACHE_TTL` |
+| Ringkasan emiten dan harga terakhir (Market Intelligence, profil saham, kutipan harga) | `/company/report/{symbol}/?sections=overview` | 1 | `SECTORS_CACHE_TTL` |
+| Valuasi, keuangan, dan kepemilikan emiten (Red Flag memakai `ownership`, Market Intelligence memakai `valuation` dan `financials`, profil saham memakai `ownership`) | `/company/report/{symbol}/?sections=valuation`, `financials`, `ownership`, masing masing satu panggilan | 1 per bagian | 7 hari |
 | Direksi dan saham milik direksi untuk profil saham | `/company/report/{symbol}/?sections=management` | 1 | 7 hari |
 | Komposisi investor lokal dan asing per bulan untuk profil saham | `/company/shareholders-composition/{symbol}/` | 1 | 7 hari |
 | Histori suspend | `/suspensions/?symbol={symbol}&limit=30` | 1 | `SECTORS_CACHE_TTL` |
@@ -27,6 +28,18 @@ TripWire memakai v2 dengan base URL `https://api.sectors.app/v2` dan header `Aut
 
 `SECTORS_CACHE_TTL` bawaannya 24 jam. Data harian Sectors paling cepat berubah sekali sehari, jadi
 scheduler yang jalan tiap 6 jam hampir selalu dilayani cache.
+
+Laporan emiten diminta per bagian sejak 2 Oktober 2026. Sectors menagih 1 credit per bagian, jadi
+biayanya sama dengan satu panggilan gabungan, tetapi tiap bagian punya kunci cache sendiri. Bagian
+`overview` membawa harga terakhir sehingga disegarkan harian, sedangkan valuasi tahunan, laporan
+keuangan, dan pemegang saham jarang berubah sehingga disimpan 7 hari. Emiten yang dipindai tiap hari
+turun dari 4 credit laporan per hari menjadi sekitar 1,4. `GET /market/:ticker` tetap mengembalikan
+empat bagian yang digabung. Mengubah jadwal scheduler tidak menghemat credit, karena tiap kunci
+paling banyak diambil ulang sekali dalam masa cache-nya berapa kali pun scan berjalan.
+
+Setiap credit yang terpakai juga dicatat per tanggal WIB di `sectors:credit:harian:<tanggal>` selama
+40 hari. Panel admin membaca tujuh hari terakhir untuk menampilkan rata rata harian dan perkiraan
+berapa hari lagi jatah cukup sebelum menyentuh `SECTORS_CREDIT_THRESHOLD`.
 
 Setiap respons yang berhasil juga disalin ke `sectors:salinan:<path>` selama 14 hari. Salinan ini tidak
 pernah dipakai untuk menghitung insight, hanya untuk kutipan harga di `GET /watchlist` (field `quotes`),
@@ -58,7 +71,7 @@ menumpuknya di atas monogram sebagai cadangan, dan CSP `img-src` hanya membuka p
 Diambil dari dokumentasi Sectors, dan diterapkan di `api/pkg/sectorsclient`:
 
 - 2xx ditagih sesuai biaya endpoint. Laporan emiten ditagih 1 credit per section, sehingga TripWire
-  selalu meminta empat section saja, bukan delapan section bawaan.
+  selalu menyebut section yang dibutuhkan, tidak pernah meminta delapan section bawaan.
 - 404 tetap ditagih 1 credit. Klien menyimpan penanda 404 di Redis selama masa cache yang sama supaya
   simbol yang memang tidak ada tidak ditagih berulang.
 - 400, 401, 403, 429, dan 5xx tidak ditagih. 429 dan 5xx dihitung sebagai kegagalan circuit breaker.
@@ -72,11 +85,13 @@ pemakaian semua lingkungan.
 ## 3. Perkiraan Biaya
 | Kegiatan | Credit |
 |---|---|
-| Red Flag satu emiten | 6 (laporan 4, suspend 1, filing 1) |
-| Market Intelligence emiten non tambang, laporan sudah di cache | 1 (pertumbuhan subsektor, dibagi dengan emiten lain satu subsektor) |
+| Red Flag satu emiten pertama kali | 3 (kepemilikan 1, suspend 1, filing 1) |
+| Red Flag satu emiten hari berikutnya | 2 (suspend dan filing), kepemilikan disegarkan seminggu sekali |
+| Market Intelligence emiten non tambang pertama kali | 4 (ringkasan, valuasi, keuangan, dan pertumbuhan subsektor yang dibagi dengan emiten lain satu subsektor) |
+| Market Intelligence emiten non tambang hari berikutnya | 1 (ringkasan harian) |
 | Market Intelligence emiten tambang pertama kali dalam seminggu | 7 sampai 10 |
 | Scan pertama untuk ANTM, MDKA, INCO, PTBA, BBCA | sekitar 70 |
-| Scan harian berikutnya untuk lima emiten yang sama | sekitar 30 |
+| Scan harian berikutnya untuk lima emiten yang sama | sekitar 15, sebelumnya sekitar 30 saat laporan diambil utuh tiap hari |
 | Membuka watchlist berisi N emiten pertama kali dalam sehari | N untuk harga harian, ditambah 1 untuk saran saham |
 | Membuka modal Tambah saham pertama kali dalam sehari | 4 lagi untuk halaman screener sisanya |
 

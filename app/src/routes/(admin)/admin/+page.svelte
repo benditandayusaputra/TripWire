@@ -3,7 +3,7 @@
 	import { Activity, CircleGauge, Play, TriangleAlert, Users } from 'lucide-svelte';
 	import Mark from '$lib/components/Mark.svelte';
 	import { formatTanggal, waktuRelatif } from '$lib/insight';
-	import { t } from '$lib/bahasa.svelte';
+	import { lokal, t } from '$lib/bahasa.svelte';
 
 	let { data, form } = $props();
 
@@ -16,6 +16,22 @@
 				)
 			: 0
 	);
+
+	const puncakHarian = $derived(
+		Math.max(1, ...data.credits.daily_usage.map((hari) => hari.credits))
+	);
+	const rataHarian = $derived(
+		data.credits.daily_average === null
+			? ''
+			: data.credits.daily_average.toLocaleString(lokal(), { maximumFractionDigits: 1 })
+	);
+
+	function namaHari(tanggal: string) {
+		return new Date(`${tanggal}T00:00:00+07:00`).toLocaleDateString(lokal(), {
+			weekday: 'short',
+			timeZone: 'Asia/Jakarta'
+		});
+	}
 
 	const ringkasan = $derived([
 		{ label: t('Pengguna', 'Users'), nilai: data.stats.total_users },
@@ -86,6 +102,38 @@
 				class="h-full rounded-full {sisaPersen > 30 ? 'bg-tier-low' : 'bg-tier-critical'}"
 				style="width: {Math.max(sisaPersen, 2)}%"
 			></div>
+		</div>
+
+		<div data-testid="admin-pemakaian" class="space-y-3">
+			<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+				<p class="tw-overline">{t('Pemakaian 7 hari terakhir', 'Usage over the last 7 days')}</p>
+				<p data-testid="admin-perkiraan" class="tw-caption">
+					{#if data.credits.days_left === null}
+						{t('Belum ada pemakaian yang tercatat.', 'No usage recorded yet.')}
+					{:else}
+						{t(
+							`Rata rata ${rataHarian} kredit per hari, cukup sekitar ${data.credits.days_left} hari lagi sebelum menyentuh ambang ${data.credits.credit_threshold}.`,
+							`Averaging ${rataHarian} credits a day, enough for about ${data.credits.days_left} more days before reaching the ${data.credits.credit_threshold} threshold.`
+						)}
+					{/if}
+				</p>
+			</div>
+			<ol class="flex h-20 items-end gap-1.5">
+				{#each data.credits.daily_usage as hari (hari.date)}
+					<li
+						data-testid="admin-hari"
+						class="flex h-full flex-1 flex-col items-center justify-end gap-1"
+						title="{hari.date}: {hari.credits}"
+					>
+						<span class="tw-data text-secondary text-[11px]">{hari.credits}</span>
+						<span
+							class="bg-secondary/45 w-full max-w-9 rounded-sm"
+							style="height: {Math.max((hari.credits / puncakHarian) * 44, 2)}px"
+						></span>
+						<span class="tw-overline text-[10px]">{namaHari(hari.date)}</span>
+					</li>
+				{/each}
+			</ol>
 		</div>
 
 		<p class="tw-overline flex items-center gap-2">
