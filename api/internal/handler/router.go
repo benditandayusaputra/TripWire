@@ -32,6 +32,7 @@ type Dependencies struct {
 	Feed       *service.FeedService
 	Admin      *service.AdminService
 	Pantauan   *service.PantauanService
+	Scan       *service.ScanService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -105,7 +106,7 @@ func Register(app *fiber.App, deps Dependencies) {
 	files.Post("/", berkas.Upload)
 	files.Delete("/:id", berkas.Hapus)
 
-	watchlist := NewWatchlistHandler(deps.Watchlist, deps.Market)
+	watchlist := NewWatchlistHandler(deps.Watchlist, deps.Market, deps.Scan)
 	app.Get("/tickers", requireAuth, watchlist.SearchTickers)
 
 	group := app.Group("/watchlist", requireAuth, csrf, middleware.XSSSanitize())
@@ -123,6 +124,7 @@ func Register(app *fiber.App, deps Dependencies) {
 	pantauan := NewPantauanHandler(deps.Pantauan)
 	group.Get("/overview", pantauan.Ringkasan)
 	group.Get("/:id/prices", pantauan.Harga)
+	group.Post("/:id/scan", watchlist.Pindai)
 
 	market := NewMarketHandler(deps.Market)
 	app.Get("/market/credits", requireAuth, market.Credits)
@@ -132,6 +134,7 @@ func Register(app *fiber.App, deps Dependencies) {
 	app.Get("/market/index/:code", requireAuth, market.Indeks)
 	app.Get("/market/:ticker", requireAuth, market.CompanyReport)
 	app.Get("/market/:ticker/profile", requireAuth, market.Profil)
+	app.Get("/market/:ticker/prices", requireAuth, market.Harga)
 
 	verifikasi := NewIntegrityHandler(deps.Integrity)
 	app.Get("/insights/verify/:id", verifikasi.Verify)

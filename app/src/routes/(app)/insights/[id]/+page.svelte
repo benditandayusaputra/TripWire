@@ -179,12 +179,13 @@
 
 			<div class="min-w-0 flex-1 space-y-2">
 				<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-					<span
+					<a
+						href="/stocks/{insight.ticker}"
 						data-testid="detail-ticker"
-						class="tw-data text-diamond-300 text-2xl font-semibold tracking-wider"
+						class="tw-data text-diamond-300 hover:text-diamond-100 text-2xl font-semibold tracking-wider transition"
 					>
 						{insight.ticker}
-					</span>
+					</a>
 					<span class="tw-caption">{insight.company_name}</span>
 				</div>
 

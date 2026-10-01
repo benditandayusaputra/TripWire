@@ -73,36 +73,37 @@
 			<div role="tabpanel">
 				<ol class="mt-3">
 					{#each daftar as satu (satu.ticker)}
-						<li
-							data-testid="asing-item"
-							data-ticker={satu.ticker}
-							class="baris"
-							title={t(
-								`Beli ${formatRupiah(satu.foreign_buy_idr)}, jual ${formatRupiah(satu.foreign_sell_idr)}`,
-								`Bought ${formatRupiah(satu.foreign_buy_idr)}, sold ${formatRupiah(satu.foreign_sell_idr)}`
-							)}
-						>
-							<LogoEmiten kode={satu.ticker} ukuran={28} />
-							<span class="min-w-0">
-								<span class="flex items-center gap-1.5">
-									<span class="tw-data text-ink text-[13px] font-semibold tracking-wide"
-										>{satu.ticker}</span
-									>
-									{#if dipantau.includes(satu.ticker)}
-										<span class="tanda">{t('watchlist', 'watchlist')}</span>
-									{/if}
+						<li data-testid="asing-item" data-ticker={satu.ticker}>
+							<a
+								href="/stocks/{satu.ticker}"
+								class="baris"
+								title={t(
+									`Beli ${formatRupiah(satu.foreign_buy_idr)}, jual ${formatRupiah(satu.foreign_sell_idr)}`,
+									`Bought ${formatRupiah(satu.foreign_buy_idr)}, sold ${formatRupiah(satu.foreign_sell_idr)}`
+								)}
+							>
+								<LogoEmiten kode={satu.ticker} ukuran={28} />
+								<span class="min-w-0">
+									<span class="flex items-center gap-1.5">
+										<span class="tw-data text-ink text-[13px] font-semibold tracking-wide"
+											>{satu.ticker}</span
+										>
+										{#if dipantau.includes(satu.ticker)}
+											<span class="tanda">{t('watchlist', 'watchlist')}</span>
+										{/if}
+									</span>
+									<span class="lajur">
+										<span
+											class={tab === 'beli' ? 'bg-naik' : 'bg-turun'}
+											style="width:{(Math.abs(satu.net_foreign_inflow) / puncak) * 100}%"
+										></span>
+									</span>
 								</span>
-								<span class="lajur">
-									<span
-										class={tab === 'beli' ? 'bg-naik' : 'bg-turun'}
-										style="width:{(Math.abs(satu.net_foreign_inflow) / puncak) * 100}%"
-									></span>
+								<span class="tw-data text-[12.5px] {tab === 'beli' ? 'text-naik' : 'text-turun'}">
+									{tab === 'beli' ? '▲' : '▼'}
+									{formatRupiah(Math.abs(satu.net_foreign_inflow))}
 								</span>
-							</span>
-							<span class="tw-data text-[12.5px] {tab === 'beli' ? 'text-naik' : 'text-turun'}">
-								{tab === 'beli' ? '▲' : '▼'}
-								{formatRupiah(Math.abs(satu.net_foreign_inflow))}
-							</span>
+							</a>
 						</li>
 					{/each}
 				</ol>
@@ -172,6 +173,12 @@
 		gap: 10px;
 		border-top: 1px solid var(--edge-soft);
 		padding: 8px 0;
+	}
+
+	@media (hover: hover) {
+		.baris:hover .tw-data.text-ink {
+			color: var(--color-diamond-300);
+		}
 	}
 
 	.lajur {

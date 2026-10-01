@@ -1,8 +1,13 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import { invalidate } from '$app/navigation';
+	import { navigating } from '$app/state';
 	import {
 		ArrowLeft,
 		ArrowUpRight,
+		BellPlus,
 		Briefcase,
+		Check,
 		Building2,
 		CalendarDays,
 		Crown,
@@ -10,6 +15,7 @@
 		Gem,
 		Globe,
 		Landmark,
+		LoaderCircle,
 		Mail,
 		MapPin,
 		Network,
@@ -19,9 +25,13 @@
 	} from 'lucide-svelte';
 	import DisclaimerBar from '$lib/components/DisclaimerBar.svelte';
 	import LogoEmiten from '$lib/components/watchlist/LogoEmiten.svelte';
+	import HargaSaham from '$lib/components/saham/HargaSaham.svelte';
+	import PasarSaham from '$lib/components/saham/PasarSaham.svelte';
+	import RisikoSaham from '$lib/components/saham/RisikoSaham.svelte';
 	import { lokal, t } from '$lib/bahasa.svelte';
 	import {
 		NAMA_SEKTOR,
+		batasNotifikasi,
 		formatHarga,
 		formatRupiah,
 		formatUbah,
@@ -47,6 +57,36 @@
 	let { data } = $props();
 
 	const RONA = [212, 262, 296, 188, 238, 322, 276];
+	const MASA_PINDAI_AWAL = 3 * 60_000;
+	const JEDA_CEK = 2500;
+	const BATAS_CEK = 16;
+
+	let mengirim = $state(false);
+	let galatPantau = $state('');
+	let cekHabis = $state(false);
+
+	const menunggu = $derived.by(() => {
+		if (!data.item || cekHabis) return false;
+		const dibuat = new Date(data.item.created_at).getTime();
+		const lama = !data.redFlag || new Date(data.redFlag.generated_at).getTime() < dibuat;
+		return lama && Date.now() - dibuat < MASA_PINDAI_AWAL;
+	});
+
+	$effect(() => {
+		if (!menunggu) return;
+		let sisa = BATAS_CEK;
+		const jeda = setInterval(() => {
+			if (navigating.to) return;
+			sisa -= 1;
+			if (sisa < 0) {
+				clearInterval(jeda);
+				cekHabis = true;
+				return;
+			}
+			invalidate('tripwire:saham');
+		}, JEDA_CEK);
+		return () => clearInterval(jeda);
+	});
 
 	const profil = $derived(data.profil);
 	const kutipan = $derived(profil.quote);
@@ -109,11 +149,8 @@
 			: []
 	);
 
-	const jejak = $derived(
-		peristiwaDari(data.redFlag ?? undefined)
-			.filter((satu) => satu.jenis !== 'suspensi')
-			.slice(0, 8)
-	);
+	const peristiwa = $derived(peristiwaDari(data.redFlag ?? undefined));
+	const jejak = $derived(peristiwa.filter((satu) => satu.jenis !== 'suspensi').slice(0, 8));
 
 	function judulDewan(kunci: Dewan) {
 		if (kunci === 'direksi') return t('Direksi', 'Board of directors');
@@ -125,13 +162,63 @@
 </script>
 
 <svelte:head>
-	<title>{profil.ticker} · {t('Profil dan pemilik saham', 'Stock profile and owners')}</title>
+	<title>{profil.ticker} · {profil.company_name}</title>
 </svelte:head>
 
+{#snippet tombolPantau()}
+	<form
+		method="POST"
+		action="/watchlist?/tambah"
+		class="flex flex-col items-center gap-1.5"
+		use:enhance={() => {
+			mengirim = true;
+			galatPantau = '';
+			return async ({ result, update }) => {
+				if (result.type === 'failure') {
+					galatPantau =
+						(result.data as { error?: string } | undefined)?.error ??
+						t('Saham gagal ditambahkan', 'Could not add the stock');
+				} else {
+					cekHabis = false;
+					await update();
+				}
+				mengirim = false;
+			};
+		}}
+	>
+		<input type="hidden" name="ticker" value={profil.ticker} />
+		<input type="hidden" name="pantau_harian" value="on" />
+		<input type="hidden" name="tetap" value="1" />
+		<button
+			type="submit"
+			class="tw-primary px-3.5 py-2 text-[13px]"
+			data-testid="pantau-saham"
+			disabled={mengirim || data.penuh}
+		>
+			{#if mengirim}
+				<LoaderCircle class="size-3.5 animate-spin" aria-hidden="true" />
+			{:else}
+				<BellPlus class="size-3.5" aria-hidden="true" />
+			{/if}
+			{t(`Pantau ${profil.ticker}`, `Watch ${profil.ticker}`)}
+		</button>
+		{#if data.penuh}
+			<p class="text-muted text-[12px]">
+				{t('Watchlist sudah penuh, 50 saham.', 'Your watchlist is full, 50 stocks.')}
+			</p>
+		{/if}
+		{#if galatPantau}
+			<p role="alert" class="text-tier-critical text-[12px]">{galatPantau}</p>
+		{/if}
+	</form>
+{/snippet}
+
 <section class="space-y-5" data-testid="profil-saham" data-ticker={profil.ticker}>
-	<a href="/watchlist?emiten={profil.ticker}" class="kembali">
+	<a href={data.item ? `/watchlist?emiten=${profil.ticker}` : '/dashboard'} class="kembali">
 		<ArrowLeft class="size-3.5" aria-hidden="true" />
-		{t('Kembali ke watchlist', 'Back to watchlist')}
+		{data.item
+			? t('Kembali ke watchlist', 'Back to watchlist')
+			: t('Kembali ke dashboard', 'Back to dashboard')}
 	</a>
 
 	<header class="panel kepala">
@@ -155,6 +242,20 @@
 			</div>
 		</div>
 
+		<div class="aksi-saham">
+			{#if data.item}
+				<span class="dipantau" data-testid="sudah-dipantau">
+					<Check class="size-3.5" aria-hidden="true" />
+					{t('Dipantau', 'Watching')}
+				</span>
+				<a href="/watchlist?emiten={profil.ticker}" class="tw-ghost px-3 py-1.5 text-[13px]">
+					{t('Atur pemantauan', 'Manage alerts')}
+				</a>
+			{:else}
+				{@render tombolPantau()}
+			{/if}
+		</div>
+
 		{#if kutipan}
 			<div class="harga">
 				<p class="flex flex-wrap items-center gap-x-3 gap-y-1 sm:justify-end">
@@ -176,6 +277,30 @@
 			</div>
 		{/if}
 	</header>
+
+	<div class="grid items-stretch gap-5 lg:grid-cols-12">
+		<div class="min-w-0 lg:col-span-8">
+			<HargaSaham
+				kode={profil.ticker}
+				harga={data.harga}
+				{kutipan}
+				riwayat={data.risiko?.history ?? []}
+				batas={batasNotifikasi(data.item?.conditions ?? [])}
+				{peristiwa}
+			/>
+		</div>
+		<div class="min-w-0 lg:col-span-4">
+			<RisikoSaham
+				kode={profil.ticker}
+				redFlag={data.redFlag}
+				risiko={data.risiko}
+				dipantau={Boolean(data.item)}
+				menunggu={menunggu && !data.redFlag}
+				{peristiwa}
+				pantau={tombolPantau}
+			/>
+		</div>
+	</div>
 
 	<section class="panel balik" aria-labelledby="judul-balik" data-testid="siapa-di-balik">
 		<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -472,6 +597,10 @@
 		</div>
 
 		<div class="min-w-0 space-y-5 lg:col-span-5">
+			{#if data.pasar}
+				<PasarSaham pasar={data.pasar} />
+			{/if}
+
 			<section class="panel" aria-labelledby="judul-komposisi" data-testid="komposisi">
 				<div class="kepala-bagian">
 					<h2 id="judul-komposisi" class="tw-overline flex items-center gap-2">
@@ -720,6 +849,33 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 16px 24px;
+	}
+
+	.aksi-saham {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+	}
+
+	@media (min-width: 1024px) {
+		.aksi-saham {
+			order: 3;
+			width: 100%;
+			justify-content: flex-end;
+		}
+	}
+
+	.dipantau {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--color-diamond-500) 14%, transparent);
+		padding: 5px 11px;
+		font-size: 12.5px;
+		font-weight: 500;
+		color: var(--color-diamond-300);
 	}
 
 	.chip {
