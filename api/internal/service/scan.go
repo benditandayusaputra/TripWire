@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -17,6 +18,9 @@ import (
 const (
 	kunciRunTerakhir = "scheduler:run:terakhir"
 	kunciRiwayatRun  = "scheduler:run:riwayat"
+	kunciPindaiAwal  = "scheduler:awal:"
+	jedaPindaiAwal   = 10 * time.Minute
+	batasPindaiAwal  = 3 * time.Minute
 	panjangRiwayat   = 20
 )
 
@@ -90,6 +94,24 @@ func (s *ScanService) Jalankan(ctx context.Context, pemicu string) (*HasilScan, 
 	s.simpanRun(ctx, hasil)
 
 	return hasil, nil
+}
+
+func (s *ScanService) PindaiAwal(ctx context.Context, kode string) bool {
+	if ok, err := s.redis.SetNX(ctx, kunciPindaiAwal+kode, "1", jedaPindaiAwal).Result(); err != nil || !ok {
+		return false
+	}
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), batasPindaiAwal)
+		defer cancel()
+		if _, err := s.insight.MarketIntelligence(ctx, kode); err != nil {
+			log.Printf("scan: market intelligence awal %s gagal: %v", kode, err)
+		}
+		if _, err := s.insight.RedFlag(ctx, kode); err != nil {
+			log.Printf("scan: red flag awal %s gagal: %v", kode, err)
+		}
+	}()
+	return true
 }
 
 func (s *ScanService) prosesTicker(ctx context.Context, ticker string, mulai time.Time) (int, error) {

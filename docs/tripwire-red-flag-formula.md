@@ -8,7 +8,7 @@ Tiga sinyal mentah dari data Sectors API v2, masing masing punya sub-skor sendir
 | Histori suspend beserta alasan resmi dan tautan PDF IDX | `GET /v2/suspensions/?symbol=` | 1 credit |
 | Transaksi insider dan pemegang saham mayor (filing KSEI) | `GET /v2/filings/?symbol=&start=<90 hari lalu>` | 1 credit |
 | Perubahan kepemilikan per pemegang | dihitung dari `share_percentage_before` dan `share_percentage_after` di filing yang sama | 0 |
-| Free float dan pemegang saham utama saat ini | `GET /v2/company/report/{symbol}/?sections=overview,valuation,financials,ownership` | 4 credit, dipakai bersama Market Intelligence |
+| Free float dan pemegang saham utama saat ini | `GET /v2/company/report/{symbol}/?sections=ownership` | 1 credit, disimpan 7 hari dan dipakai bersama profil saham |
 
 Daftar lengkap endpoint, biaya, dan masa cache ada di `tripwire-sectors-api.md`.
 
