@@ -131,6 +131,33 @@
 		})
 	);
 	const terpilih = $derived(baris.find((b) => b.item.ticker === data.kode) ?? null);
+	let cekHabis = $state(false);
+	const memindai = $derived(
+		terpilih !== null &&
+			terpilih.skor === null &&
+			!cekHabis &&
+			Date.now() - new Date(terpilih.item.created_at).getTime() < 3 * 60_000
+	);
+
+	$effect(() => {
+		if (data.kode) cekHabis = false;
+	});
+
+	$effect(() => {
+		if (!memindai) return;
+		let sisa = 16;
+		const jeda = setInterval(() => {
+			if (navigating.to) return;
+			sisa -= 1;
+			if (sisa < 0) {
+				clearInterval(jeda);
+				cekHabis = true;
+				return;
+			}
+			invalidateAll();
+		}, 2500);
+		return () => clearInterval(jeda);
+	});
 	const dipantau = $derived(data.items.map((item) => item.ticker));
 	const cadangan = $derived(emiten.filter(([kode]) => !dipantau.includes(kode)).slice(0, 8));
 	const penuh = $derived(data.items.length >= BATAS_WATCHLIST);
@@ -435,6 +462,7 @@
 								insights={data.insights}
 								galatKondisi={form?.aksi === 'kondisi' ? (form?.error ?? '') : ''}
 								galatTampilan={form?.aksi === 'tampilan' ? (form?.error ?? '') : ''}
+								{memindai}
 								bind:tab={tabPanel}
 							/>
 						</div>

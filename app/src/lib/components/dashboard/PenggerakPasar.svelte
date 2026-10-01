@@ -77,12 +77,12 @@
 						<li data-testid="penggerak-item" data-ticker={saham.ticker} class="baris">
 							<span class="tw-data text-muted w-4 text-right text-[11px]">{urutan + 1}</span>
 							<LogoEmiten kode={saham.ticker} ukuran={30} />
-							<span class="min-w-0">
+							<a href="/stocks/{saham.ticker}" class="nama min-w-0">
 								<span class="tw-data text-ink block text-[13px] font-semibold tracking-wide"
 									>{saham.ticker}</span
 								>
 								<span class="text-muted block truncate text-[11.5px]">{saham.company_name}</span>
-							</span>
+							</a>
 							<span class="flex flex-col items-end">
 								<span class="tw-data text-ink text-[13px]"
 									>{formatHarga(saham.last_close_price)}</span
@@ -209,6 +209,12 @@
 
 	.baris:last-child {
 		border-bottom: 0;
+	}
+
+	@media (hover: hover) {
+		.nama:hover .tw-data {
+			color: var(--color-diamond-300);
+		}
 	}
 
 	.pil {

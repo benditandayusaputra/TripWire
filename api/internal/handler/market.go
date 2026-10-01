@@ -33,6 +33,14 @@ func (h *MarketHandler) Profil(c *fiber.Ctx) error {
 	return c.JSON(profil)
 }
 
+func (h *MarketHandler) Harga(c *fiber.Ctx) error {
+	seri, err := h.market.HargaEmiten(c.Context(), c.Params("ticker"))
+	if err != nil {
+		return sectorsError(c, err)
+	}
+	return c.JSON(seri)
+}
+
 func (h *MarketHandler) Teratas(c *fiber.Ctx) error {
 	saham, meta, err := h.market.Teratas(c.Context())
 	if err != nil {

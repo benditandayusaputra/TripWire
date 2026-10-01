@@ -172,6 +172,7 @@ func main() {
 		Feed:       feedService,
 		Admin:      adminService,
 		Pantauan:   service.NewPantauanService(watchlistRepo, insightRepo, scanService, market, cfg.SchedulerCron),
+		Scan:       scanService,
 	})
 
 	shutdown := make(chan os.Signal, 1)

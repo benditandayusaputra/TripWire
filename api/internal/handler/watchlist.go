@@ -14,10 +14,11 @@ import (
 type WatchlistHandler struct {
 	watchlist *service.WatchlistService
 	market    *service.MarketService
+	scan      *service.ScanService
 }
 
-func NewWatchlistHandler(watchlist *service.WatchlistService, market *service.MarketService) *WatchlistHandler {
-	return &WatchlistHandler{watchlist: watchlist, market: market}
+func NewWatchlistHandler(watchlist *service.WatchlistService, market *service.MarketService, scan *service.ScanService) *WatchlistHandler {
+	return &WatchlistHandler{watchlist: watchlist, market: market, scan: scan}
 }
 
 func (h *WatchlistHandler) List(c *fiber.Ctx) error {
@@ -49,6 +50,18 @@ func (h *WatchlistHandler) Add(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"item": item})
+}
+
+func (h *WatchlistHandler) Pindai(c *fiber.Ctx) error {
+	item, err := h.watchlist.Detail(c.Context(), middleware.UserID(c), c.Params("id"))
+	if err != nil {
+		return h.error(c, err)
+	}
+
+	return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
+		"ticker": item.Ticker,
+		"queued": h.scan.PindaiAwal(c.Context(), item.Ticker),
+	})
 }
 
 func (h *WatchlistHandler) Update(c *fiber.Ctx) error {

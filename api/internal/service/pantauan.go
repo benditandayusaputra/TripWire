@@ -208,6 +208,16 @@ func (s *PantauanService) Harga(ctx context.Context, userID, itemID string) (*Se
 	return s.market.HargaHarian(ctx, item.Ticker)
 }
 
+func (s *MarketService) HargaEmiten(ctx context.Context, rawTicker string) (*SeriHarga, error) {
+	ticker, err := s.tickers.Lookup(rawTicker)
+	if err != nil {
+		v := newValidationError()
+		v.add("ticker", "Ticker tidak terdaftar di IDX")
+		return nil, v
+	}
+	return s.HargaHarian(ctx, ticker.Code)
+}
+
 func (s *MarketService) HargaHarian(ctx context.Context, kode string) (*SeriHarga, error) {
 	mulai := time.Now().In(zonaJakarta()).AddDate(0, 0, -hariRiwayatHarga).Format(formatTanggalIDX)
 	path := fmt.Sprintf("/daily/%s/?start=%s", url.PathEscape(kode), mulai)

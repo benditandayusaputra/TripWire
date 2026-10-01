@@ -51,6 +51,7 @@
 		insights,
 		galatKondisi = '',
 		galatTampilan = '',
+		memindai = false,
 		tab = $bindable('harga')
 	}: {
 		item: ItemWatchlist;
@@ -62,6 +63,7 @@
 		insights: Promise<Insight[]> | null;
 		galatKondisi?: string;
 		galatTampilan?: string;
+		memindai?: boolean;
 		tab?: TabPanel;
 	} = $props();
 
@@ -156,7 +158,7 @@
 					</p>
 				{/if}
 				<a href="/stocks/{item.ticker}" class="tautan-profil" data-testid="buka-profil">
-					{t('Pengelola dan pemilik', 'Management and owners')}
+					{t('Halaman saham lengkap', 'Full stock page')}
 					<ArrowUpRight class="size-3.5" aria-hidden="true" />
 				</a>
 			</div>
@@ -431,6 +433,14 @@
 					{t('Buka rincian dan sumber datanya', 'Open details and data sources')}
 					<ArrowUpRight class="size-3.5" aria-hidden="true" />
 				</a>
+			{:else if memindai}
+				<p class="text-secondary flex items-center gap-2 text-[13px]" data-testid="sedang-dipindai">
+					<LoaderCircle class="text-diamond-300 size-4 flex-none animate-spin" aria-hidden="true" />
+					{t(
+						`TripWire sedang memindai ${item.ticker} dari Sectors. Skor muncul di sini dalam beberapa detik.`,
+						`TripWire is scanning ${item.ticker} from Sectors. The score shows up here in a few seconds.`
+					)}
+				</p>
 			{:else}
 				<p class="text-secondary text-[13px]">
 					{t(

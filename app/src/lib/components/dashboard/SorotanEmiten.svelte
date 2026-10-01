@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowRight, Layers, ListChecks } from 'lucide-svelte';
+	import { ArrowRight, ChartCandlestick, Layers, ListChecks } from 'lucide-svelte';
 	import { t } from '$lib/bahasa.svelte';
 	import KondisiLabel from '$lib/components/KondisiLabel.svelte';
 	import SkorBadge from '$lib/components/SkorBadge.svelte';
@@ -256,6 +256,14 @@
 					<ArrowRight class="size-3.5" aria-hidden="true" />
 				</a>
 			{/if}
+			<a
+				href="/stocks/{baris.ticker}"
+				class="tw-ghost px-3.5 py-2 text-[13px]"
+				data-testid="sorotan-halaman-saham"
+			>
+				<ChartCandlestick class="size-3.5" aria-hidden="true" />
+				{t('Halaman saham', 'Stock page')}
+			</a>
 			<a href="/watchlist?emiten={baris.ticker}" class="tw-ghost px-3.5 py-2 text-[13px]">
 				<ListChecks class="size-3.5" aria-hidden="true" />
 				{t('Detail di watchlist', 'Details in watchlist')}
