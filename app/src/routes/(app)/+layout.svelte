@@ -110,7 +110,11 @@
 						{inisial}
 					</span>
 				{/if}
-				<span data-testid="current-user" class="tw-data text-muted hidden text-[12px] md:inline">
+				<span
+					data-testid="current-user"
+					class="tw-data text-muted hidden max-w-[14rem] truncate text-[12px] 2xl:inline"
+					title={data.user?.email}
+				>
 					{data.user?.email}
 				</span>
 
@@ -119,7 +123,7 @@
 						type="submit"
 						data-testid="logout-button"
 						aria-label={t('Keluar dari akun', 'Log out of your account')}
-						class="tw-ghost px-3 py-1.5 text-[13px]"
+						class="tw-ghost px-3 py-1.5 text-[13px] whitespace-nowrap"
 					>
 						<LogOut class="size-3.5" aria-hidden="true" />
 						{t('Keluar', 'Log out')}
