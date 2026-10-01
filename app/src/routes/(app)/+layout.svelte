@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
 	import { Bell, LayoutGrid, ListChecks, LogOut, ShieldCheck, UserRound } from 'lucide-svelte';
+	import CariSaham from '$lib/components/CariSaham.svelte';
 	import Preferensi from '$lib/components/Preferensi.svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
 	import { t } from '$lib/bahasa.svelte';
@@ -80,6 +81,7 @@
 			</nav>
 
 			<div class="flex items-center gap-3">
+				<CariSaham />
 				<Preferensi />
 
 				{#if data.user?.role === 'admin'}
