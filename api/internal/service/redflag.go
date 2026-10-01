@@ -17,30 +17,56 @@ const (
 	faktorFreeFloatKecil   = 0.7
 )
 
+var (
+	alasanSuspendSerius = []string{
+		"kelangsungan usaha", "pemantauan khusus", "pkpu", "penundaan kewajiban", "pailit",
+		"gagal bayar", "wanprestasi", "delisting", "penghapusan pencatatan", "dugaan", "pelanggaran",
+		"sanksi", "investigasi", "penyelidikan", "manipulasi", "tidak menyatakan pendapat",
+		"tidak memberikan pendapat",
+	}
+	alasanSuspendRutin = []string{
+		"harga kumulatif", "cooling down", "unusual market activity", "aktivitas pasar",
+	}
+)
+
 type Suspension struct {
 	Date         time.Time `json:"date"`
 	Reason       string    `json:"reason"`
 	SeverityTier int       `json:"severity_tier"`
+	PdfURL       string    `json:"pdf_url,omitempty"`
 }
 
 type InsiderTransaction struct {
-	Date       time.Time `json:"date"`
-	HolderName string    `json:"holder_name"`
-	Type       string    `json:"transaction_type"`
-	Value      float64   `json:"transaction_value"`
+	Date           time.Time `json:"date"`
+	HolderName     string    `json:"holder_name"`
+	HolderType     string    `json:"holder_type,omitempty"`
+	Type           string    `json:"transaction_type"`
+	Value          float64   `json:"transaction_value"`
+	SharePctBefore *float64  `json:"share_pct_before,omitempty"`
+	SharePctAfter  *float64  `json:"share_pct_after,omitempty"`
+	SourceURL      string    `json:"source_url,omitempty"`
 }
 
-type OwnershipSnapshot struct {
-	Date         time.Time `json:"date"`
-	TopHolderPct float64   `json:"top_holder_percentage"`
-	TopHolder    string    `json:"top_holder_name,omitempty"`
+type Shareholder struct {
+	Name       string  `json:"name"`
+	Percentage float64 `json:"percentage"`
+}
+
+type OwnershipChange struct {
+	HolderName     string    `json:"holder_name"`
+	SharePctBefore float64   `json:"share_pct_before"`
+	SharePctAfter  float64   `json:"share_pct_after"`
+	DeltaPP        float64   `json:"delta_pp"`
+	FirstDate      time.Time `json:"first_date"`
+	LastDate       time.Time `json:"last_date"`
+	Filings        int       `json:"filings"`
 }
 
 type RedFlagSignals struct {
-	Suspensions  []Suspension
-	Insiders     []InsiderTransaction
-	Ownership    []OwnershipSnapshot
-	FreeFloatPct float64
+	Suspensions       []Suspension
+	Insiders          []InsiderTransaction
+	MajorShareholders []Shareholder
+	FreeFloatPct      float64
 }
 
 type RedFlagSubScores struct {
@@ -59,7 +85,8 @@ type CrossPattern struct {
 type RedFlagSupportingData struct {
 	Suspensions         []Suspension         `json:"suspensions"`
 	InsiderTransactions []InsiderTransaction `json:"insider_transactions"`
-	OwnershipSnapshots  []OwnershipSnapshot  `json:"ownership_snapshots"`
+	OwnershipChanges    []OwnershipChange    `json:"ownership_changes"`
+	MajorShareholders   []Shareholder        `json:"major_shareholders"`
 	FreeFloatPct        float64              `json:"free_float_pct"`
 	FreeFloatFactor     float64              `json:"free_float_factor"`
 	InsiderCountWindow  int                  `json:"insider_count_in_window"`
@@ -74,6 +101,7 @@ type RedFlagPayload struct {
 	SubScores           RedFlagSubScores      `json:"sub_scores"`
 	CrossPattern        CrossPattern          `json:"cross_pattern"`
 	SupportingData      RedFlagSupportingData `json:"supporting_data"`
+	DataSources         []string              `json:"data_sources"`
 	ComputedAt          time.Time             `json:"computed_at"`
 }
 
@@ -84,13 +112,19 @@ func HitungRedFlag(sinyal RedFlagSignals, sekarang time.Time) RedFlagPayload {
 	insider := math.Min(100, float64(jumlahInsider)*20) * (0.4 + 0.6*math.Max(0, arahInsider))
 
 	faktorFloat := faktorFreeFloat(sinyal.FreeFloatPct)
-	delta90 := deltaKonsentrasi(sinyal.Ownership, sekarang, jendelaKepemilikanHari)
+	perubahan := perubahanKepemilikan(sinyal.Insiders, sekarang, jendelaKepemilikanHari)
+	delta90 := deltaTerbesar(perubahan)
 	owner := math.Min(100, delta90*10) * faktorFloat
 
 	silang := polaSilang(sinyal, sekarang, jumlahInsider)
 
 	dasar := suspend*0.3 + insider*0.4 + owner*0.3
 	skor := math.Min(100, dasar*silang.MultiplierApplied)
+
+	pemegang := append([]Shareholder{}, sinyal.MajorShareholders...)
+	for i := range pemegang {
+		pemegang[i].Percentage = bulatkan(pemegang[i].Percentage)
+	}
 
 	return RedFlagPayload{
 		GovernanceRiskScore: bulatkan(skor),
@@ -105,14 +139,16 @@ func HitungRedFlag(sinyal RedFlagSignals, sekarang time.Time) RedFlagPayload {
 		SupportingData: RedFlagSupportingData{
 			Suspensions:         urutSuspensi(sinyal.Suspensions),
 			InsiderTransactions: urutInsider(sinyal.Insiders),
-			OwnershipSnapshots:  urutKepemilikan(sinyal.Ownership),
+			OwnershipChanges:    perubahan,
+			MajorShareholders:   pemegang,
 			FreeFloatPct:        bulatkan(sinyal.FreeFloatPct),
 			FreeFloatFactor:     faktorFloat,
 			InsiderCountWindow:  jumlahInsider,
 			InsiderNetDirection: bulatkan(arahInsider),
 			DeltaConcentration:  bulatkan(delta90),
 		},
-		ComputedAt: sekarang.UTC(),
+		DataSources: []string{},
+		ComputedAt:  sekarang.UTC(),
 	}
 }
 
@@ -134,7 +170,7 @@ func skorSuspend(daftar []Suspension, sekarang time.Time) float64 {
 			continue
 		}
 		dalamJendela++
-		totalTier += nilaiKeparahan(tierKeparahan(item))
+		totalTier += nilaiKeparahan(tierKeparahan(item.Reason))
 	}
 
 	frekuensi := math.Min(100, float64(dalamJendela)*25)
@@ -177,22 +213,21 @@ func nilaiKeparahan(tier int) float64 {
 	}
 }
 
-func tierKeparahan(item Suspension) int {
-	if item.SeverityTier >= 1 && item.SeverityTier <= 3 {
-		return item.SeverityTier
-	}
+func tierKeparahan(alasan string) int {
+	normal := strings.ToLower(alasan)
 
-	alasan := strings.ToLower(item.Reason)
-	for _, kata := range []string{"dugaan", "pelanggaran", "sanksi", "investigasi", "manipulasi", "gagal bayar", "pailit"} {
-		if strings.Contains(alasan, kata) {
+	for _, kata := range alasanSuspendSerius {
+		if strings.Contains(normal, kata) {
 			return 3
 		}
 	}
 
-	if strings.Contains(alasan, "unusual market activity") {
-		return 1
+	for _, kata := range alasanSuspendRutin {
+		if strings.Contains(normal, kata) {
+			return 1
+		}
 	}
-	for _, kata := range strings.FieldsFunc(alasan, func(r rune) bool { return !('a' <= r && r <= 'z') && !('0' <= r && r <= '9') }) {
+	for _, kata := range strings.FieldsFunc(normal, func(r rune) bool { return !('a' <= r && r <= 'z') && !('0' <= r && r <= '9') }) {
 		if kata == "uma" {
 			return 1
 		}
@@ -212,15 +247,12 @@ func ringkasInsider(daftar []InsiderTransaction, sekarang time.Time, jendelaHari
 			continue
 		}
 
-		nama := strings.ToLower(strings.TrimSpace(item.HolderName))
-		if nama == "" {
-			nama = strings.ToLower(strings.TrimSpace(item.Type))
-		}
-		pelaku[nama] = struct{}{}
+		pelaku[namaPemegang(item)] = struct{}{}
 
-		if transaksiJual(item.Type) {
+		switch arahTransaksi(item.Type) {
+		case "sell":
 			jual += math.Abs(item.Value)
-		} else {
+		case "buy":
 			beli += math.Abs(item.Value)
 		}
 	}
@@ -233,33 +265,79 @@ func ringkasInsider(daftar []InsiderTransaction, sekarang time.Time, jendelaHari
 	return len(pelaku), arah
 }
 
-func transaksiJual(jenis string) bool {
+func namaPemegang(item InsiderTransaction) string {
+	nama := strings.ToLower(strings.Join(strings.Fields(item.HolderName), " "))
+	if nama == "" {
+		return strings.ToLower(strings.TrimSpace(item.Type))
+	}
+	return nama
+}
+
+func arahTransaksi(jenis string) string {
 	normal := strings.ToLower(strings.TrimSpace(jenis))
 	for _, kata := range []string{"sell", "sale", "jual", "divest", "dispos"} {
 		if strings.Contains(normal, kata) {
-			return true
+			return "sell"
 		}
 	}
-	return false
+	for _, kata := range []string{"buy", "beli", "purchase", "acqui"} {
+		if strings.Contains(normal, kata) {
+			return "buy"
+		}
+	}
+	return "others"
 }
 
-func deltaKonsentrasi(snapshots []OwnershipSnapshot, sekarang time.Time, jendelaHari int) float64 {
-	urut := urutKepemilikanNaik(snapshots, sekarang)
-	if len(urut) < 2 {
-		return 0
-	}
+func perubahanKepemilikan(daftar []InsiderTransaction, sekarang time.Time, jendelaHari int) []OwnershipChange {
+	awal := sekarang.AddDate(0, 0, -jendelaHari)
 
-	kini := urut[len(urut)-1]
-	batas := sekarang.AddDate(0, 0, -jendelaHari)
-
-	lampau := urut[0]
-	for _, item := range urut {
-		if !item.Date.After(batas) {
-			lampau = item
+	urut := make([]InsiderTransaction, 0, len(daftar))
+	for _, item := range daftar {
+		if item.Date.IsZero() || item.Date.Before(awal) || item.Date.After(sekarang) {
+			continue
 		}
+		if item.SharePctBefore == nil || item.SharePctAfter == nil {
+			continue
+		}
+		urut = append(urut, item)
+	}
+	sort.SliceStable(urut, func(i, j int) bool { return urut[i].Date.Before(urut[j].Date) })
+
+	indeks := map[string]int{}
+	hasil := []OwnershipChange{}
+	for _, item := range urut {
+		kunci := namaPemegang(item)
+		posisi, ada := indeks[kunci]
+		if !ada {
+			indeks[kunci] = len(hasil)
+			hasil = append(hasil, OwnershipChange{
+				HolderName:     strings.TrimSpace(item.HolderName),
+				SharePctBefore: *item.SharePctBefore,
+				FirstDate:      item.Date,
+			})
+			posisi = len(hasil) - 1
+		}
+		hasil[posisi].SharePctAfter = *item.SharePctAfter
+		hasil[posisi].LastDate = item.Date
+		hasil[posisi].Filings++
 	}
 
-	return math.Abs(kini.TopHolderPct - lampau.TopHolderPct)
+	for i := range hasil {
+		hasil[i].SharePctBefore = bulatkan(hasil[i].SharePctBefore)
+		hasil[i].SharePctAfter = bulatkan(hasil[i].SharePctAfter)
+		hasil[i].DeltaPP = bulatkan(hasil[i].SharePctAfter - hasil[i].SharePctBefore)
+	}
+
+	sort.SliceStable(hasil, func(i, j int) bool { return math.Abs(hasil[i].DeltaPP) > math.Abs(hasil[j].DeltaPP) })
+	return hasil
+}
+
+func deltaTerbesar(daftar []OwnershipChange) float64 {
+	terbesar := 0.0
+	for _, item := range daftar {
+		terbesar = math.Max(terbesar, math.Abs(item.DeltaPP))
+	}
+	return terbesar
 }
 
 func faktorFreeFloat(pct float64) float64 {
@@ -287,7 +365,7 @@ func polaSilang(sinyal RedFlagSignals, sekarang time.Time, jumlahInsider int) Cr
 		aktif = append(aktif, "insider_clustering")
 	}
 
-	if deltaKonsentrasi(sinyal.Ownership, sekarang, jendelaPolaSilangHari) > ambangKepemilikanPP {
+	if deltaTerbesar(perubahanKepemilikan(sinyal.Insiders, sekarang, jendelaPolaSilangHari)) > ambangKepemilikanPP {
 		aktif = append(aktif, "ownership_change")
 	}
 
@@ -325,43 +403,16 @@ func bulatkan(nilai float64) float64 {
 }
 
 func urutSuspensi(daftar []Suspension) []Suspension {
-	hasil := append([]Suspension(nil), daftar...)
+	hasil := append([]Suspension{}, daftar...)
 	for i := range hasil {
-		hasil[i].SeverityTier = tierKeparahan(hasil[i])
+		hasil[i].SeverityTier = tierKeparahan(hasil[i].Reason)
 	}
-	sort.Slice(hasil, func(i, j int) bool { return hasil[i].Date.After(hasil[j].Date) })
-	if hasil == nil {
-		hasil = []Suspension{}
-	}
+	sort.SliceStable(hasil, func(i, j int) bool { return hasil[i].Date.After(hasil[j].Date) })
 	return hasil
 }
 
 func urutInsider(daftar []InsiderTransaction) []InsiderTransaction {
-	hasil := append([]InsiderTransaction(nil), daftar...)
-	sort.Slice(hasil, func(i, j int) bool { return hasil[i].Date.After(hasil[j].Date) })
-	if hasil == nil {
-		hasil = []InsiderTransaction{}
-	}
-	return hasil
-}
-
-func urutKepemilikan(daftar []OwnershipSnapshot) []OwnershipSnapshot {
-	hasil := append([]OwnershipSnapshot(nil), daftar...)
-	sort.Slice(hasil, func(i, j int) bool { return hasil[i].Date.After(hasil[j].Date) })
-	if hasil == nil {
-		hasil = []OwnershipSnapshot{}
-	}
-	return hasil
-}
-
-func urutKepemilikanNaik(daftar []OwnershipSnapshot, sekarang time.Time) []OwnershipSnapshot {
-	hasil := make([]OwnershipSnapshot, 0, len(daftar))
-	for _, item := range daftar {
-		if item.Date.IsZero() || item.Date.After(sekarang) {
-			continue
-		}
-		hasil = append(hasil, item)
-	}
-	sort.Slice(hasil, func(i, j int) bool { return hasil[i].Date.Before(hasil[j].Date) })
+	hasil := append([]InsiderTransaction{}, daftar...)
+	sort.SliceStable(hasil, func(i, j int) bool { return hasil[i].Date.After(hasil[j].Date) })
 	return hasil
 }

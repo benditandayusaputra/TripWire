@@ -122,11 +122,13 @@ func main() {
 	}
 
 	streamHub := service.NewStreamHub(store.Redis)
+	go streamHub.Dengarkan(context.Background())
 	notifikasi := service.NewNotificationService(
 		repository.NewNotificationRepository(store),
 		repository.NewPushRepository(store),
 		streamHub,
 		pengirimPush,
+		tickers,
 		!cfg.IsProduction(),
 	)
 
@@ -156,6 +158,7 @@ func main() {
 		Signer:     signer,
 		Health:     service.NewHealthService(store, version),
 		Auth:       authService,
+		Captcha:    service.NewCaptchaService(store.Redis),
 		Watchlist:  service.NewWatchlistService(watchlistRepo, tickers),
 		Market:     market,
 		Integrity:  integrity,
@@ -168,6 +171,8 @@ func main() {
 		Account:    accountService,
 		Feed:       feedService,
 		Admin:      adminService,
+		Pantauan:   service.NewPantauanService(watchlistRepo, insightRepo, scanService, market, cfg.SchedulerCron),
+		Scan:       scanService,
 	})
 
 	shutdown := make(chan os.Signal, 1)

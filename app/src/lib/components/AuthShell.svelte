@@ -1,65 +1,107 @@
 <script lang="ts">
-	import { FileCheck2, Radar, ShieldAlert } from 'lucide-svelte';
+	import type { Snippet } from 'svelte';
+	import { page } from '$app/state';
 	import Mark from './Mark.svelte';
-	import Wordmark from './Wordmark.svelte';
+	import Preferensi from './Preferensi.svelte';
+	import PanelPasar from './auth/PanelPasar.svelte';
+	import { t } from '$lib/bahasa.svelte';
 
-	let { title, subtitle, children, footer } = $props();
+	let { title, subtitle, children }: { title: string; subtitle: string; children: Snippet } =
+		$props();
 
-	const janji = [
-		{ icon: ShieldAlert, teks: 'Skor risiko tata kelola dari suspensi, insider, dan kepemilikan' },
-		{ icon: Radar, teks: 'Mode mendalam untuk emiten tambang, sampai radar lisensi' },
-		{ icon: FileCheck2, teks: 'Tiap insight disegel Ed25519, siapa pun bisa memverifikasi' }
-	];
+	const pilihan = $derived([
+		{ href: '/login', label: t('Masuk', 'Log in') },
+		{ href: '/register', label: t('Daftar', 'Sign up') }
+	]);
 </script>
 
-<div class="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
-	<section class="relative hidden flex-col justify-between overflow-hidden p-12 lg:flex">
-		<div
-			class="pointer-events-none absolute inset-0 bg-[radial-gradient(700px_400px_at_20%_15%,rgba(74,158,255,0.16),transparent_65%)]"
-		></div>
-		<div
-			class="via-line absolute inset-y-0 right-0 w-px bg-linear-to-b from-transparent to-transparent"
-		></div>
+<div class="flex min-h-dvh flex-col lg:grid lg:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)]">
+	<main
+		class="lembar relative z-10 order-2 -mt-7 flex flex-1 justify-center px-5 pt-7 pb-10 sm:px-8 lg:mt-0 lg:items-center lg:px-12 lg:py-14"
+	>
+		<div class="w-full max-w-100 space-y-7">
+			<div class="flex items-center gap-2">
+				<nav aria-label={t('Pilih masuk atau daftar', 'Choose log in or sign up')} class="saklar">
+					{#each pilihan as item (item.href)}
+						<a href={item.href} aria-current={page.url.pathname === item.href ? 'page' : undefined}>
+							{item.label}
+						</a>
+					{/each}
+				</nav>
+				<Preferensi />
+			</div>
 
-		<div class="relative">
-			<Wordmark />
-		</div>
-
-		<div class="relative max-w-md space-y-7">
-			<p class="tw-overline">Sectors Hackathon 2026</p>
-			<h2 class="tw-display text-ink">Red flag terdeteksi sebelum jadi berita.</h2>
-
-			<ul class="space-y-3.5">
-				{#each janji as item (item.teks)}
-					<li class="flex items-start gap-3">
-						<item.icon class="text-diamond-300 mt-0.5 size-4 flex-none" aria-hidden="true" />
-						<span class="text-secondary text-[14.5px] leading-relaxed">{item.teks}</span>
-					</li>
-				{/each}
-			</ul>
-		</div>
-
-		<p class="text-muted relative flex items-center gap-2 text-[13px]">
-			<Mark size={7} color="var(--color-tier-moderate)" />
-			Informasi dan analisis, bukan rekomendasi beli atau jual.
-		</p>
-	</section>
-
-	<section class="flex items-center justify-center px-6 py-12">
-		<div class="w-full max-w-sm space-y-8">
-			<header class="space-y-2">
-				<div class="mb-7 lg:hidden">
-					<Wordmark size="sm" />
-				</div>
+			<header class="space-y-1.5">
 				<h1 class="tw-title text-ink">{title}</h1>
 				<p class="tw-caption">{subtitle}</p>
 			</header>
 
 			{@render children()}
 
-			{#if footer}
-				<div class="text-secondary text-[14px]">{@render footer()}</div>
-			{/if}
+			<p class="text-muted flex items-center gap-2.5 text-[12.5px]">
+				<Mark size={7} color="var(--color-tier-moderate)" />
+				{t(
+					'Informasi dan analisis, bukan rekomendasi beli atau jual.',
+					'Information and analysis, not a recommendation to buy or sell.'
+				)}
+			</p>
 		</div>
-	</section>
+	</main>
+
+	<PanelPasar />
 </div>
+
+<style>
+	.lembar {
+		border-top: 1px solid var(--edge);
+		border-radius: 28px 28px 0 0;
+		background: var(--color-base);
+	}
+
+	@media (min-width: 1024px) {
+		.lembar {
+			border-top: 0;
+			border-radius: 0;
+			background: radial-gradient(
+				560px 420px at 50% 42%,
+				rgba(74, 158, 255, 0.07),
+				transparent 70%
+			);
+		}
+	}
+
+	.saklar {
+		display: grid;
+		flex: 1;
+		grid-template-columns: 1fr 1fr;
+		gap: 4px;
+		border: 1px solid var(--edge);
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--color-void) 60%, transparent);
+		padding: 4px;
+	}
+
+	.saklar a {
+		border-radius: 10px;
+		padding: 8px 12px;
+		text-align: center;
+		font-size: 14px;
+		font-weight: 500;
+		color: var(--color-muted);
+		transition:
+			color 0.2s ease,
+			background 0.2s ease;
+	}
+
+	.saklar a:hover {
+		color: var(--color-ink);
+	}
+
+	.saklar a[aria-current='page'] {
+		background: var(--color-raised);
+		color: var(--color-ink);
+		box-shadow:
+			inset 0 0 0 1px var(--edge-strong),
+			0 8px 18px -12px var(--bayang);
+	}
+</style>

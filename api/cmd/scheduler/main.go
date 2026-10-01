@@ -111,8 +111,9 @@ func rakitScan(cfg *config.Config, store *repository.Store) (*service.ScanServic
 	notifikasi := service.NewNotificationService(
 		repository.NewNotificationRepository(store),
 		repository.NewPushRepository(store),
-		nil,
+		service.NewStreamHub(store.Redis),
 		pengirim,
+		tickers,
 		!cfg.IsProduction(),
 	)
 

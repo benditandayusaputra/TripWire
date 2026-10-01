@@ -1,5 +1,7 @@
+import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
-import { sesiMasuk } from './helpers/akun';
+import { akunBaru, daftarLewatApi, jadikanAdmin, SesiApi, sesiMasuk } from './helpers/akun';
+import { denganCaptcha } from './helpers/captcha';
 
 const STUB_URL = `http://127.0.0.1:${process.env.SECTORS_STUB_PORT ?? '8899'}`;
 
@@ -8,6 +10,17 @@ const CACHE_TTL_MS = 2000;
 async function statistikStub(request: import('@playwright/test').APIRequestContext) {
 	const response = await request.get(`${STUB_URL}/__stub/stats`);
 	return (await response.json()).upstream_calls as number;
+}
+
+function lupakanLaporan(kode: string) {
+	execFileSync('redis-cli', [
+		'-n',
+		'1',
+		'DEL',
+		...['overview', 'valuation', 'financials', 'ownership'].map(
+			(bagian) => `sectors:cache:company/report/${kode}/?sections=${bagian}`
+		)
+	]);
 }
 
 async function tungguCacheKedaluwarsa() {
@@ -19,6 +32,7 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		const { sesi } = await sesiMasuk(request, 'sectors-cache');
 		const ticker = 'ANTM';
 
+		lupakanLaporan(ticker);
 		await tungguCacheKedaluwarsa();
 		const sebelum = await statistikStub(request);
 
@@ -29,11 +43,14 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		expect(isiPertama.ticker).toBe('ANTM');
 		expect(isiPertama.company_name).toBe('Aneka Tambang Tbk.');
 		expect(isiPertama.data.company_name).toBe('Aneka Tambang Tbk.');
-		expect(isiPertama.data.financials.revenue).toBe(41000000000000);
+		expect(isiPertama.data.overview.industry).toBe('Metals & Minerals');
+		expect(Object.keys(isiPertama.data).sort()).toEqual(
+			['company_name', 'financials', 'overview', 'ownership', 'symbol', 'valuation'].sort()
+		);
 		expect(isiPertama.meta.cached).toBe(false);
 
 		const setelahPertama = await statistikStub(request);
-		expect(setelahPertama).toBe(sebelum + 1);
+		expect(setelahPertama).toBe(sebelum + 4);
 
 		const kedua = await sesi.kirim('get', `/market/${ticker}`);
 		expect(kedua.status()).toBe(200);
@@ -63,6 +80,297 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		expect(isiKedua.meta.credits_used).toBe(isiPertama.meta.credits_used);
 		expect(isiKedua.meta.credits_remaining).toBe(isiPertama.meta.credits_remaining);
 		expect(isiKedua.meta.credit_budget).toBeGreaterThan(0);
+	});
+
+	test('laporan emiten v2 ditagih satu credit per section yang diminta', async ({ request }) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-biaya');
+
+		lupakanLaporan('TLKM');
+		await tungguCacheKedaluwarsa();
+		const sebelum = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const response = await sesi.kirim('get', '/market/TLKM');
+		expect(response.status()).toBe(200);
+		expect((await response.json()).meta.cached).toBe(false);
+
+		const sesudah = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+		expect(sesudah - sebelum).toBe(4);
+	});
+
+	test('bagian laporan yang jarang berubah disimpan seminggu, hanya ringkasan harga yang disegarkan', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-bagian');
+		const kredit = async () =>
+			(await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used as number;
+
+		lupakanLaporan('PTBA');
+		const stubAwal = await statistikStub(request);
+		const kreditAwal = await kredit();
+
+		const pertama = await (await sesi.kirim('get', '/market/PTBA')).json();
+		expect(pertama.meta.cached).toBe(false);
+		expect(await statistikStub(request)).toBe(stubAwal + 4);
+		expect((await kredit()) - kreditAwal).toBe(4);
+
+		await tungguCacheKedaluwarsa();
+
+		const kedua = await (await sesi.kirim('get', '/market/PTBA')).json();
+		expect(kedua.meta.cached).toBe(false);
+		expect(await statistikStub(request)).toBe(stubAwal + 5);
+		expect((await kredit()) - kreditAwal).toBe(5);
+		expect(kedua.data).toEqual(pertama.data);
+	});
+
+	test('pemakaian credit dicatat per hari dan admin melihat perkiraan sisa hari', async ({
+		request
+	}) => {
+		const akun = akunBaru('sectors-harian-admin');
+		await daftarLewatApi(request, akun);
+		jadikanAdmin(akun.email);
+
+		const sesi = new SesiApi(request);
+		const masuk = await sesi.kirim('post', '/auth/login', {
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password })
+		});
+		expect(masuk.status()).toBe(200);
+
+		const bacaKredit = async () => (await (await sesi.kirim('get', '/admin/system/credits')).json()).credits;
+		const hariIni = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
+
+		const awal = await bacaKredit();
+		expect(awal.daily_usage).toHaveLength(7);
+		expect(awal.daily_usage.at(-1).date).toBe(hariIni);
+		expect(awal.credit_threshold).toBe(100);
+
+		lupakanLaporan('ADRO');
+		expect((await sesi.kirim('get', '/market/ADRO')).status()).toBe(200);
+
+		const sesudah = await bacaKredit();
+		expect(sesudah.daily_usage.at(-1).credits).toBe(awal.daily_usage.at(-1).credits + 4);
+		expect(sesudah.credits_used).toBe(awal.credits_used + 4);
+		expect(sesudah.daily_average).toBeGreaterThan(0);
+		expect(sesudah.days_left).toBe(
+			Math.max(
+				0,
+				Math.floor((sesudah.credits_remaining - sesudah.credit_threshold) / sesudah.daily_average)
+			)
+		);
+	});
+
+	test('kutipan harga watchlist dibaca dari salinan laporan tanpa memanggil Sectors lagi', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-kutipan');
+
+		const tambah = await sesi.kirim('post', '/watchlist', {
+			data: { ticker: 'INCO' },
+			headers: { 'X-CSRF-Token': sesi.cookie('tw_csrf') }
+		});
+		expect(tambah.status()).toBe(201);
+
+		expect((await sesi.kirim('get', '/market/INCO')).status()).toBe(200);
+		await tungguCacheKedaluwarsa();
+
+		const sebelum = await statistikStub(request);
+		const kredit = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const daftar = await sesi.kirim('get', '/watchlist');
+		expect(daftar.status()).toBe(200);
+
+		const { quotes } = await daftar.json();
+		expect(quotes.INCO).toMatchObject({
+			ticker: 'INCO',
+			last_close_price: 3900,
+			daily_close_change: 0.0155,
+			high_52w: 4600,
+			low_52w: 3100,
+			sector: 'Basic Materials'
+		});
+		expect(quotes.INCO.indices).toContain('LQ45');
+
+		expect(await statistikStub(request)).toBe(sebelum);
+		const kreditSesudah = (await (await sesi.kirim('get', '/market/credits')).json()).meta
+			.credits_used;
+		expect(kreditSesudah).toBe(kredit);
+	});
+
+	test('harga harian watchlist ditagih satu credit, lalu dilayani cache, dan tertutup untuk orang lain', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-harian');
+		const { sesi: orangLain } = await sesiMasuk(request, 'sectors-harian-lain');
+
+		const { item } = await (
+			await sesi.kirim('post', '/watchlist', {
+				data: { ticker: 'INCO' },
+				headers: { 'X-CSRF-Token': sesi.cookie('tw_csrf') }
+			})
+		).json();
+
+		await tungguCacheKedaluwarsa();
+		const sebelum = await statistikStub(request);
+		const kredit = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const pertama = await sesi.kirim('get', `/watchlist/${item.id}/prices`);
+		expect(pertama.status()).toBe(200);
+		const isi = await pertama.json();
+
+		expect(isi.ticker).toBe('INCO');
+		expect(isi.meta.cached).toBe(false);
+		expect(isi.series.length).toBeGreaterThan(40);
+		expect(isi.series.at(-1).close).toBe(3900);
+		const tanggal = isi.series.map((baris: { date: string }) => baris.date);
+		expect(tanggal).toEqual([...tanggal].sort());
+		for (const baris of isi.series) {
+			expect(baris.low).toBeLessThanOrEqual(Math.min(baris.open, baris.close));
+			expect(baris.high).toBeGreaterThanOrEqual(Math.max(baris.open, baris.close));
+		}
+
+		expect(await statistikStub(request)).toBe(sebelum + 1);
+		expect((await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used).toBe(
+			kredit + 1
+		);
+
+		const kedua = await sesi.kirim('get', `/watchlist/${item.id}/prices`);
+		expect((await kedua.json()).meta.cached).toBe(true);
+		expect(await statistikStub(request)).toBe(sebelum + 1);
+
+		const bukanMilik = await orangLain.kirim('get', `/watchlist/${item.id}/prices`);
+		expect(bukanMilik.status()).toBe(404);
+		expect(await statistikStub(request)).toBe(sebelum + 1);
+	});
+
+	test('saham berkapitalisasi terbesar diambil dari screener Sectors dengan satu credit', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-teratas');
+
+		await tungguCacheKedaluwarsa();
+		const sebelum = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const pertama = await sesi.kirim('get', '/market/top');
+		expect(pertama.status()).toBe(200);
+		const isi = await pertama.json();
+		expect(isi.meta.cached).toBe(false);
+		expect(isi.meta.credits_used).toBe(sebelum + 1);
+
+		const kode = isi.stocks.map((saham: { ticker: string }) => saham.ticker);
+		expect(kode.slice(0, 3)).toEqual(['BBCA', 'BBRI', 'TLKM']);
+		expect(kode).not.toContain('BBCA.JK');
+		expect(isi.stocks).toHaveLength(10);
+		expect(isi.stocks[0]).toEqual({
+			ticker: 'BBCA',
+			company_name: 'Bank Central Asia Tbk.',
+			sector: 'Financials',
+			last_close_price: 7000,
+			daily_close_change: 0.0036,
+			market_cap: 863_000_000_000_000
+		});
+		const kapitalisasi = isi.stocks.map((saham: { market_cap: number }) => saham.market_cap);
+		expect(kapitalisasi).toEqual([...kapitalisasi].sort((a, b) => b - a));
+
+		const kedua = await (await sesi.kirim('get', '/market/top')).json();
+		expect(kedua.meta.cached).toBe(true);
+		expect(kedua.meta.credits_used).toBe(isi.meta.credits_used);
+		expect(kedua.stocks).toEqual(isi.stocks);
+	});
+
+	test('daftar semua saham memakai halaman screener yang sama dengan saran saham', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-semua');
+
+		await tungguCacheKedaluwarsa();
+		const sebelum = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const response = await sesi.kirim('get', '/market/stocks');
+		expect(response.status()).toBe(200);
+		const isi = await response.json();
+		expect(isi.meta.credits_used).toBe(sebelum + 1);
+
+		const kode = isi.stocks.map((saham: { ticker: string }) => saham.ticker);
+		expect(new Set(kode).size).toBe(kode.length);
+		expect(kode).toEqual(
+			expect.arrayContaining(['ANTM', 'PTBA', 'BBCA', 'MDKA', 'INCO', 'BRMS', 'ADRO', 'ITMG'])
+		);
+		expect(kode[0]).toBe('BBCA');
+		for (const saham of isi.stocks) {
+			expect(saham.sector).toBeTruthy();
+			expect(saham.last_close_price).toBeGreaterThan(0);
+		}
+		const kapitalisasi = isi.stocks.map((saham: { market_cap: number }) => saham.market_cap);
+		expect(kapitalisasi).toEqual([...kapitalisasi].sort((a, b) => b - a));
+
+		const teratas = await (await sesi.kirim('get', '/market/top')).json();
+		expect(teratas.meta.cached).toBe(true);
+		expect(teratas.meta.credits_used).toBe(isi.meta.credits_used);
+		expect(teratas.stocks.map((saham: { ticker: string }) => saham.ticker)).toEqual(
+			kode.slice(0, 10)
+		);
+	});
+
+	test('grafik indeks IHSG ditagih satu credit lalu dilayani cache, kode asing ditolak', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-indeks');
+
+		await tungguCacheKedaluwarsa();
+		const sebelum = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const pertama = await sesi.kirim('get', '/market/index/IHSG');
+		expect(pertama.status()).toBe(200);
+		const isi = await pertama.json();
+		expect(isi.code).toBe('IHSG');
+		expect(isi.meta.cached).toBe(false);
+		expect(isi.meta.credits_used).toBe(sebelum + 1);
+
+		const tanggal = isi.series.map((titik: { date: string }) => titik.date);
+		expect(tanggal.length).toBeGreaterThan(40);
+		expect(tanggal).toEqual([...tanggal].sort());
+		const batas = new Date(Date.now() - 91 * 86_400_000).toISOString().slice(0, 10);
+		expect(tanggal[0] >= batas).toBe(true);
+		for (const titik of isi.series) expect(titik.price).toBeGreaterThan(0);
+
+		const kedua = await (await sesi.kirim('get', '/market/index/ihsg')).json();
+		expect(kedua.meta.cached).toBe(true);
+		expect(kedua.meta.credits_used).toBe(isi.meta.credits_used);
+
+		const sebelumStub = await statistikStub(request);
+		const asing = await sesi.kirim('get', '/market/index/sp500');
+		expect(asing.status()).toBe(422);
+		expect(await statistikStub(request)).toBe(sebelumStub);
+	});
+
+	test('arus dana asing memisahkan net beli dan net jual dengan dua credit', async ({ request }) => {
+		const { sesi } = await sesiMasuk(request, 'sectors-asing');
+
+		await tungguCacheKedaluwarsa();
+		const sebelum = (await (await sesi.kirim('get', '/market/credits')).json()).meta.credits_used;
+
+		const response = await sesi.kirim('get', '/market/foreign-flow');
+		expect(response.status()).toBe(200);
+		const isi = await response.json();
+		expect(isi.meta.credits_used).toBe(sebelum + 2);
+		expect(isi.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+		const beli = isi.top_buy.map((satu: { ticker: string }) => satu.ticker);
+		const jual = isi.top_sell.map((satu: { ticker: string }) => satu.ticker);
+		expect(beli.slice(0, 3)).toEqual(['ANTM', 'BBCA', 'TLKM']);
+		expect(jual.slice(0, 3)).toEqual(['BBRI', 'INCO', 'MDKA']);
+		expect(isi.top_buy[0]).toEqual({
+			ticker: 'ANTM',
+			company_name: 'Aneka Tambang Tbk.',
+			net_foreign_inflow: 294_600_000_000,
+			foreign_buy_idr: 377_700_000_000,
+			foreign_sell_idr: expect.any(Number)
+		});
+		for (const satu of isi.top_buy) expect(satu.net_foreign_inflow).toBeGreaterThan(0);
+		for (const satu of isi.top_sell) expect(satu.net_foreign_inflow).toBeLessThan(0);
+
+		const kedua = await (await sesi.kirim('get', '/market/foreign-flow')).json();
+		expect(kedua.meta.cached).toBe(true);
+		expect(kedua.meta.credits_used).toBe(isi.meta.credits_used);
 	});
 
 	test('ticker di luar daftar IDX tidak pernah diteruskan ke Sectors', async ({ request }) => {
@@ -95,10 +403,22 @@ test.describe('Fase 5: klien Sectors, cache, dan circuit breaker', () => {
 		const lain = await sesi.kirim('get', '/market/MDKA');
 		expect(lain.status()).toBe(503);
 		expect(await statistikStub(request)).toBe(sebelum);
+
+		await tungguCacheKedaluwarsa();
+		const cadangan = await sesi.kirim('get', '/market/stocks');
+		expect(cadangan.status()).toBe(200);
+		const daftar = (await cadangan.json()).stocks as { ticker: string; last_close_price: number }[];
+		expect(daftar.length).toBeGreaterThanOrEqual(10);
+		expect(daftar.map((saham) => saham.ticker)).toContain('ANTM');
+		expect(daftar.every((saham) => saham.last_close_price === null)).toBe(true);
+		expect(await statistikStub(request)).toBe(sebelum);
 	});
 
 	test('endpoint pasar menolak pengunjung tanpa sesi', async ({ request }) => {
 		const response = await request.get('/market/ANTM');
 		expect(response.status()).toBe(401);
+		expect((await request.get('/market/top')).status()).toBe(401);
+		expect((await request.get('/market/index/ihsg')).status()).toBe(401);
+		expect((await request.get('/market/foreign-flow')).status()).toBe(401);
 	});
 });

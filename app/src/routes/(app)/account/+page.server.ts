@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { apiBaseUrl } from '$lib/api/client';
 import { panggilApi, pesanGalat } from '$lib/server/api';
+import { teks } from '$lib/bahasa.svelte';
 import type { Actions, PageServerLoad } from './$types';
 
 function csrfHeader(cookies: { get: (name: string) => string | undefined }) {
@@ -13,12 +14,15 @@ export const load: PageServerLoad = async ({ request }) => {
 };
 
 export const actions: Actions = {
-	unggah: async ({ request, cookies }) => {
+	unggah: async ({ request, cookies, locals }) => {
 		const form = await request.formData();
 		const berkas = form.get('file');
 
 		if (!(berkas instanceof File) || berkas.size === 0) {
-			return fail(400, { aksi: 'unggah', error: 'Pilih berkas gambar dulu' });
+			return fail(400, {
+				aksi: 'unggah',
+				error: teks(locals.bahasa, 'Pilih berkas gambar dulu', 'Choose an image file first')
+			});
 		}
 
 		const teruskan = new FormData();
@@ -39,14 +43,17 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'unggah',
-				error: pesanGalat(payload, 'Gagal mengunggah foto profil')
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal mengunggah foto profil', 'Could not upload your profile photo')
+				)
 			});
 		}
 
 		return { aksi: 'unggah', sukses: true };
 	},
 
-	simpan: async ({ request, cookies }) => {
+	simpan: async ({ request, cookies, locals }) => {
 		const form = await request.formData();
 
 		const { response, payload } = await panggilApi(
@@ -58,8 +65,6 @@ export const actions: Actions = {
 					full_name: String(form.get('full_name') ?? ''),
 					phone_number: String(form.get('phone_number') ?? ''),
 					bio: String(form.get('bio') ?? ''),
-					locale: String(form.get('locale') ?? 'id'),
-					theme_preference: String(form.get('theme_preference') ?? 'dark'),
 					timezone: String(form.get('timezone') ?? 'Asia/Jakarta')
 				})
 			},
@@ -69,7 +74,10 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'simpan',
-				error: pesanGalat(payload, 'Gagal menyimpan profil'),
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal menyimpan profil', 'Could not save your profile')
+				),
 				fields: (payload?.fields ?? {}) as Record<string, string>
 			});
 		}
@@ -77,7 +85,7 @@ export const actions: Actions = {
 		return { aksi: 'simpan', sukses: true };
 	},
 
-	hapus: async ({ request, cookies }) => {
+	hapus: async ({ request, cookies, locals }) => {
 		const { response, payload } = await panggilApi(
 			'/account/avatar',
 			{ method: 'DELETE', headers: csrfHeader(cookies) },
@@ -87,7 +95,10 @@ export const actions: Actions = {
 		if (!response.ok) {
 			return fail(response.status, {
 				aksi: 'hapus',
-				error: pesanGalat(payload, 'Gagal menghapus foto profil')
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Gagal menghapus foto profil', 'Could not remove your profile photo')
+				)
 			});
 		}
 

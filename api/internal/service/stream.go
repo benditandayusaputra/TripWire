@@ -13,12 +13,18 @@ const (
 	prefixPresence = "presence:"
 	presenceTTL    = 90 * time.Second
 	bufferKlien    = 16
+	kanalSiaran    = "stream:siaran"
 )
 
 type StreamEvent struct {
 	Type string `json:"type"`
 	Data any    `json:"data,omitempty"`
 	At   string `json:"at"`
+}
+
+type siaranStream struct {
+	UserID string      `json:"user_id"`
+	Event  StreamEvent `json:"event"`
 }
 
 type StreamHub struct {
@@ -104,6 +110,37 @@ func (h *StreamHub) Kirim(userID string, event StreamEvent) bool {
 	}
 
 	return terkirim
+}
+
+func (h *StreamHub) Antar(ctx context.Context, userID string, event StreamEvent) bool {
+	if h.Online(userID) {
+		h.tandaiHadir(ctx, userID)
+		return h.Kirim(userID, event)
+	}
+
+	if !h.OnlineDiRedis(ctx, userID) {
+		return false
+	}
+
+	isi, err := json.Marshal(siaranStream{UserID: userID, Event: event})
+	if err != nil {
+		return false
+	}
+
+	penerima, err := h.redis.Publish(ctx, kanalSiaran, isi).Result()
+	return err == nil && penerima > 0
+}
+
+func (h *StreamHub) Dengarkan(ctx context.Context) {
+	langganan := h.redis.Subscribe(ctx, kanalSiaran)
+	defer langganan.Close()
+
+	for pesan := range langganan.Channel() {
+		var siaran siaranStream
+		if json.Unmarshal([]byte(pesan.Payload), &siaran) == nil && siaran.UserID != "" {
+			h.Kirim(siaran.UserID, siaran.Event)
+		}
+	}
 }
 
 func (h *StreamHub) SegarkanPresence(ctx context.Context, userID string) {

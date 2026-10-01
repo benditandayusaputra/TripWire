@@ -4,7 +4,18 @@ import (
 	"context"
 
 	"github.com/benditandayusaputra/tripwire/api/internal/repository"
+	"github.com/benditandayusaputra/tripwire/api/pkg/sectorsclient"
 )
+
+const hariPemakaian = 7
+
+type KreditAdmin struct {
+	MarketMeta
+	Ambang     int64                         `json:"credit_threshold"`
+	Harian     []sectorsclient.PemakaianHari `json:"daily_usage"`
+	RataHarian *float64                      `json:"daily_average"`
+	SisaHari   *int                          `json:"days_left"`
+}
 
 type AdminService struct {
 	repo   *repository.AdminRepository
@@ -16,8 +27,34 @@ func NewAdminService(repo *repository.AdminRepository, market *MarketService, sc
 	return &AdminService{repo: repo, market: market, scan: scan}
 }
 
-func (s *AdminService) Credits(ctx context.Context) MarketMeta {
-	return s.market.Credits(ctx)
+func (s *AdminService) Credits(ctx context.Context) KreditAdmin {
+	kredit := KreditAdmin{
+		MarketMeta: s.market.Credits(ctx),
+		Ambang:     s.market.client.Threshold(),
+		Harian:     s.market.client.PemakaianHarian(ctx, hariPemakaian),
+	}
+	kredit.RataHarian, kredit.SisaHari = PerkiraanSisaHari(kredit.Harian, kredit.CreditsRemaining-kredit.Ambang)
+	return kredit
+}
+
+func PerkiraanSisaHari(harian []sectorsclient.PemakaianHari, cadangan int64) (*float64, *int) {
+	awal, total := -1, int64(0)
+	for i, hari := range harian {
+		if hari.Credit > 0 && awal < 0 {
+			awal = i
+		}
+		total += hari.Credit
+	}
+	if awal < 0 {
+		return nil, nil
+	}
+
+	rata := float64(total) / float64(len(harian)-awal)
+	sisa := 0
+	if cadangan > 0 {
+		sisa = int(float64(cadangan) / rata)
+	}
+	return &rata, &sisa
 }
 
 func (s *AdminService) SchedulerStatus(ctx context.Context) (map[string]any, error) {

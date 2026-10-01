@@ -114,19 +114,29 @@ func (s *TickerService) Search(query string, limit int) []Ticker {
 	defer s.mu.RUnlock()
 
 	hasil := make([]Ticker, 0, limit)
-	for _, ticker := range s.ordered {
-		if needle != "" &&
-			!strings.HasPrefix(ticker.Code, needle) &&
-			!strings.Contains(strings.ToUpper(ticker.Name), needle) {
-			continue
-		}
-		hasil = append(hasil, ticker)
-		if len(hasil) == limit {
-			break
+	for _, cocok := range []func(Ticker) bool{
+		func(ticker Ticker) bool { return strings.HasPrefix(ticker.Code, needle) },
+		func(ticker Ticker) bool {
+			return !strings.HasPrefix(ticker.Code, needle) && strings.Contains(strings.ToUpper(ticker.Name), needle)
+		},
+	} {
+		for _, ticker := range s.ordered {
+			if len(hasil) == limit {
+				return hasil
+			}
+			if cocok(ticker) {
+				hasil = append(hasil, ticker)
+			}
 		}
 	}
 
 	return hasil
+}
+
+func (s *TickerService) Semua() []Ticker {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return append([]Ticker(nil), s.ordered...)
 }
 
 func (s *TickerService) Total() int {
