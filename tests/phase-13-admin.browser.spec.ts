@@ -68,6 +68,10 @@ test.describe('Fase 13: panel admin dan kontrol aksesnya', () => {
 		await expect(page.getByTestId('admin-heading')).toBeVisible();
 		await expect(page.getByTestId('admin-statistik')).toBeVisible();
 		await expect(page.getByTestId('admin-credits')).toContainText('kredit');
+		await expect(page.getByTestId('admin-hari')).toHaveCount(7);
+		await expect(page.getByTestId('admin-perkiraan')).toContainText(
+			/kredit per hari|Belum ada pemakaian/
+		);
 
 		const baris = page.getByTestId('admin-user-row');
 		await expect(baris.first()).toBeVisible();
