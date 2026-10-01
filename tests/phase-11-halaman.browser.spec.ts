@@ -295,6 +295,21 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(page.getByTestId('bagian-kepemilikan')).toContainText('naik 7 poin');
 		await expect(page.getByTestId('sumber-data')).toContainText('Laporan transaksi KSEI');
 
+		const rumus = page.getByTestId('rumus-skor');
+		await expect(rumus.getByTestId('sub-skor')).toHaveCount(3);
+		await expect(rumus.locator('[data-nama="insider_clustering"]')).toContainText('× 0,4');
+		await expect(rumus).toContainText('Skor dasar');
+		const skor = (await page.getByTestId('skor-badge').locator('.tw-data').first().textContent())?.trim();
+		await expect(rumus.locator('.hasil')).toContainText(skor ?? 'x');
+		await expect(page.getByTestId('grafik-insight')).toContainText('Harga harian dan Red Flag Score');
+		await expect(page.locator('[data-testid="bagian-suspensi"] li.jendela')).toHaveCount(1);
+		await expect(page.getByTestId('detail-ticker')).toHaveAttribute('href', '/stocks/ANTM');
+		await expect(page.getByTestId('cek-keaslian')).toHaveAttribute('href', `/verify-insight?id=${id}`);
+
+		const mentah = page.getByTestId('data-mentah');
+		await mentah.locator('summary').click();
+		await expect(mentah.locator('pre')).toContainText('"governance_risk_score"');
+
 		expect(galat).toEqual([]);
 	});
 
