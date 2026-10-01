@@ -6,18 +6,32 @@ Red Flag Detector & Market Intelligence untuk saham IDX. PWA dengan watchlist pe
 - **Landing Page**: pitch value proposition, contoh insight (sample/dianonimkan), CTA daftar
 - **Login**
 - **Register**
-- **Verifikasi Insight** *(bonus)*: publik bisa paste ID insight, sistem tunjukkan valid/tidaknya signature Ed25519-nya, bukti insight tidak diubah setelah dibuat
+- **Verifikasi Insight** *(bonus)*: publik bisa paste ID insight, sistem tunjukkan valid/tidaknya signature Ed25519-nya, bukti insight tidak diubah setelah dibuat. Tanda tangan dan hash rantai ikut dihitung ulang di browser pengunjung lewat WebCrypto
 
 ## 2. Onboarding (sekali, setelah register)
-1. Terima izin notifikasi browser
-2. Pilih saham pertama buat watchlist
-3. Pilih kondisi pemicu: event terbaru/geopolitik, harian, mingguan, atau periodik custom
-4. Pilih tampilan data: insight saja, atau insight plus data pendukung (revenue, dst)
+Halaman `/mulai`, muncul otomatis pada login pertama selama watchlist masih kosong dan bisa dibuka lagi
+dari dashboard:
+1. Pilih sampai lima saham, dari saham terbesar BEI atau pencarian daftar lengkap
+2. Pilih cara dikabari: setiap hari, seminggu sekali, atau hanya saat skor 61 ke atas
+3. Izinkan notifikasi push browser
+Saham pilihan langsung dipindai, tidak menunggu jadwal scheduler. Tampilan data bawaan adalah insight
+plus data pendukung, dan kondisi lain (geopolitik, periodik custom) diatur dari watchlist.
 
 ## 3. Dashboard Utama
 - Feed insight terbaru dari seluruh watchlist, urut waktu
 - Ringkasan: jumlah saham dipantau, insight baru minggu ini, kondisi yang lagi aktif
+- Panel pasar dari Sectors: grafik IHSG, LQ45, IDX30, denyut pasar, penggerak pasar, arus dana asing,
+  kinerja sektor, peta pasar 40 saham terbesar, kinerja watchlist dibanding IHSG
 - Shortcut ke watchlist dan notifikasi
+
+## 3a. Halaman Saham
+- `/stocks/[ticker]` untuk emiten mana pun, dibuka dari ticker di dashboard, watchlist, insight, atau
+  pencarian global Ctrl/Cmd+K
+- Grafik harga harian 90 hari dengan penanda peristiwa red flag
+- Red Flag Score, sub skor, dan pemicu terakhir, atau tombol Pantau yang langsung memindai
+- Ringkasan Market Intelligence
+- Siapa di balik saham: pemilik terbesar, pimpinan, grup usaha, investor kakap, direksi, pemegang
+  saham utama, gerak institusi, komposisi investor lokal dan asing
 
 ## 4. Watchlist
 - Daftar saham yang dipantau (tambah/hapus)
