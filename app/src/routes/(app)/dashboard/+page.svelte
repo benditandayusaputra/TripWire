@@ -426,11 +426,16 @@
 					)}
 				</p>
 			</div>
-			<a href="/watchlist" class="tw-primary mt-5 px-4 py-2.5 text-[14px]">
-				<ListChecks class="size-4" aria-hidden="true" />
-				{t('Buka watchlist', 'Open watchlist')}
-				<ArrowRight class="size-4" aria-hidden="true" />
-			</a>
+			<div class="mt-5 flex flex-wrap gap-2.5">
+				<a href="/mulai" class="tw-primary px-4 py-2.5 text-[14px]" data-testid="buka-mulai">
+					{t('Mulai dalam 3 langkah', 'Start in 3 steps')}
+					<ArrowRight class="size-4" aria-hidden="true" />
+				</a>
+				<a href="/watchlist" class="tw-ghost px-4 py-2.5 text-[14px]">
+					<ListChecks class="size-4" aria-hidden="true" />
+					{t('Buka watchlist', 'Open watchlist')}
+				</a>
+			</div>
 			<ol class="text-secondary mt-6 grid gap-3 text-[13px] sm:grid-cols-3">
 				{#each [t('Tambahkan saham ke watchlist', 'Add stocks to your watchlist'), t('Atur kondisi pemicu', 'Set trigger conditions'), t('Terima notifikasi saat skor naik', 'Get alerted when scores rise')] as langkah, urutan (langkah)}
 					<li class="flex items-center gap-2.5">
