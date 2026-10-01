@@ -9,26 +9,36 @@
 
 <div class="min-h-dvh">
 	<header class="border-line/70 bg-void/70 sticky top-0 z-20 border-b backdrop-blur-xl">
-		<div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3.5">
+		<div
+			class="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3.5 sm:gap-4 sm:px-6"
+		>
 			<div class="flex items-center gap-5">
 				<Wordmark size="sm" href="/dashboard" />
 				<span
-					class="rounded-glass border-diamond-700 bg-diamond-900/40 text-diamond-100 tw-overline inline-flex items-center gap-1.5 border px-2.5 py-1"
+					class="rounded-glass border-diamond-700 bg-diamond-900/40 text-diamond-100 tw-overline hidden items-center gap-1.5 border px-2.5 py-1 sm:inline-flex"
 				>
 					<ShieldCheck class="size-3" aria-hidden="true" />
 					Admin
 				</span>
 			</div>
 
-			<div class="flex items-center gap-3">
+			<div class="flex items-center gap-2 sm:gap-3">
 				<Preferensi />
 
-				<a href="/dashboard" class="tw-ghost px-3 py-1.5 text-[13px]">
+				<a
+					href="/dashboard"
+					class="tw-ghost px-3 py-1.5 text-[13px] whitespace-nowrap"
+					aria-label={t('Kembali ke aplikasi', 'Back to the app')}
+				>
 					<ArrowLeft class="size-3.5" aria-hidden="true" />
-					{t('Aplikasi', 'App')}
+					<span class="hidden sm:inline">{t('Aplikasi', 'App')}</span>
 				</a>
 
-				<span data-testid="current-user" class="tw-data text-muted hidden text-[12px] md:inline">
+				<span
+					data-testid="current-user"
+					class="tw-data text-muted hidden max-w-[14rem] truncate text-[12px] lg:inline"
+					title={data.user?.email}
+				>
 					{data.user?.email}
 				</span>
 
@@ -36,17 +46,18 @@
 					<button
 						type="submit"
 						data-testid="logout-button"
-						class="tw-ghost px-3 py-1.5 text-[13px]"
+						aria-label={t('Keluar dari akun', 'Log out of your account')}
+						class="tw-ghost px-3 py-1.5 text-[13px] whitespace-nowrap"
 					>
 						<LogOut class="size-3.5" aria-hidden="true" />
-						{t('Keluar', 'Log out')}
+						<span class="hidden sm:inline">{t('Keluar', 'Log out')}</span>
 					</button>
 				</form>
 			</div>
 		</div>
 	</header>
 
-	<main class="mx-auto max-w-5xl px-6 py-8">
+	<main class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
 		{@render children()}
 	</main>
 </div>
