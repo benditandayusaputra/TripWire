@@ -4,6 +4,7 @@ import { isiCaptcha } from './helpers/captcha';
 import { tambahSaham } from './helpers/watchlist';
 
 async function masukSebagai(page: import('@playwright/test').Page, email: string, password: string) {
+	await page.context().clearCookies({ name: 'tw_mulai' });
 	await page.goto('/login');
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Password').fill(password);
