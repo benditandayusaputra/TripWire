@@ -61,6 +61,7 @@ Akses: **Publik** (gak perlu login) · **User** (butuh access token valid) · **
 
 | Method | Path | Akses | Keterangan |
 |---|---|---|---|
+| GET | /tickers?q=&limit= | User | Cari emiten di daftar ticker IDX tanpa memanggil Sectors. Kode yang diawali kata kunci didahulukan, lalu nama yang memuatnya. Dipakai pencarian saham global (Ctrl/Cmd+K) |
 | GET | /watchlist | User | List saham yang dipantau, plus `quotes` per ticker (harga penutupan, perubahan harian, kapitalisasi, rentang 52 minggu, indeks) dari salinan laporan emiten, tanpa memanggil Sectors |
 | GET | /watchlist/overview | User | Ringkasan risiko per ticker dari `insight_events` (Red Flag terakhir beserta sub skor dan pengali pola silang, skor sebelumnya, riwayat 40 skor terakhir, insight Market Intelligence terakhir, jumlah insight) dan jadwal jaga: waktu scan terakhir, scan berikutnya, dan cek berikutnya per kondisi aktif. Tidak memanggil Sectors |
 | GET | /watchlist/:id/prices | User (owner) | Harga harian 90 hari (open, high, low, close, volume) dari Sectors `/daily/`, 1 credit per emiten per hari, dilayani cache setelahnya. Halaman watchlist memanggilnya untuk setiap baris, dipakai sebagai garis tren sebulan dan harga penutupan emiten yang belum dipindai |
