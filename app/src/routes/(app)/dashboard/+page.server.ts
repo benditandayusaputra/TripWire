@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import { panggilApi } from '$lib/server/api';
 import type { Notifikasi } from '$lib/api/notifications';
 import type { Insight } from '$lib/insight';
@@ -29,7 +30,7 @@ function rampingkan(insights: Insight[]) {
 	});
 }
 
-export const load: PageServerLoad = async ({ request }) => {
+export const load: PageServerLoad = async ({ request, cookies, url }) => {
 	const cookie = request.headers.get('cookie') ?? '';
 
 	const [feed, analisis, watchlist, ringkasan, notifikasi] = await Promise.all([
@@ -41,6 +42,10 @@ export const load: PageServerLoad = async ({ request }) => {
 	]);
 
 	const items = (watchlist.payload?.items ?? []) as ItemWatchlist[];
+	if (cookies.get('tw_mulai')) {
+		cookies.delete('tw_mulai', { path: '/', secure: url.protocol === 'https:' });
+		if (watchlist.response.ok && items.length === 0) redirect(303, '/mulai');
+	}
 	const insights = [
 		...new Map(
 			[...(feed.payload?.insights ?? []), ...(analisis.payload?.insights ?? [])].map(
