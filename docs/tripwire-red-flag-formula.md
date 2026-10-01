@@ -1,10 +1,16 @@
 # TripWire: Formula Red Flag Detector
 
 ## 1. Sinyal Input
-Tiga sinyal mentah dari data Sectors, masing masing punya sub-skor sendiri sebelum digabung:
-- Histori suspend saham beserta alasan resmi
-- Transaksi insider dan pemegang saham mayor (Company Filings)
-- Perubahan komposisi kepemilikan (Shareholders Composition)
+Tiga sinyal mentah dari data Sectors API v2, masing masing punya sub-skor sendiri sebelum digabung:
+
+| Sinyal | Endpoint Sectors v2 | Biaya |
+|---|---|---|
+| Histori suspend beserta alasan resmi dan tautan PDF IDX | `GET /v2/suspensions/?symbol=` | 1 credit |
+| Transaksi insider dan pemegang saham mayor (filing KSEI) | `GET /v2/filings/?symbol=&start=<90 hari lalu>` | 1 credit |
+| Perubahan kepemilikan per pemegang | dihitung dari `share_percentage_before` dan `share_percentage_after` di filing yang sama | 0 |
+| Free float dan pemegang saham utama saat ini | `GET /v2/company/report/{symbol}/?sections=ownership` | 1 credit, disimpan 7 hari dan dipakai bersama profil saham |
+
+Daftar lengkap endpoint, biaya, dan masa cache ada di `tripwire-sectors-api.md`.
 
 ## 2. Sub-skor per Sinyal
 
@@ -24,6 +30,17 @@ severity_score = rata rata tier keparahan dari semua suspend 3 tahun terakhir
 S_susp = (frekuensi_score × 0.3) + (recency_score × 0.3) + (severity_score × 0.4)
 ```
 
+Sectors tidak memberi tier keparahan, jadi tier diturunkan dari kalimat `reason` resmi IDX. Pemetaan
+di bawah dicocokkan dengan alasan suspend asli yang keluar dari endpoint `suspensions` per 28 September 2026:
+
+| Tier | Kata kunci pada alasan | Contoh alasan asli |
+|---|---|---|
+| 1, rutin | harga kumulatif, cooling down, unusual market activity, UMA | "Terjadinya peningkatan harga kumulatif yang signifikan pada saham ... dalam rangka cooling down" |
+| 3, serius | kelangsungan usaha, pemantauan khusus, PKPU, penundaan kewajiban, pailit, gagal bayar, wanprestasi, delisting, penghapusan pencatatan, dugaan, pelanggaran, sanksi, investigasi, penyelidikan, manipulasi, opini tidak menyatakan pendapat | "Efek Perseroan telah berada dalam papan pemantauan khusus selama lebih dari 1 (satu) tahun", "Sehubungan dengan adanya ketidakpastian atas kelangsungan usaha" |
+| 2, operasional | selain dua kelompok di atas | keterlambatan laporan keuangan, biaya pencatatan tahunan belum dibayar |
+
+Kata kunci serius diperiksa lebih dulu, jadi alasan yang memuat dua kelompok sekaligus jatuh ke tier 3.
+
 ### 2.2 Skor Klaster Insider (S_insider), rentang 0 sampai 100
 ```
 window = 30 hari rolling
@@ -38,16 +55,30 @@ S_insider = cluster_intensity × (0.4 + 0.6 × direction_factor)
 ```
 Insider buying gak dianggap sinyal negatif (direction_factor dasarnya 0, bukan minus), karena fokus Red Flag Detector itu risiko, bukan penilaian dua arah. Faktor dasar 0.4 tetap dikasih meski net_direction netral, karena klaster transaksi itu sendiri (apa pun arahnya) tetap layak diperhatikan.
 
+Filing Sectors punya tiga `transaction_type`: `buy`, `sell`, dan `others`. Jenis `others` (misalnya
+gadai, repo, atau pengalihan tanpa jual beli) tetap dihitung sebagai pelaku dalam `insider_count`,
+tapi tidak masuk ke `net_direction` karena bukan jual maupun beli. Tanggal yang dipakai adalah
+`timestamp` keterbukaan informasi, bukan tanggal eksekusi transaksi.
+
 ### 2.3 Skor Perubahan Kepemilikan (S_owner), rentang 0 sampai 100
 ```
 window = 90 hari rolling
-delta_concentration = |persentase top holder sekarang − persentase 90 hari lalu|, dalam poin persentase
+untuk tiap pemegang saham yang punya filing dalam window:
+    perubahan = share_percentage_after filing terakhir − share_percentage_before filing pertama
+delta_concentration = |perubahan| terbesar di antara semua pemegang, dalam poin persentase
 
 magnitude_score = min(100, delta_concentration × 10)
 S_owner = magnitude_score × faktor_free_float
     faktor_free_float = 0.7 kalau saham termasuk free float kecil, 1.0 kalau normal
 ```
 Saham free float kecil secara alami punya persentase kepemilikan yang lebih volatile, faktor pengurang ini nyegah saham semacam itu selalu nangkring di skor tinggi padahal pergerakannya wajar buat ukuran floatnya.
+
+Kenapa perubahan dihitung per pemegang dari filing, bukan dari riwayat top holder: bagian `ownership`
+di laporan emiten Sectors v2 hanya berisi potret pemegang saham utama saat ini tanpa riwayat, sedangkan
+endpoint Shareholders Composition merangkum kepemilikan per kategori investor (asuransi, korporasi,
+reksa dana, dan seterusnya), bukan per pemegang. Satu satunya sumber yang mencatat persentase seorang
+pemegang sebelum dan sesudah bertransaksi adalah filing KSEI. Free float diambil dari baris `Public`
+di `ownership.major_shareholders`, sama seperti definisi endpoint Free Float milik Sectors.
 
 ## 3. Deteksi Pola Silang
 Ini mekanisme inti yang bikin Red Flag Detector beda dari sekadar menampilkan tiga skor berdampingan.
@@ -100,11 +131,20 @@ Satu insight per siklus deteksi per saham, bukan satu insight per sinyal:
   "supporting_data": {
     "suspensions": [],
     "insider_transactions": [],
-    "ownership_snapshots": []
+    "ownership_changes": [],
+    "major_shareholders": [],
+    "free_float_pct": 0,
+    "free_float_factor": 1,
+    "insider_count_in_window": 0,
+    "insider_net_direction": 0,
+    "delta_concentration_pp": 0
   },
+  "data_sources": ["/company/report/PPGL/", "/suspensions/", "/filings/"],
   "computed_at": ""
 }
 ```
+`data_sources` mencatat endpoint Sectors yang benar benar dipanggil untuk insight itu, tanpa query
+string supaya isinya stabil dan tidak memicu insight baru hanya karena tanggal `start` bergeser.
 `insight_events.score` diisi `governance_risk_score`, `insight_events.subtype` diisi `governance_risk_composite`, seluruh objek di atas masuk ke `insight_events.payload`.
 
 ## 7. Kondisi Trigger
@@ -112,6 +152,8 @@ Dijalankan sebagai `condition_type = daily`, cek ulang tiap saham di watchlist s
 
 ## 8. Keterbatasan & Kalibrasi
 - Bobot (0.3/0.4/0.3) dan ambang batas kategori di atas itu starting point berdasar penalaran, bukan hasil backtest ke data historis riil. Perlu dikalibrasi ulang begitu API key aktif dan ada cukup data buat lihat distribusi skor yang wajar di seluruh saham IDX.
-- Taksonomi severity suspend (rutin/operasional/serius) perlu dipetakan manual ke isi field reason asli dari Sectors, belum dicek persis apa saja nilai yang muncul di sana.
+- Taksonomi severity suspend sudah dipetakan ke alasan asli dari Sectors (lihat 2.1). Alasan dengan kalimat baru yang belum dikenal jatuh ke tier 2, jadi daftar kata kunci perlu ditinjau berkala.
+- Filing diambil satu halaman, maksimal 30 filing terbaru dalam 90 hari, demi hemat credit. Emiten yang sangat aktif bisa punya lebih dari itu, tapi jendela klaster 30 hari hampir selalu tertampung.
+- Contoh hasil data asli per 28 September 2026: PPGL mendapat skor 73 (Tinggi). Suspend cooling down tanggal 2 September dan pelepasan 22,8 persen saham oleh satu pemegang tanggal 24 September jatuh di jendela 30 hari yang sama, sehingga pengali pola silang 1,3 aktif. ANTM dan PTBA berskor 0 karena tidak ada suspend maupun filing dalam jendela.
 - Model belum bisa membedakan insider selling yang genuinely mencurigakan dari yang rutin atau terjadwal. Skor ini menunjukkan pola, bukan vonis, konsisten sama aturan lomba yang melarang rekomendasi beli/jual, jadi presentasinya di UI wajib tetap faktual (apa yang terjadi), bukan menyimpulkan niat.
 - Saham dengan histori data tipis (baru listing, jarang ada filing) defaultnya dianggap skor rendah, bukan error, karena minim kejadian bukan berarti berisiko.

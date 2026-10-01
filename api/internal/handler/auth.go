@@ -13,12 +13,37 @@ import (
 )
 
 type AuthHandler struct {
-	cfg  *config.Config
-	auth *service.AuthService
+	cfg     *config.Config
+	auth    *service.AuthService
+	captcha *service.CaptchaService
 }
 
-func NewAuthHandler(cfg *config.Config, auth *service.AuthService) *AuthHandler {
-	return &AuthHandler{cfg: cfg, auth: auth}
+func NewAuthHandler(cfg *config.Config, auth *service.AuthService, captcha *service.CaptchaService) *AuthHandler {
+	return &AuthHandler{cfg: cfg, auth: auth, captcha: captcha}
+}
+
+func (h *AuthHandler) Captcha(c *fiber.Ctx) error {
+	hasil, err := h.captcha.Buat(c.Context())
+	if err != nil {
+		return serverError(c)
+	}
+
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.Status(fiber.StatusCreated).JSON(hasil)
+}
+
+func (h *AuthHandler) CaptchaAudio(c *fiber.Ctx) error {
+	wav, err := h.captcha.Audio(c.Context(), c.Params("id"))
+	if errors.Is(err, service.ErrCaptchaTidakDikenal) {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Kode captcha sudah kedaluwarsa, muat kode baru"})
+	}
+	if err != nil {
+		return serverError(c)
+	}
+
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	c.Set(fiber.HeaderContentType, "audio/wav")
+	return c.Send(wav)
 }
 
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
@@ -42,12 +67,25 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var input struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		TOTPCode string `json:"totp_code"`
+		Email          string `json:"email"`
+		Password       string `json:"password"`
+		TOTPCode       string `json:"totp_code"`
+		CaptchaID      string `json:"captcha_id"`
+		CaptchaJawaban string `json:"captcha_answer"`
 	}
 	if err := c.BodyParser(&input); err != nil {
 		return badRequest(c, "Format permintaan tidak valid")
+	}
+
+	cocok, err := h.captcha.Cocok(c.Context(), input.CaptchaID, input.CaptchaJawaban)
+	if err != nil {
+		return serverError(c)
+	}
+	if !cocok {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error":  "Kode captcha salah atau sudah kedaluwarsa",
+			"fields": fiber.Map{"captcha_answer": "Ketik 6 angka pada gambar yang baru"},
+		})
 	}
 
 	result, err := h.auth.Login(c.Context(), input.Email, input.Password, input.TOTPCode, requestContext(c))

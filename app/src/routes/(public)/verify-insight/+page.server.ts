@@ -1,4 +1,5 @@
 import { apiBaseUrl } from '$lib/api/client';
+import { teks } from '$lib/bahasa.svelte';
 import type { PageServerLoad } from './$types';
 
 type Verifikasi = {
@@ -21,7 +22,7 @@ type Verifikasi = {
 	reason?: string;
 };
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
 	const id = (url.searchParams.get('id') ?? '').trim();
 	if (!id) return { id: '', hasil: null, galat: '' };
 
@@ -31,12 +32,28 @@ export const load: PageServerLoad = async ({ url }) => {
 		});
 
 		if (response.status === 404) {
-			return { id, hasil: null, galat: 'Insight dengan ID itu tidak ditemukan.' };
+			return {
+				id,
+				hasil: null,
+				galat: teks(
+					locals.bahasa,
+					'Insight dengan ID itu tidak ditemukan.',
+					'No insight was found with that ID.'
+				)
+			};
 		}
 
 		const payload = (await response.json()) as Verifikasi;
 		return { id, hasil: payload, galat: '' };
 	} catch {
-		return { id, hasil: null, galat: 'Tidak bisa menghubungi server verifikasi.' };
+		return {
+			id,
+			hasil: null,
+			galat: teks(
+				locals.bahasa,
+				'Tidak bisa menghubungi server verifikasi.',
+				"Couldn't reach the verification server."
+			)
+		};
 	}
 };

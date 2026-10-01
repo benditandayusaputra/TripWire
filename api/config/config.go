@@ -33,6 +33,7 @@ type Config struct {
 	LoginRateLimit     int
 	RegisterRateLimit  int
 	WatchlistRateLimit int
+	CaptchaRateLimit   int
 	RateLimitWindow    time.Duration
 	CookieSecure       bool
 	CookieDomain       string
@@ -105,6 +106,7 @@ func Load() (*Config, error) {
 		LoginRateLimit:     envInt("LOGIN_RATE_LIMIT", 20),
 		RegisterRateLimit:  envInt("REGISTER_RATE_LIMIT", 10),
 		WatchlistRateLimit: envInt("WATCHLIST_RATE_LIMIT", 30),
+		CaptchaRateLimit:   envInt("CAPTCHA_RATE_LIMIT", 30),
 		RateLimitWindow:    envDuration("RATE_LIMIT_WINDOW", time.Minute),
 		CookieSecure:       envBool("COOKIE_SECURE", true),
 		CookieDomain:       os.Getenv("COOKIE_DOMAIN"),
@@ -124,11 +126,11 @@ func Load() (*Config, error) {
 		MaxUploadBytes:      int64(envInt("MAX_UPLOAD_BYTES", 10<<20)),
 		MaxAvatarBytes:      int64(envInt("MAX_AVATAR_BYTES", 2<<20)),
 
-		SectorsBaseURL:         env("SECTORS_API_BASE_URL", "https://api.sectors.app/v1"),
+		SectorsBaseURL:         env("SECTORS_API_BASE_URL", "https://api.sectors.app/v2"),
 		SectorsAPIKey:          os.Getenv("SECTORS_API_KEY"),
 		SectorsCreditBudget:    int64(envInt("SECTORS_CREDIT_BUDGET", 1000)),
 		SectorsCreditThreshold: int64(envInt("SECTORS_CREDIT_THRESHOLD", 100)),
-		SectorsCacheTTL:        envDuration("SECTORS_CACHE_TTL", 6*time.Hour),
+		SectorsCacheTTL:        envDuration("SECTORS_CACHE_TTL", 24*time.Hour),
 		SectorsFailureLimit:    int64(envInt("SECTORS_FAILURE_LIMIT", 5)),
 		SectorsCircuitCooldown: envDuration("SECTORS_CIRCUIT_COOLDOWN", time.Minute),
 		SectorsTimeout:         envDuration("SECTORS_TIMEOUT", 10*time.Second),

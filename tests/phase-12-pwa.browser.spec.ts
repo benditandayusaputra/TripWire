@@ -54,7 +54,7 @@ test.describe('Fase 12: PWA manifest dan service worker', () => {
 			};
 		});
 
-		expect(status.scope).toBe('http://127.0.0.1:5173/');
+		expect(status.scope).toBe(new URL('/', page.url()).href);
 		expect(status.state).toBe('activated');
 		expect(status.skrip).toContain('service-worker');
 

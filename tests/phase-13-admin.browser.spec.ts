@@ -1,10 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { akunBaru, jadikanAdmin, masukLewatBrowser } from './helpers/akun';
+import { akunBaru, jadikanAdmin, lewatiTur, masukLewatBrowser } from './helpers/akun';
+import { isiCaptcha } from './helpers/captcha';
+import { tambahSaham } from './helpers/watchlist';
 
 async function masukSebagai(page: import('@playwright/test').Page, email: string, password: string) {
+	await page.context().clearCookies({ name: 'tw_mulai' });
 	await page.goto('/login');
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Password').fill(password);
+	await isiCaptcha(page);
 	await page.getByRole('button', { name: 'Masuk' }).click();
 	await page.waitForURL(/\/dashboard/);
 }
@@ -64,7 +68,11 @@ test.describe('Fase 13: panel admin dan kontrol aksesnya', () => {
 		await expect(page).toHaveURL(/\/admin/);
 		await expect(page.getByTestId('admin-heading')).toBeVisible();
 		await expect(page.getByTestId('admin-statistik')).toBeVisible();
-		await expect(page.getByTestId('admin-credits')).toContainText('credit');
+		await expect(page.getByTestId('admin-credits')).toContainText('kredit');
+		await expect(page.getByTestId('admin-hari')).toHaveCount(7);
+		await expect(page.getByTestId('admin-perkiraan')).toContainText(
+			/kredit per hari|Belum ada pemakaian/
+		);
 
 		const baris = page.getByTestId('admin-user-row');
 		await expect(baris.first()).toBeVisible();
@@ -86,14 +94,12 @@ test.describe('Fase 13: panel admin dan kontrol aksesnya', () => {
 		jadikanAdmin(akun.email);
 		await masukSebagai(page, akun.email, akun.password);
 
+		await lewatiTur(page);
 		await page.goto('/watchlist');
-		await page.getByLabel('Kode emiten').fill('ANTM');
-		await page.getByTestId('tambah-ticker').click();
+		await tambahSaham(page, 'ANTM');
 
-		const item = page.getByTestId('watchlist-item').filter({ hasText: 'ANTM' });
-		await item.getByLabel('Jenis kondisi').selectOption('daily');
-		await item.getByTestId('tambah-kondisi').click();
-		await expect(item.getByTestId('kondisi')).toBeVisible();
+		const kondisi = page.getByTestId('panel-emiten').getByTestId('kondisi');
+		await expect(kondisi).toHaveAttribute('data-condition-type', 'daily');
 
 		await page.goto('/admin');
 		await page.getByTestId('trigger-scan').click();

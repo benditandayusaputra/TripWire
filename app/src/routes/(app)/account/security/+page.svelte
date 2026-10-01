@@ -10,6 +10,7 @@
 	} from 'lucide-svelte';
 	import Field from '$lib/components/Field.svelte';
 	import Mark from '$lib/components/Mark.svelte';
+	import { t } from '$lib/bahasa.svelte';
 
 	let { data, form } = $props();
 
@@ -22,15 +23,18 @@
 </script>
 
 <svelte:head>
-	<title>Keamanan akun TripWire</title>
+	<title>{t('Keamanan akun TripWire', 'TripWire account security')}</title>
 </svelte:head>
 
 <section class="space-y-7">
 	<header class="space-y-1.5">
-		<p class="tw-overline">Akun</p>
-		<h1 class="tw-title text-ink">Keamanan</h1>
+		<p class="tw-overline">{t('Akun', 'Account')}</p>
+		<h1 class="tw-title text-ink">{t('Keamanan', 'Security')}</h1>
 		<p class="tw-caption">
-			Lapisan kedua saat masuk, supaya password yang bocor saja tidak cukup untuk membuka akun.
+			{t(
+				'Lapisan kedua saat masuk, supaya password yang bocor saja tidak cukup untuk membuka akun.',
+				'A second layer when you log in, so a leaked password alone is not enough to open your account.'
+			)}
 		</p>
 	</header>
 
@@ -50,10 +54,12 @@
 			<div class="flex items-start gap-3">
 				<Smartphone class="text-diamond-300 mt-0.5 size-5 flex-none" aria-hidden="true" />
 				<div>
-					<h2 class="tw-heading text-ink">Aplikasi authenticator</h2>
+					<h2 class="tw-heading text-ink">{t('Aplikasi authenticator', 'Authenticator app')}</h2>
 					<p class="tw-caption mt-1">
-						Kode enam angka yang berganti tiap 30 detik dari Google Authenticator, Authy, atau
-						sejenisnya.
+						{t(
+							'Kode enam angka yang berganti tiap 30 detik dari Google Authenticator, Authy, atau sejenisnya.',
+							'A six-digit code that changes every 30 seconds, from Google Authenticator, Authy, or a similar app.'
+						)}
 					</p>
 				</div>
 			</div>
@@ -64,7 +70,7 @@
 				class="tw-overline inline-flex items-center gap-2 {aktif ? 'text-tier-low' : 'text-muted'}"
 			>
 				<Mark size={7} color={aktif ? 'var(--color-tier-low)' : 'var(--color-muted)'} />
-				{aktif ? 'Aktif' : 'Belum aktif'}
+				{aktif ? t('Aktif', 'Enabled') : t('Belum aktif', 'Not enabled')}
 			</span>
 		</div>
 
@@ -75,7 +81,7 @@
 			>
 				<p class="tw-overline text-tier-low flex items-center gap-2">
 					<ShieldCheck class="size-3.5" aria-hidden="true" />
-					Kode cadangan, ditampilkan sekali ini saja
+					{t('Kode cadangan, ditampilkan sekali ini saja', 'Backup codes, shown only this once')}
 				</p>
 				<ul class="grid grid-cols-2 gap-2 sm:grid-cols-5">
 					{#each backupCodes as kodeCadangan (kodeCadangan)}
@@ -87,8 +93,10 @@
 					{/each}
 				</ul>
 				<p class="tw-caption">
-					Tiap kode hanya bisa dipakai sekali, gunakan kalau kamu kehilangan akses ke aplikasi
-					authenticator.
+					{t(
+						'Tiap kode hanya bisa dipakai sekali, gunakan kalau kamu kehilangan akses ke aplikasi authenticator.',
+						'Each code works only once. Use one if you lose access to your authenticator app.'
+					)}
 				</p>
 			</div>
 		{/if}
@@ -96,15 +104,14 @@
 		{#if aktif}
 			<div class="flex flex-wrap items-center gap-3">
 				<p class="tw-caption flex-1">
-					Sisa kode cadangan yang belum terpakai: <span class="tw-data text-ink"
-						>{data.status.backup_codes_left}</span
-					>
+					{t('Sisa kode cadangan yang belum terpakai:', 'Unused backup codes left:')}
+					<span class="tw-data text-ink">{data.status.backup_codes_left}</span>
 				</p>
 
 				<form method="POST" action="?/kodeBaru" use:enhance>
 					<button type="submit" data-testid="kode-baru" class="tw-ghost text-[13.5px]">
 						<KeyRound class="size-3.5" aria-hidden="true" />
-						Buat kode cadangan baru
+						{t('Buat kode cadangan baru', 'Generate new backup codes')}
 					</button>
 				</form>
 			</div>
@@ -113,18 +120,18 @@
 				<div class="min-w-[12rem] flex-1">
 					<Field
 						id="password"
-						label="Konfirmasi password untuk mematikan"
+						label={t('Konfirmasi password untuk mematikan', 'Confirm your password to turn it off')}
 						type="password"
 						bind:value={password}
 						error={form?.fields?.password}
 						autocomplete="current-password"
-						placeholder="Password kamu"
+						placeholder={t('Password kamu', 'Your password')}
 						icon={KeyRound}
 					/>
 				</div>
 				<button type="submit" data-testid="matikan-2fa" class="tw-ghost">
 					<ShieldOff class="size-4" aria-hidden="true" />
-					Matikan dua faktor
+					{t('Matikan dua faktor', 'Turn off two-factor')}
 				</button>
 			</form>
 		{:else if setup}
@@ -132,19 +139,24 @@
 				<div class="flex flex-wrap items-start gap-6">
 					<img
 						src={setup.qr_code}
-						alt="Kode QR untuk didaftarkan ke aplikasi authenticator"
+						alt={t(
+							'Kode QR untuk didaftarkan ke aplikasi authenticator',
+							'QR code to register in your authenticator app'
+						)}
 						data-testid="qr-2fa"
 						class="rounded-glass border-line size-40 border bg-white p-2"
 					/>
 
 					<div class="min-w-[14rem] flex-1 space-y-2">
-						<p class="tw-overline">Atau masukkan manual</p>
+						<p class="tw-overline">{t('Atau masukkan manual', 'Or enter it manually')}</p>
 						<p data-testid="secret-2fa" class="tw-data text-diamond-300 text-[15px] break-all">
 							{setup.secret}
 						</p>
 						<p class="tw-caption">
-							Setelah tersimpan di aplikasi, masukkan kode enam angka yang muncul untuk memastikan
-							jamnya sinkron.
+							{t(
+								'Setelah tersimpan di aplikasi, masukkan kode enam angka yang muncul untuk memastikan jamnya sinkron.',
+								'Once it is saved in the app, enter the six-digit code it shows to make sure the clocks are in sync.'
+							)}
 						</p>
 					</div>
 				</div>
@@ -159,7 +171,7 @@
 					<div class="min-w-[10rem] flex-1">
 						<Field
 							id="code"
-							label="Kode dari aplikasi"
+							label={t('Kode dari aplikasi', 'Code from the app')}
 							bind:value={kode}
 							error={form?.fields?.code}
 							autocomplete="one-time-code"
@@ -169,7 +181,7 @@
 					</div>
 					<button type="submit" data-testid="konfirmasi-2fa" class="tw-primary">
 						<ShieldCheck class="size-4" aria-hidden="true" />
-						Aktifkan
+						{t('Aktifkan', 'Enable')}
 					</button>
 				</form>
 			</div>
@@ -177,7 +189,7 @@
 			<form method="POST" action="?/mulai" use:enhance>
 				<button type="submit" data-testid="mulai-2fa" class="tw-primary">
 					<ShieldCheck class="size-4" aria-hidden="true" />
-					Aktifkan dua faktor
+					{t('Aktifkan dua faktor', 'Enable two-factor')}
 				</button>
 			</form>
 		{/if}
@@ -187,15 +199,21 @@
 		<div class="flex items-start gap-3">
 			<Fingerprint class="text-diamond-300 mt-0.5 size-5 flex-none" aria-hidden="true" />
 			<div>
-				<h2 class="tw-heading text-ink">Sidik jari dan security key</h2>
+				<h2 class="tw-heading text-ink">
+					{t('Sidik jari dan security key', 'Fingerprint and security key')}
+				</h2>
 				<p class="tw-caption mt-1">
 					{#if data.status.webauthn_enabled}
-						WebAuthn aktif di server ini. Terdaftar: <span class="tw-data text-ink"
-							>{data.status.webauthn_credentials}</span
-						> authenticator.
+						{t(
+							'Masuk dengan sidik jari atau security key sudah bisa dipakai. Perangkat terdaftar:',
+							'You can log in with a fingerprint or security key. Registered devices:'
+						)}
+						<span class="tw-data text-ink">{data.status.webauthn_credentials}</span>.
 					{:else}
-						WebAuthn dimatikan lewat feature flag di konfigurasi server, jadi endpoint-nya tidak
-						terpasang.
+						{t(
+							'Masuk dengan sidik jari atau security key belum tersedia untuk saat ini.',
+							'Logging in with a fingerprint or security key is not available yet.'
+						)}
 					{/if}
 				</p>
 			</div>

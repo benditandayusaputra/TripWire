@@ -1,7 +1,10 @@
 <script lang="ts">
-	import { page } from '$app/state';
+	import { navigating, page } from '$app/state';
 	import { Bell, LayoutGrid, ListChecks, LogOut, ShieldCheck, UserRound } from 'lucide-svelte';
+	import CariSaham from '$lib/components/CariSaham.svelte';
+	import Preferensi from '$lib/components/Preferensi.svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
+	import { t } from '$lib/bahasa.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
 
 	let { data, children } = $props();
@@ -10,12 +13,12 @@
 		authStore.set(data.user);
 	});
 
-	const menu = [
-		{ href: '/dashboard', label: 'Beranda', icon: LayoutGrid },
+	const menu = $derived([
+		{ href: '/dashboard', label: t('Beranda', 'Home'), icon: LayoutGrid },
 		{ href: '/watchlist', label: 'Watchlist', icon: ListChecks },
-		{ href: '/notifications', label: 'Notifikasi', icon: Bell },
-		{ href: '/account', label: 'Akun', icon: UserRound }
-	];
+		{ href: '/notifications', label: t('Notifikasi', 'Alerts'), icon: Bell },
+		{ href: '/account', label: t('Akun', 'Account'), icon: UserRound }
+	]);
 
 	const inisial = $derived(
 		(data.user?.full_name ?? '')
@@ -26,14 +29,26 @@
 			.join('')
 	);
 
+	const tujuan = $derived(navigating.to?.url.pathname ?? page.url.pathname);
+	const lebar = $derived(
+		[
+			'/(app)/dashboard',
+			'/(app)/watchlist',
+			'/(app)/stocks/[ticker]',
+			'/(app)/insights/[id]'
+		].includes(page.route.id ?? '')
+	);
+
 	function aktif(href: string) {
-		return page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
+		return tujuan === href || tujuan.startsWith(`${href}/`);
 	}
 </script>
 
 <div class="min-h-dvh pb-20 sm:pb-0">
 	<header class="border-line/70 bg-void/70 sticky top-0 z-20 border-b backdrop-blur-xl">
-		<div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3.5">
+		<div
+			class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8"
+		>
 			<Wordmark size="sm" href="/dashboard" />
 
 			<nav class="hidden items-center gap-1 sm:flex">
@@ -41,6 +56,7 @@
 					<a
 						href={item.href}
 						data-testid="nav-{item.href.slice(1)}"
+						data-tur={item.href === '/notifications' ? 'kabar' : undefined}
 						aria-current={aktif(item.href) ? 'page' : undefined}
 						class="rounded-glass flex items-center gap-2 px-3 py-1.5 text-[13.5px] font-medium transition {aktif(
 							item.href
@@ -50,11 +66,24 @@
 					>
 						<item.icon class="size-4" aria-hidden="true" />
 						{item.label}
+						{#if item.href === '/notifications' && data.unread > 0}
+							<span
+								data-testid="lencana-notifikasi"
+								class="tw-data bg-diamond-500 min-w-5 rounded-full px-1.5 text-center text-[10.5px] leading-5 font-semibold text-[#04101f]"
+							>
+								{data.unread > 99 ? '99+' : data.unread}<span class="sr-only">
+									{t('belum dibaca', 'unread')}</span
+								>
+							</span>
+						{/if}
 					</a>
 				{/each}
 			</nav>
 
 			<div class="flex items-center gap-3">
+				<CariSaham />
+				<Preferensi />
+
 				{#if data.user?.role === 'admin'}
 					<a
 						href="/admin"
@@ -81,7 +110,11 @@
 						{inisial}
 					</span>
 				{/if}
-				<span data-testid="current-user" class="tw-data text-muted hidden text-[12px] md:inline">
+				<span
+					data-testid="current-user"
+					class="tw-data text-muted hidden max-w-[14rem] truncate text-[12px] 2xl:inline"
+					title={data.user?.email}
+				>
 					{data.user?.email}
 				</span>
 
@@ -89,18 +122,22 @@
 					<button
 						type="submit"
 						data-testid="logout-button"
-						aria-label="Keluar dari akun"
-						class="tw-ghost px-3 py-1.5 text-[13px]"
+						aria-label={t('Keluar dari akun', 'Log out of your account')}
+						class="tw-ghost px-3 py-1.5 text-[13px] whitespace-nowrap"
 					>
 						<LogOut class="size-3.5" aria-hidden="true" />
-						Keluar
+						{t('Keluar', 'Log out')}
 					</button>
 				</form>
 			</div>
 		</div>
 	</header>
 
-	<main class="mx-auto max-w-5xl px-6 py-8">
+	<main
+		class={lebar
+			? 'mx-auto max-w-7xl px-4 pt-6 pb-10 sm:px-6 lg:px-8'
+			: 'mx-auto max-w-5xl px-6 py-8'}
+	>
 		{@render children()}
 	</main>
 
@@ -112,6 +149,7 @@
 				<li class="flex-1">
 					<a
 						href={item.href}
+						data-tur={item.href === '/notifications' ? 'kabar' : undefined}
 						aria-current={aktif(item.href) ? 'page' : undefined}
 						class="flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition {aktif(
 							item.href
@@ -119,7 +157,18 @@
 							? 'text-diamond-300'
 							: 'text-muted'}"
 					>
-						<item.icon class="size-5" aria-hidden="true" />
+						<span class="relative">
+							<item.icon class="size-5" aria-hidden="true" />
+							{#if item.href === '/notifications' && data.unread > 0}
+								<span
+									class="tw-data bg-diamond-500 absolute -top-1.5 -right-2.5 min-w-4 rounded-full px-1 text-center text-[9.5px] leading-4 font-semibold text-[#04101f]"
+								>
+									{data.unread > 99 ? '99+' : data.unread}<span class="sr-only">
+										{t('belum dibaca', 'unread')}</span
+									>
+								</span>
+							{/if}
+						</span>
 						{item.label}
 					</a>
 				</li>

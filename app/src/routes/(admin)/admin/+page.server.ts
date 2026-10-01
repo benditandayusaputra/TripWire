@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { panggilApi, pesanGalat } from '$lib/server/api';
+import { teks } from '$lib/bahasa.svelte';
 import type { Actions, PageServerLoad } from './$types';
 
 type Statistik = {
@@ -20,6 +21,17 @@ type Run = {
 	dilewati: number;
 	gagal: number;
 	catatan: string[];
+};
+
+type Kredit = {
+	credits_used: number;
+	credits_remaining: number;
+	credit_budget: number;
+	circuit_open: boolean;
+	credit_threshold: number;
+	daily_usage: { date: string; credits: number }[];
+	daily_average: number | null;
+	days_left: number | null;
 };
 
 type Pengguna = {
@@ -52,12 +64,17 @@ export const load: PageServerLoad = async ({ request }) => {
 			total_insight: 0,
 			kondisi_aktif: 0
 		}) as Statistik,
-		credits: (credits.payload?.credits ?? {
+		credits: {
 			credits_used: 0,
 			credits_remaining: 0,
 			credit_budget: 0,
-			circuit_open: false
-		}) as Record<string, number | boolean>,
+			circuit_open: false,
+			credit_threshold: 0,
+			daily_usage: [],
+			daily_average: null,
+			days_left: null,
+			...(credits.payload?.credits ?? {})
+		} as Kredit,
 		terakhir: (scheduler.payload?.scheduler?.terakhir ?? null) as Run | null,
 		riwayat: (scheduler.payload?.scheduler?.riwayat ?? []) as Run[],
 		users: (users.payload?.users ?? []) as Pengguna[]
@@ -65,7 +82,7 @@ export const load: PageServerLoad = async ({ request }) => {
 };
 
 export const actions: Actions = {
-	scan: async ({ request, cookies }) => {
+	scan: async ({ request, cookies, locals }) => {
 		const { response, payload } = await panggilApi(
 			'/admin/system/trigger-scan',
 			{ method: 'POST', headers: { 'X-CSRF-Token': cookies.get('tw_csrf') ?? '' } },
@@ -73,7 +90,12 @@ export const actions: Actions = {
 		);
 
 		if (!response.ok) {
-			return fail(response.status, { error: pesanGalat(payload, 'Scan manual gagal dijalankan') });
+			return fail(response.status, {
+				error: pesanGalat(
+					payload,
+					teks(locals.bahasa, 'Scan manual gagal dijalankan', 'The manual scan failed to run')
+				)
+			});
 		}
 
 		return { sukses: true, run: payload?.run as Run };
