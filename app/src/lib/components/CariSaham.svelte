@@ -125,7 +125,7 @@
 	onclick={buka}
 >
 	<Search class="size-4" aria-hidden="true" />
-	<span class="hidden lg:inline">{t('Cari saham', 'Search stocks')}</span>
+	<span class="hidden xl:inline">{t('Cari saham', 'Search stocks')}</span>
 	<kbd class="hidden lg:inline">{mac ? '⌘' : 'Ctrl'} K</kbd>
 </button>
 
@@ -229,6 +229,8 @@
 <style>
 	.pemicu {
 		display: inline-flex;
+		flex: none;
+		white-space: nowrap;
 		align-items: center;
 		gap: 8px;
 		border: 1px solid var(--edge);
@@ -247,6 +249,7 @@
 	}
 
 	kbd {
+		white-space: nowrap;
 		border: 1px solid var(--edge);
 		border-radius: 6px;
 		padding: 0 5px;
