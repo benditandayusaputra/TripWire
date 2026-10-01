@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { API_URL, masukLewatBrowser } from './helpers/akun';
+import { kueri } from './helpers/database';
 import { tambahSaham } from './helpers/watchlist';
 
 function tangkapGalatKonsol(page: Page) {
@@ -368,11 +369,34 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(hasil).toHaveAttribute('data-valid', 'true');
 		await expect(hasil).toContainText('MDKA');
 		await expect(hasil).toContainText('Insight ini asli dari TripWire');
+		await expect(tamu.getByTestId('cek-tanda')).toHaveAttribute('data-server', 'true');
+		await expect(tamu.getByTestId('cek-browser-tanda')).toHaveAttribute('data-status', 'cocok');
+		await expect(tamu.getByTestId('cek-browser-hash')).toHaveAttribute('data-status', 'cocok');
+		await expect(tamu.getByTestId('cek-rantai')).toHaveAttribute('data-server', 'true');
 		await tamu.getByText('Detail teknis untuk pemeriksa').click();
 		await expect(tamu.getByTestId('detail-teknis')).toContainText('Ed25519');
 
 		expect(galat).toEqual([]);
 		await konteks.close();
+	});
+
+	test('isi insight yang diubah diam diam di database ketahuan di server dan di browser', async ({
+		page
+	}) => {
+		await masukLewatBrowser(page, 'halaman-verifikasi-rusak');
+		const id = await siapkanInsight(page, 'ITMG');
+
+		kueri(
+			`UPDATE insight_events SET payload = jsonb_set(payload, '{governance_risk_score}', '1.0') WHERE id = '${id}'`
+		);
+
+		await page.goto(`/verify-insight?id=${id}`);
+		const hasil = page.getByTestId('verifikasi-hasil');
+		await expect(hasil).toHaveAttribute('data-valid', 'false');
+		await expect(page.getByTestId('verifikasi-alasan')).toContainText('sudah berubah setelah disegel');
+		await expect(page.getByTestId('cek-tanda')).toHaveAttribute('data-server', 'false');
+		await expect(page.getByTestId('cek-browser-tanda')).toHaveAttribute('data-status', 'gagal');
+		await expect(page.getByTestId('cek-browser-hash')).toHaveAttribute('data-status', 'gagal');
 	});
 
 	test('halaman akun, keamanan, dan perangkat termuat dengan elemen kuncinya', async ({ page }) => {
