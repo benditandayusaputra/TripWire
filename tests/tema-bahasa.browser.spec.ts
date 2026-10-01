@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-import { masukLewatBrowser } from './helpers/akun';
+import { jadikanAdmin, masukLewatBrowser } from './helpers/akun';
+import { isiCaptcha } from './helpers/captcha';
 import { pngPersegi } from './helpers/gambar';
 import { bukaModalSaham, tambahSaham } from './helpers/watchlist';
 
@@ -77,6 +78,47 @@ test.describe('Tema terang dan bahasa id/en', () => {
 		await page.goto('/watchlist');
 		await expect(page.locator('html')).toHaveAttribute('data-tema', 'light');
 		await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+	});
+
+	test('halaman akun dan admin rapi di tema terang berbahasa Inggris, header tidak terlipat', async ({
+		page
+	}) => {
+		const akun = await masukLewatBrowser(page, 'tema-bahasa-akun');
+		jadikanAdmin(akun.email);
+		await page.getByTestId('logout-button').click();
+		await page.waitForURL(/\/login/);
+		await page.getByLabel('Email').fill(akun.email);
+		await page.getByLabel('Password').fill(akun.password);
+		await isiCaptcha(page);
+		await page.getByRole('button', { name: 'Masuk' }).click();
+		await page.waitForURL(/\/dashboard/);
+		await page.context().addCookies([
+			{ name: 'tw_tema', value: 'light', url: page.url() },
+			{ name: 'tw_bahasa', value: 'en', url: page.url() }
+		]);
+
+		const halaman = [
+			['/account', 'Profile'],
+			['/account/security', 'Security'],
+			['/account/sessions', 'Logged-in devices'],
+			['/admin', 'System health']
+		];
+		for (const [alamat, judul] of halaman) {
+			await page.goto(alamat);
+			await expect(page.locator('html')).toHaveAttribute('data-tema', 'light');
+			await expect(page.getByRole('heading', { level: 1, name: judul })).toBeVisible();
+			expect(await kecerahanLatar(page)).toBeGreaterThan(200);
+			const tinggiTombol = await page.getByTestId('logout-button').evaluate((el) => el.clientHeight);
+			expect(tinggiTombol).toBeLessThan(40);
+		}
+
+		await page.setViewportSize({ width: 390, height: 844 });
+		for (const [alamat] of halaman) {
+			await page.goto(alamat);
+			await expect
+				.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+				.toBeLessThanOrEqual(390);
+		}
 	});
 
 	test('daftar saham memakai logo asli Sectors, emiten fiktif tetap monogram', async ({ page }) => {
