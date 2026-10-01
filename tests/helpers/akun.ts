@@ -103,7 +103,11 @@ export async function lewatiTur(page: Page) {
 	}, KUNCI_TUR_WATCHLIST);
 }
 
-export async function masukLewatBrowser(page: Page, prefix: string, { tur = false } = {}) {
+export async function masukLewatBrowser(
+	page: Page,
+	prefix: string,
+	{ tur = false, mulai = false } = {}
+) {
 	if (!tur) await lewatiTur(page);
 	const akun = akunBaru(prefix);
 
@@ -113,12 +117,13 @@ export async function masukLewatBrowser(page: Page, prefix: string, { tur = fals
 	await page.getByLabel('Password').fill(akun.password);
 	await page.getByRole('button', { name: 'Daftar' }).click();
 	await page.waitForURL(/\/login/);
+	if (!mulai) await page.context().clearCookies({ name: 'tw_mulai' });
 
 	await page.getByLabel('Email').fill(akun.email);
 	await page.getByLabel('Password').fill(akun.password);
 	await isiCaptcha(page);
 	await page.getByRole('button', { name: 'Masuk' }).click();
-	await page.waitForURL(/\/dashboard/);
+	await page.waitForURL(mulai ? /\/mulai/ : /\/dashboard/);
 
 	return akun;
 }

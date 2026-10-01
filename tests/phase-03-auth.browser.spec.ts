@@ -106,7 +106,9 @@ test.describe('Fase 3: alur autentikasi dari sisi pengguna', () => {
 		await expect(page.getByTestId('captcha').getByRole('img')).toBeVisible();
 	});
 
-	test('register lalu login mengantar pengguna ke dashboard', async ({ page }) => {
+	test('register lalu login mengantar pengguna baru ke langkah awal, lalu ke dashboard', async ({
+		page
+	}) => {
 		const akun = akunBaru('browser');
 
 		await page.goto('/register');
@@ -122,6 +124,8 @@ test.describe('Fase 3: alur autentikasi dari sisi pengguna', () => {
 		await isiCaptcha(page);
 		await page.getByRole('button', { name: 'Masuk' }).click();
 
+		await expect(page).toHaveURL(/\/mulai$/);
+		await page.getByTestId('mulai-lewati').click();
 		await expect(page).toHaveURL(/\/dashboard/);
 		await expect(page.getByTestId('dashboard-heading')).toContainText(akun.fullName);
 		await expect(page.getByTestId('current-user')).toContainText(akun.email);
@@ -139,6 +143,7 @@ test.describe('Fase 3: alur autentikasi dari sisi pengguna', () => {
 		await page.getByLabel('Password').fill(akun.password);
 		await page.getByRole('button', { name: 'Daftar' }).click();
 		await expect(page).toHaveURL(/\/login/);
+		await page.context().clearCookies({ name: 'tw_mulai' });
 
 		await page.getByLabel('Email').fill(akun.email);
 		await page.getByLabel('Password').fill(akun.password);
@@ -208,6 +213,7 @@ test.describe('Fase 3: alur autentikasi dari sisi pengguna', () => {
 		await page.getByLabel('Password').fill(akun.password);
 		await page.getByRole('button', { name: 'Daftar' }).click();
 		await expect(page).toHaveURL(/\/login/);
+		await page.context().clearCookies({ name: 'tw_mulai' });
 
 		await page.getByLabel('Email').fill(akun.email);
 		await page.getByLabel('Password').fill(akun.password);
