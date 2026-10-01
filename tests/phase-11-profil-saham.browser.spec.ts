@@ -83,7 +83,9 @@ test.describe('Fase 11: profil saham, pengelola, dan orang di balik saham', () =
 		await pilihPreferensi(page, 'tw_tema', 'light');
 		await page.setViewportSize({ width: 390, height: 844 });
 		await expect(page.getByTestId('siapa-di-balik')).toBeVisible();
-		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+			.toBeLessThanOrEqual(390);
 		await page.screenshot({
 			path: testInfo.outputPath('profil-390-terang.png'),
 			fullPage: true,
