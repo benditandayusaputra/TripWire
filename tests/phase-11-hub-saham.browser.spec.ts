@@ -48,7 +48,9 @@ test.describe('Fase 11: halaman saham sebagai pusat', () => {
 
 		await page.setViewportSize({ width: 390, height: 844 });
 		await expect(risiko).toBeVisible();
-		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+			.toBeLessThanOrEqual(390);
 
 		await page.getByRole('link', { name: 'Atur pemantauan' }).click();
 		await expect(page).toHaveURL(/\/watchlist\?emiten=BBRI$/);

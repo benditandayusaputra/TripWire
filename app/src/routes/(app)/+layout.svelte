@@ -30,7 +30,12 @@
 
 	const tujuan = $derived(navigating.to?.url.pathname ?? page.url.pathname);
 	const lebar = $derived(
-		['/(app)/dashboard', '/(app)/watchlist', '/(app)/stocks/[ticker]'].includes(page.route.id ?? '')
+		[
+			'/(app)/dashboard',
+			'/(app)/watchlist',
+			'/(app)/stocks/[ticker]',
+			'/(app)/insights/[id]'
+		].includes(page.route.id ?? '')
 	);
 
 	function aktif(href: string) {
