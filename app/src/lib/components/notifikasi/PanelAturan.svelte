@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import KondisiLabel from '$lib/components/KondisiLabel.svelte';
+	import LogoEmiten from '$lib/components/watchlist/LogoEmiten.svelte';
 	import {
 		ubahKondisiPeringatan,
 		type EmitenDipantau,
@@ -35,7 +36,8 @@
 	<ul class="space-y-3" data-testid="aturan-peringatan">
 		{#each emiten as item (item.id)}
 			<li class="space-y-1.5" data-ticker={item.ticker}>
-				<p class="flex items-baseline gap-2">
+				<p class="flex items-center gap-2">
+					<LogoEmiten kode={item.ticker} ukuran={22} />
 					<span class="tw-data text-ink text-[13px] font-semibold">{item.ticker}</span>
 					<span class="text-muted truncate text-[11.5px]">{item.company_name}</span>
 				</p>

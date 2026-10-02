@@ -227,6 +227,13 @@ test.describe("Fase 8: pusat notifikasi bergaya aplikasi saham", () => {
     await expect(page.getByTestId("kpi-belum")).toHaveText("3");
     await expect(page.getByTestId("lencana-notifikasi")).toContainText("3");
     await expect(page.getByTestId("notifikasi-item")).toHaveCount(3);
+    for (const baris of await page.getByTestId("notifikasi-item").all()) {
+      const kode = await baris.getAttribute("data-ticker");
+      await expect(baris.getByTestId("logo-emiten")).toHaveAttribute(
+        "src",
+        `https://storage.googleapis.com/sectorsapp-sea/logo/${kode}.webp`,
+      );
+    }
     await expect(page.getByTestId("aktivitas-total")).toHaveText("3");
     await expect(page.getByTestId("kpi-puncak")).toContainText("100");
     await expect(page.getByTestId("emiten-teraktif")).toContainText("ITMG");
