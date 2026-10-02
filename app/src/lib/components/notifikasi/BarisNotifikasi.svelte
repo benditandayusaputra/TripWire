@@ -2,6 +2,7 @@
 	import { slide } from 'svelte/transition';
 	import { ChevronRight, Mail, MailOpen, Trash2 } from 'lucide-svelte';
 	import type { Notifikasi } from '$lib/api/notifications';
+	import LogoEmiten from '$lib/components/watchlist/LogoEmiten.svelte';
 	import { t } from '$lib/bahasa.svelte';
 	import { waktuRelatif } from '$lib/insight';
 	import { jamWib, judulNotifikasi, penjelasanNotifikasi, selisihSkor } from '$lib/notifikasi';
@@ -45,17 +46,16 @@
 	transition:slide={{ duration: 220 }}
 >
 	<a href="/insights/{item.insight_event_id}" class="isi" onclick={(event) => onbuka(event, item)}>
-		<span
-			class="emblem tw-data"
-			style={risiko ? `border-color: color-mix(in srgb, ${info.color} 45%, transparent)` : ''}
-		>
-			{item.ticker}
-		</span>
+		{#if item.ticker}
+			<span class="logo-baris"><LogoEmiten kode={item.ticker} ukuran={42} /></span>
+		{/if}
 
 		<span class="min-w-0 flex-1">
 			<span class="flex min-w-0 items-center gap-2">
-				<span class="text-secondary truncate text-[12.5px]">{item.company_name || item.ticker}</span
-				>
+				<span class="tw-data text-ink flex-none text-[12.5px] font-semibold">{item.ticker}</span>
+				{#if item.company_name}
+					<span class="text-secondary truncate text-[12.5px]">{item.company_name}</span>
+				{/if}
 				<span class="jenis tw-data" class:intel={!risiko}
 					>{risiko ? 'RED FLAG' : t('INTELIJEN', 'INTEL')}</span
 				>
@@ -191,19 +191,8 @@
 		padding: 14px 6px 14px 14px;
 	}
 
-	.emblem {
-		display: grid;
-		width: 46px;
-		height: 46px;
-		flex: none;
-		place-items: center;
-		border: 1px solid var(--edge);
-		border-radius: 12px;
-		background: var(--color-raised);
-		font-size: 11.5px;
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		color: var(--color-ink);
+	.logo-baris {
+		padding-top: 2px;
 	}
 
 	.jenis {
@@ -294,12 +283,6 @@
 		.isi {
 			gap: 10px;
 			padding-left: 10px;
-		}
-
-		.emblem {
-			width: 40px;
-			height: 40px;
-			font-size: 10.5px;
 		}
 
 		.skor {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LogoEmiten from '$lib/components/watchlist/LogoEmiten.svelte';
 	import type { EmitenNotifikasi } from '$lib/api/notifications';
 	import { t } from '$lib/bahasa.svelte';
 	import { waktuRelatif } from '$lib/insight';
@@ -41,6 +42,7 @@
 				class="baris"
 				class:aktif={aktif === satu.ticker}
 			>
+				<LogoEmiten kode={satu.ticker} ukuran={30} />
 				<span class="min-w-0 flex-1">
 					<span class="flex items-center gap-2">
 						<span class="tw-data text-ink text-[13px] font-semibold">{satu.ticker}</span>

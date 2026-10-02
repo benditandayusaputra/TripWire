@@ -36,6 +36,7 @@
 	import { t } from '$lib/bahasa.svelte';
 	import { waktuRelatif } from '$lib/insight';
 	import { judulNotifikasi, kelompokPerHari, tautanFilter, TIER_URUT } from '$lib/notifikasi';
+	import LogoEmiten from '$lib/components/watchlist/LogoEmiten.svelte';
 	import { pushStore } from '$lib/pwa.svelte';
 	import { bulatkanSkor, tierDariSkor } from '$lib/skor';
 	import { presenceStore } from '$lib/stores/presenceStore.svelte';
@@ -484,13 +485,13 @@
 							class="kartu-live"
 							in:fly={{ y: -18, duration: 450 }}
 						>
-							<span class="emblem-live tw-data">{insight.ticker}</span>
+							<LogoEmiten kode={insight.ticker} ukuran={38} />
 							<span class="min-w-0 flex-1">
 								<span class="text-ink block truncate text-[13.5px] font-semibold">
 									{judulNotifikasi(insight)}
 								</span>
 								<span class="text-secondary block truncate text-[12px]">
-									{insight.company_name} · {t('baru saja', 'just now')}
+									{insight.ticker} · {insight.company_name} · {t('baru saja', 'just now')}
 								</span>
 							</span>
 							{#if insight.insight_type === 'red_flag'}
@@ -928,19 +929,6 @@
 		background: var(--color-raised);
 		padding: 10px 12px;
 		box-shadow: 0 18px 36px -24px rgba(74, 158, 255, 0.7);
-	}
-
-	.emblem-live {
-		display: grid;
-		width: 38px;
-		height: 38px;
-		flex: none;
-		place-items: center;
-		border: 1px solid var(--color-diamond-700);
-		border-radius: 10px;
-		font-size: 10.5px;
-		font-weight: 600;
-		color: var(--color-diamond-100);
 	}
 
 	.kepala-grup {
