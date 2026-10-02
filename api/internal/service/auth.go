@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,6 +13,8 @@ import (
 	"github.com/benditandayusaputra/tripwire/api/internal/model"
 	"github.com/benditandayusaputra/tripwire/api/internal/repository"
 )
+
+const jedaRotasi = 30 * time.Second
 
 var (
 	ErrInvalidCredentials = errors.New("service: email atau password salah")
@@ -236,10 +239,11 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string, rc Reque
 		return nil, ErrInvalidToken
 	}
 
-	stored, err := s.tokens.ActiveRefreshToken(ctx, crypto.HashToken(refreshToken))
+	hash := crypto.HashToken(refreshToken)
+	stored, err := s.tokens.ActiveRefreshToken(ctx, hash)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, ErrInvalidToken
+			return s.rotasiBaruSaja(ctx, hash)
 		}
 		return nil, err
 	}
@@ -252,18 +256,50 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string, rc Reque
 		return nil, ErrAccountInactive
 	}
 
-	if err := s.tokens.RevokeRefreshToken(ctx, stored.TokenHash); err != nil {
+	pair, err := s.issueTokenPair(ctx, user, rc)
+	if err != nil {
 		return nil, err
 	}
 
-	pair, err := s.issueTokenPair(ctx, user, rc)
-	if err != nil {
+	if isi, err := json.Marshal(rotasi{UserID: user.ID, Tokens: pair}); err == nil {
+		_ = s.tokens.SimpanRotasi(ctx, stored.TokenHash, isi, jedaRotasi)
+	}
+
+	if err := s.tokens.RevokeRefreshToken(ctx, stored.TokenHash); err != nil {
 		return nil, err
 	}
 
 	s.record(ctx, model.AuditEvent{UserID: &user.ID, EventType: model.AuditTokenRefreshed, IPAddress: rc.IPAddress, UserAgent: rc.UserAgent})
 
 	return &AuthResult{User: user, Tokens: pair}, nil
+}
+
+type rotasi struct {
+	UserID string    `json:"user_id"`
+	Tokens TokenPair `json:"tokens"`
+}
+
+func (s *AuthService) rotasiBaruSaja(ctx context.Context, hashLama string) (*AuthResult, error) {
+	isi, err := s.tokens.AmbilRotasi(ctx, hashLama)
+	if err != nil {
+		return nil, ErrInvalidToken
+	}
+
+	var hasil rotasi
+	if err := json.Unmarshal(isi, &hasil); err != nil {
+		return nil, ErrInvalidToken
+	}
+
+	if _, err := s.tokens.ActiveRefreshToken(ctx, crypto.HashToken(hasil.Tokens.RefreshToken)); err != nil {
+		return nil, ErrInvalidToken
+	}
+
+	user, err := s.users.ByID(ctx, hasil.UserID)
+	if err != nil || !user.IsActive {
+		return nil, ErrInvalidToken
+	}
+
+	return &AuthResult{User: user, Tokens: hasil.Tokens}, nil
 }
 
 func (s *AuthService) ForgotPassword(ctx context.Context, email string, rc RequestContext) (string, error) {

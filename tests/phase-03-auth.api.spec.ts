@@ -1,8 +1,12 @@
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 import { SesiApi, akunBaru, daftarLewatApi } from './helpers/akun';
 import { captchaBaru, denganCaptcha } from './helpers/captcha';
 
 const jawabanSalah = (jawaban: string) => jawaban.replace(/\d$/, (digit) => String((Number(digit) + 1) % 10));
+
+const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
 test.describe('Fase 3: autentikasi inti lewat API', () => {
 	test('endpoint captcha memberi gambar PNG dan audio tanpa cache', async ({ request }) => {
@@ -120,7 +124,7 @@ test.describe('Fase 3: autentikasi inti lewat API', () => {
 		expect(kedua.status()).toBe(401);
 	});
 
-	test('refresh token dirotasi, token lama langsung tidak berlaku', async ({ request }) => {
+	test('refresh token dirotasi, token lama hanya memberi pasangan yang sama selama masa tenggang', async ({ request }) => {
 		const akun = akunBaru('rotasi');
 		await daftarLewatApi(request, akun);
 
@@ -134,7 +138,64 @@ test.describe('Fase 3: autentikasi inti lewat API', () => {
 
 		const rotasi = await sesi.kirim('post', '/auth/refresh');
 		expect(rotasi.status()).toBe(200);
-		expect(sesi.cookie('tw_refresh')).not.toBe(refreshLama);
+		const refreshBaru = sesi.cookie('tw_refresh');
+		expect(refreshBaru).not.toBe(refreshLama);
+
+		const dalamTenggang = await request.post('/auth/refresh', {
+			headers: { Cookie: `tw_refresh=${refreshLama}` }
+		});
+		expect(dalamTenggang.status()).toBe(200);
+		expect(dalamTenggang.headers()['set-cookie']).toContain(`tw_refresh=${refreshBaru}`);
+
+		execFileSync('redis-cli', ['-n', '1', 'DEL', `auth:rotasi:${hashToken(refreshLama)}`]);
+
+		const pakaiTokenLama = await request.post('/auth/refresh', {
+			headers: { Cookie: `tw_refresh=${refreshLama}` }
+		});
+		expect(pakaiTokenLama.status()).toBe(401);
+	});
+
+	test('dua refresh bersamaan dengan token yang sama tidak saling mengeluarkan sesi', async ({
+		request
+	}) => {
+		const akun = akunBaru('rotasi-bersamaan');
+		await daftarLewatApi(request, akun);
+
+		const sesi = new SesiApi(request);
+		await sesi.kirim('post', '/auth/login', {
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password })
+		});
+		const refresh = sesi.cookie('tw_refresh');
+
+		const hasil = await Promise.all(
+			[0, 1, 2].map(() =>
+				request.post('/auth/refresh', { headers: { Cookie: `tw_refresh=${refresh}` } })
+			)
+		);
+		for (const response of hasil) {
+			expect(response.status()).toBe(200);
+			const akses = /tw_access=([^;]+)/.exec(response.headers()['set-cookie'] ?? '')?.[1];
+			expect(akses).toBeTruthy();
+			const saya = await request.get('/account/me', { headers: { Cookie: `tw_access=${akses}` } });
+			expect(saya.status()).toBe(200);
+		}
+	});
+
+	test('token lama dalam masa tenggang ditolak setelah sesinya logout', async ({ request }) => {
+		const akun = akunBaru('rotasi-keluar');
+		await daftarLewatApi(request, akun);
+
+		const sesi = new SesiApi(request);
+		await sesi.kirim('post', '/auth/login', {
+			data: await denganCaptcha(request, { email: akun.email, password: akun.password })
+		});
+		const refreshLama = sesi.cookie('tw_refresh');
+
+		expect((await sesi.kirim('post', '/auth/refresh')).status()).toBe(200);
+		const keluar = await sesi.kirim('post', '/auth/logout', {
+			headers: { 'X-CSRF-Token': sesi.cookie('tw_csrf') }
+		});
+		expect(keluar.status()).toBeLessThan(300);
 
 		const pakaiTokenLama = await request.post('/auth/refresh', {
 			headers: { Cookie: `tw_refresh=${refreshLama}` }
