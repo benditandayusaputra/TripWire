@@ -5,6 +5,8 @@
 - Account lockout: `failed_login_attempts` + `locked_until` di tabel users, lapisan pertahanan yang tetap ada di database, gak cuma ngandelin rate limit Redis yang bisa reset kalau Redis restart
 - JWT dual-token: access token stateless (~15 menit, validasi cukup dari signature, gak nyentuh DB tiap request), refresh token stateful (whitelist di `refresh_tokens`, yang tersimpan `token_hash`, bukan token mentah)
 - Revoke per device lewat `refresh_tokens.revoked_at`, atau revoke semua device sekaligus
+- Refresh token dirotasi sekali pakai. Supaya beberapa permintaan yang memperbarui sesi bersamaan tidak saling mengeluarkan pengguna, token lama masih diterima 30 detik setelah dirotasi dan hanya mengembalikan pasangan token baru yang sama (kunci Redis `auth:rotasi:<hash token lama>`), bukan membuat sesi baru. Token lama ditolak begitu masa itu habis atau sesi barunya sudah logout
+- Server SvelteKit memperbarui access token lewat refresh token sebelum menganggap pengguna keluar, sehingga access token 15 menit yang kedaluwarsa tidak memaksa login ulang selama refresh token 30 hari masih berlaku
 - Opsional buat kasus darurat: blocklist access token di Redis dengan TTL yang disamain sisa umur tokennya, buat instant-kill akun yang kebobol tanpa nunggu access token expired natural
 
 ## 2. Verifikasi Dua Faktor & Device

@@ -7,6 +7,7 @@ declare global {
 			user: User | null;
 			bahasa: Bahasa;
 			tema: Tema;
+			cookieBaru?: Map<string, string>;
 		}
 	}
 }
