@@ -41,6 +41,14 @@ func (r *TokenRepository) ActiveRefreshToken(ctx context.Context, tokenHash stri
 	return token, nil
 }
 
+func (r *TokenRepository) SimpanRotasi(ctx context.Context, tokenHashLama string, isi []byte, ttl time.Duration) error {
+	return r.store.Redis.Set(ctx, "auth:rotasi:"+tokenHashLama, isi, ttl).Err()
+}
+
+func (r *TokenRepository) AmbilRotasi(ctx context.Context, tokenHashLama string) ([]byte, error) {
+	return r.store.Redis.Get(ctx, "auth:rotasi:"+tokenHashLama).Bytes()
+}
+
 func (r *TokenRepository) TouchRefreshToken(ctx context.Context, id string) error {
 	_, err := r.store.DB.ExecContext(ctx, `UPDATE refresh_tokens SET last_used_at = now() WHERE id = $1`, id)
 	return err

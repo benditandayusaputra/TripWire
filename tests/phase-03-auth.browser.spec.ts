@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { akunBaru, daftarLewatApi } from './helpers/akun';
+import { akunBaru, masukLewatBrowser, daftarLewatApi } from './helpers/akun';
 import { isiCaptcha, jawabanCaptcha } from './helpers/captcha';
 
 test.describe('Fase 3: alur autentikasi dari sisi pengguna', () => {
@@ -197,6 +197,58 @@ test.describe('Fase 3: alur autentikasi dari sisi pengguna', () => {
 
 		await expect(page.getByTestId('login-error')).toContainText('Akun terkunci sementara');
 		await expect(page).toHaveURL(/\/login/);
+	});
+
+	test('access token yang kedaluwarsa diperbarui diam diam tanpa mengeluarkan pengguna', async ({
+		page,
+		context
+	}) => {
+		await masukLewatBrowser(page, 'sesi-awet');
+
+		for (const alamat of ['/watchlist', '/notifications', '/dashboard']) {
+			await context.clearCookies({ name: 'tw_access' });
+			await page.goto(alamat);
+			await expect(page).toHaveURL(new RegExp(`${alamat}$`));
+			const akses = (await context.cookies()).find((cookie) => cookie.name === 'tw_access');
+			expect(akses?.value).toBeTruthy();
+			expect(akses?.httpOnly).toBe(true);
+		}
+
+		await context.clearCookies({ name: 'tw_access' });
+		await page.getByTestId('nav-watchlist').click();
+		await expect(page).toHaveURL(/\/watchlist$/);
+		await expect(page.getByRole('heading', { level: 1, name: 'Watchlist' })).toBeVisible();
+	});
+
+	test('aliran notifikasi langsung tersambung lagi setelah ditolak karena token kedaluwarsa', async ({
+		page,
+		context
+	}) => {
+		await masukLewatBrowser(page, 'sesi-aliran');
+		await page.goto('/account');
+		await expect(page.getByRole('heading', { level: 1, name: 'Profil' })).toBeVisible();
+
+		let ditolak = 0;
+		await page.route(
+			'**/api/stream',
+			(rute) => {
+				ditolak += 1;
+				return rute.fulfill({ status: 401, contentType: 'application/json', body: '{}' });
+			},
+			{ times: 1 }
+		);
+		const segar: string[] = [];
+		page.on('request', (permintaan) => {
+			if (permintaan.url().endsWith('/api/auth/refresh')) segar.push(permintaan.method());
+		});
+
+		await page.getByTestId('nav-dashboard').click();
+		await expect(page).toHaveURL(/\/dashboard$/);
+		await expect.poll(() => ditolak, { timeout: 10_000 }).toBe(1);
+		await expect.poll(() => segar, { timeout: 10_000 }).toEqual(['POST']);
+		await expect(page.getByTestId('status-live')).toHaveAttribute('data-terhubung', 'true', {
+			timeout: 15_000
+		});
 	});
 
 	test('rute dashboard menolak pengunjung tanpa sesi', async ({ page }) => {
