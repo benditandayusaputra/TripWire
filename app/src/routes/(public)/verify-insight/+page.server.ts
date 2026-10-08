@@ -43,6 +43,18 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			};
 		}
 
+		if (response.status !== 200 && response.status !== 409) {
+			return {
+				id,
+				hasil: null,
+				galat: teks(
+					locals.bahasa,
+					'Verifikasi belum bisa dijalankan, coba lagi sebentar lagi.',
+					'Verification could not run, please try again shortly.'
+				)
+			};
+		}
+
 		const payload = (await response.json()) as Verifikasi;
 		return { id, hasil: payload, galat: '' };
 	} catch {

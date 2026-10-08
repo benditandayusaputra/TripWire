@@ -18,6 +18,7 @@ var (
 	ErrCreditHabis     = errors.New("sectorsclient: sisa credit di bawah ambang batas")
 	ErrCircuitTerbuka  = errors.New("sectorsclient: circuit breaker sedang terbuka")
 	ErrUpstreamGagal   = errors.New("sectorsclient: panggilan ke Sectors API gagal")
+	errDitolak         = errors.New("permintaan ditolak Sectors dengan status")
 	ErrTidakDitemukan  = errors.New("sectorsclient: data tidak ditemukan di Sectors API")
 	ErrKunciBelumDiisi = errors.New("sectorsclient: SECTORS_API_KEY belum diisi")
 )
@@ -136,7 +137,7 @@ func (c *Client) Get(ctx context.Context, path string, ttl time.Duration, biaya 
 		case errors.Is(err, ErrTidakDitemukan):
 			c.tagih(ctx, biayaTidakAda)
 			c.redis.Set(ctx, prefixTidakAda+kunci, "1", ttl)
-		case errors.Is(err, ErrUpstreamGagal):
+		case errors.Is(err, ErrUpstreamGagal) && !errors.Is(err, errDitolak):
 			c.catatKegagalan(ctx)
 		}
 		return nil, err
@@ -195,8 +196,10 @@ func (c *Client) ambilUpstream(ctx context.Context, path string) (json.RawMessag
 		return nil, ErrTidakDitemukan
 	case response.StatusCode == http.StatusTooManyRequests:
 		return nil, fmt.Errorf("%w: kuota atau batas laju Sectors terlampaui", ErrUpstreamGagal)
-	case response.StatusCode >= 400:
+	case response.StatusCode >= 500:
 		return nil, fmt.Errorf("%w: status %d", ErrUpstreamGagal, response.StatusCode)
+	case response.StatusCode >= 400:
+		return nil, fmt.Errorf("%w: %w %d", ErrUpstreamGagal, errDitolak, response.StatusCode)
 	}
 
 	if !json.Valid(body) {

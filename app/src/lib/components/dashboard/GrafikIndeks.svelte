@@ -197,7 +197,7 @@
 							rentang = satu;
 							sorot = null;
 						}}
-						>{satu === '1B' ? t('1B', '1M') : t('3B', '3M')}
+						>{satu === '1B' ? t('1 bln', '1M') : t('3 bln', '3M')}
 						<span class="sr-only"
 							>{satu === '1B'
 								? t('satu bulan', 'one month')

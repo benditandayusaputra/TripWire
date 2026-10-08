@@ -457,11 +457,30 @@ func (s *AuthService) record(ctx context.Context, event model.AuditEvent) {
 }
 
 func deviceLabel(userAgent string) string {
-	if userAgent == "" {
-		return "Perangkat tidak dikenal"
+	peramban := pilihPenanda(userAgent, [][2]string{
+		{"Edg/", "Edge"}, {"OPR/", "Opera"}, {"SamsungBrowser/", "Samsung Internet"}, {"Firefox/", "Firefox"},
+		{"Chrome/", "Chrome"}, {"Safari/", "Safari"},
+	})
+	sistem := pilihPenanda(userAgent, [][2]string{
+		{"Android", "Android"}, {"iPhone", "iPhone"}, {"iPad", "iPad"}, {"Windows", "Windows"},
+		{"Mac OS X", "macOS"}, {"CrOS", "ChromeOS"}, {"Linux", "Linux"},
+	})
+	switch {
+	case peramban != "" && sistem != "":
+		return peramban + " di " + sistem
+	case peramban != "":
+		return peramban
+	case sistem != "":
+		return sistem
 	}
-	if len(userAgent) > 120 {
-		return userAgent[:120]
+	return "Perangkat tidak dikenal"
+}
+
+func pilihPenanda(teks string, daftar [][2]string) string {
+	for _, pasangan := range daftar {
+		if strings.Contains(teks, pasangan[0]) {
+			return pasangan[1]
+		}
 	}
-	return userAgent
+	return ""
 }

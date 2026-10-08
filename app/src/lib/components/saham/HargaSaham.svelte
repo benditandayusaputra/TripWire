@@ -60,6 +60,14 @@
 	{:then hasil}
 		{#if hasil.seri.length > 1}
 			<GrafikEmiten {kode} seri={hasil.seri} {riwayat} {batas} {peristiwa} />
+			{#if peristiwa.length}
+				<p class="text-muted mt-3 text-[12px] leading-relaxed">
+					{t(
+						'Ikon di bawah grafik menandai kapan suspensi, jual beli orang dalam, dan perubahan pemegang saham terjadi. Angka di ikon adalah jumlah kejadian di hari itu.',
+						'Icons under the candles mark when suspensions, insider trades, and shareholder changes happened. The number shows how many happened that day.'
+					)}
+				</p>
+			{/if}
 			<dl class="mt-4 grid grid-cols-3 gap-2.5">
 				{#each [{ label: t('Kinerja 1 bulan', '1-month return'), nilai: kinerja(hasil.seri, 21) }, { label: t('Kinerja 3 bulan', '3-month return'), nilai: kinerja(hasil.seri, 999) }] as sel (sel.label)}
 					<div class="sel">

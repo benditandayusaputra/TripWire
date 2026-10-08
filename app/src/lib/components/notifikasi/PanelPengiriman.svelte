@@ -90,7 +90,7 @@
 		<div class="min-w-0 flex-1 space-y-2.5">
 			<div>
 				<p class="text-ink text-[13.5px] font-medium">
-					{t('Push di perangkat ini', 'Push on this device')}
+					{t('Notifikasi di HP atau browser ini', 'Push on this device')}
 				</p>
 				<p data-testid="status-push" class="tw-caption">
 					{#if !pushStore.didukung}

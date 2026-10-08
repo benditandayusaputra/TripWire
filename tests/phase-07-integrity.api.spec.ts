@@ -118,4 +118,9 @@ test.describe('Fase 7: integritas insight, signature Ed25519 dan hash chain', ()
 		const response = await request.get('/insights/verify/01a00000-0000-7000-8000-000000000000');
 		expect(response.status()).toBe(404);
 	});
+
+	test('id insight yang bukan UUID dijawab 404, bukan 500', async ({ request }) => {
+		const response = await request.get('/insights/verify/abc');
+		expect(response.status()).toBe(404);
+	});
 });

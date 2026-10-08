@@ -1,6 +1,6 @@
 import type { Cookies } from '@sveltejs/kit';
 import { apiBaseUrl } from '$lib/api/client';
-import { gabungCookie } from './sesi';
+import { gabungCookie, pasangHeaderKlien } from './sesi';
 
 type HasilApi = {
 	response: Response;
@@ -17,6 +17,7 @@ export async function panggilApi(
 	if (init.body) headers.set('Content-Type', 'application/json');
 	const cookie = gabungCookie(cookieHeader);
 	if (cookie) headers.set('cookie', cookie);
+	pasangHeaderKlien(headers);
 
 	const response = await fetch(`${apiBaseUrl}${path}`, { ...init, headers });
 	const payload = response.status === 204 ? null : await response.json().catch(() => null);
@@ -44,7 +45,7 @@ export function teruskanCookie(response: Response, cookies: Cookies) {
 			else if (kunciBersih === 'path') opsi.path = isi.trim();
 			else if (kunciBersih === 'domain') opsi.domain = isi.trim();
 			else if (kunciBersih === 'samesite')
-				opsi.sameSite = isi.trim().toLowerCase() as 'strict' | 'lax' | 'none';
+				opsi.sameSite = isi.trim().toLowerCase() === 'none' ? 'none' : 'lax';
 			else if (kunciBersih === 'max-age') opsi.maxAge = Number(isi.trim());
 			else if (kunciBersih === 'expires') opsi.expires = new Date(isi.trim());
 		}

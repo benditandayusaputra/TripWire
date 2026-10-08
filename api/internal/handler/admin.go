@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -29,11 +30,13 @@ func (h *AdminHandler) SchedulerStatus(c *fiber.Ctx) error {
 }
 
 func (h *AdminHandler) TriggerScan(c *fiber.Ctx) error {
-	hasil, err := h.admin.TriggerScan(c.Context())
-	if err != nil {
+	if err := h.admin.TriggerScan(c.Context()); err != nil {
+		if errors.Is(err, service.ErrScanBerjalan) {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Pemindaian lain masih berjalan, tunggu sampai selesai"})
+		}
 		return serverError(c)
 	}
-	return c.JSON(fiber.Map{"run": hasil})
+	return c.Status(fiber.StatusAccepted).JSON(fiber.Map{"status": "berjalan"})
 }
 
 func (h *AdminHandler) Users(c *fiber.Ctx) error {

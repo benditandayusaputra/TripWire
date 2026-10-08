@@ -41,7 +41,7 @@
 			>
 			<span class="pb-0.5">
 				<span class="text-ink block text-[13px] font-medium">
-					{t('Eksposur komoditas', 'Commodity exposure')}
+					{t('Ketergantungan pada harga komoditas', 'Commodity exposure')}
 					{labelKategori(eksposur.category).toLowerCase()}
 				</span>
 				<span class="text-muted block text-[12px]">{labelKomoditas(eksposur.commodity)}</span>

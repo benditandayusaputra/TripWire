@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/jackc/pgx/v5/pgconn"
+
 	"github.com/benditandayusaputra/tripwire/api/internal/model"
 	"github.com/benditandayusaputra/tripwire/api/internal/repository"
 )
@@ -272,7 +274,8 @@ func angka(raw any) (int, bool) {
 }
 
 func translate(err error) error {
-	if errors.Is(err, repository.ErrNotFound) {
+	var galatPg *pgconn.PgError
+	if errors.Is(err, repository.ErrNotFound) || (errors.As(err, &galatPg) && galatPg.Code == "22P02") {
 		return ErrTidakDitemukan
 	}
 	return err

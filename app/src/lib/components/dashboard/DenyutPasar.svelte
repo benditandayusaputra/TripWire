@@ -58,10 +58,7 @@
 
 <Panel
 	judul={t('Denyut pasar', 'Market pulse')}
-	keterangan={t(
-		'Semua saham BEI dari screener Sectors',
-		'All IDX stocks from the Sectors screener'
-	)}
+	keterangan={t('Semua saham BEI, data dari Sectors', 'All IDX stocks from the Sectors screener')}
 	ikon={Activity}
 	testid="panel-denyut"
 	class={kelas}
@@ -112,7 +109,7 @@
 				</ul>
 				{#if rasio !== null}
 					<p class="text-muted mt-1.5 text-[11.5px]">
-						{t('Rasio naik banding turun', 'Advance to decline ratio')}
+						{t('Saham naik untuk setiap 1 saham turun', 'Advance to decline ratio')}
 						<span class="tw-data text-secondary">{formatDesimal(rasio)}</span>
 					</p>
 				{/if}

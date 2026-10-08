@@ -298,7 +298,9 @@
 				class:hidup={presenceStore.terhubung}
 			>
 				<span class="denyut" aria-hidden="true"></span>
-				{presenceStore.terhubung ? t('Langsung', 'Live') : t('Menyambungkan', 'Connecting')}
+				{presenceStore.terhubung
+					? t('Terhubung langsung', 'Live')
+					: t('Menyambungkan', 'Connecting')}
 			</span>
 			<button
 				type="button"

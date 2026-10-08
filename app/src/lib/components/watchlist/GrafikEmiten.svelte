@@ -33,8 +33,8 @@
 	const TINGGI_SKOR = 64;
 	const SUMBU = 22;
 	const RENTANG = $derived([
-		{ kunci: '1B', teks: t('1B', '1M'), label: t('1 bulan', '1 month'), jumlah: 22 },
-		{ kunci: '3B', teks: t('3B', '3M'), label: t('3 bulan', '3 months'), jumlah: 999 }
+		{ kunci: '1B', teks: t('1 bln', '1M'), label: t('1 bulan', '1 month'), jumlah: 22 },
+		{ kunci: '3B', teks: t('3 bln', '3M'), label: t('3 bulan', '3 months'), jumlah: 999 }
 	]);
 	const URUTAN_JENIS: JenisPeristiwa[] = ['suspensi', 'jual', 'kepemilikan', 'beli'];
 	const IKON = { jual: UserMinus, beli: UserPlus, kepemilikan: ChartPie, suspensi: Ban };
@@ -512,10 +512,16 @@
 
 	<ul class="text-muted flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px]">
 		<li class="flex items-center gap-1.5">
-			<span class="contoh-naik"></span>{t('Naik, candle berongga', 'Up, hollow candle')}
+			<span class="contoh-naik"></span>{t(
+				'Batang kosong, harga naik hari itu',
+				'Up, hollow candle'
+			)}
 		</li>
 		<li class="flex items-center gap-1.5">
-			<span class="contoh-turun"></span>{t('Turun, candle padat', 'Down, filled candle')}
+			<span class="contoh-turun"></span>{t(
+				'Batang penuh, harga turun hari itu',
+				'Down, filled candle'
+			)}
 		</li>
 		<li class="flex items-center gap-1.5">
 			<span class="contoh-kawat" class:putus={tersentuh}></span>{t(

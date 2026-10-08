@@ -26,7 +26,10 @@
 
 <Panel
 	judul={t('Kinerja sektor', 'Sector performance')}
-	keterangan={t('Perubahan harian tertimbang kapitalisasi', 'Market cap weighted daily change')}
+	keterangan={t(
+		'Rata rata perubahan harian, saham besar lebih berpengaruh',
+		'Market cap weighted daily change'
+	)}
 	ikon={Layers}
 	testid="panel-sektor"
 	class={kelas}

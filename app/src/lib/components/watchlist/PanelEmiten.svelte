@@ -25,6 +25,7 @@
 		type Insight
 	} from '$lib/insight';
 	import {
+		NAMA_SEKTOR,
 		NAMA_SINYAL,
 		batasNotifikasi,
 		formatHarga,
@@ -152,8 +153,9 @@
 				<p class="text-secondary truncate text-[13.5px]">{item.company_name}</p>
 				{#if kutipan?.sector}
 					<p class="text-muted truncate text-[12px]">
-						{kutipan.sector}{kutipan.sub_sector && kutipan.sub_sector !== kutipan.sector
-							? `, ${kutipan.sub_sector}`
+						{NAMA_SEKTOR[kutipan.sector] ?? kutipan.sector}{kutipan.sub_sector &&
+						kutipan.sub_sector !== kutipan.sector
+							? `, ${NAMA_SEKTOR[kutipan.sub_sector] ?? kutipan.sub_sector}`
 							: ''}
 					</p>
 				{/if}

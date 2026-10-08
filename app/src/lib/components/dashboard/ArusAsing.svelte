@@ -35,10 +35,10 @@
 	judul={t('Arus dana asing', 'Foreign flow')}
 	keterangan={asing?.date
 		? t(
-				`Net beli dan jual investor asing, ${tanggalBursa(asing.date, true)}`,
+				`Beli bersih dan jual bersih investor asing, ${tanggalBursa(asing.date, true)}`,
 				`Foreign net buy and sell, ${tanggalBursa(asing.date, true)}`
 			)
-		: t('Net beli dan jual investor asing', 'Foreign investor net buy and sell')}
+		: t('Beli bersih dan jual bersih investor asing', 'Foreign investor net buy and sell')}
 	ikon={Globe}
 	testid="panel-asing"
 	class={kelas}
@@ -50,14 +50,14 @@
 				role="tab"
 				aria-selected={tab === 'beli'}
 				data-testid="tab-asing-beli"
-				onclick={() => (tab = 'beli')}>{t('Net beli', 'Net buy')}</button
+				onclick={() => (tab = 'beli')}>{t('Beli bersih', 'Net buy')}</button
 			>
 			<button
 				type="button"
 				role="tab"
 				aria-selected={tab === 'jual'}
 				data-testid="tab-asing-jual"
-				onclick={() => (tab = 'jual')}>{t('Net jual', 'Net sell')}</button
+				onclick={() => (tab = 'jual')}>{t('Jual bersih', 'Net sell')}</button
 			>
 		</div>
 	{/snippet}

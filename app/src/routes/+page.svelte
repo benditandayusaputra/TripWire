@@ -70,11 +70,13 @@
 		}
 	]);
 
-	const valuasi = [
-		{ nama: 'PER', emiten: 7.8, subsektor: 11.2 },
-		{ nama: 'PBV', emiten: 1.6, subsektor: 1.3 },
-		{ nama: 'PSR', emiten: 0.9, subsektor: 1.1 }
-	].map((item) => ({ ...item, selisih: ((item.emiten - item.subsektor) / item.subsektor) * 100 }));
+	const valuasi = $derived(
+		[
+			{ nama: 'PER', arti: t('harga vs laba', 'price to earnings'), emiten: 7.8, subsektor: 11.2 },
+			{ nama: 'PBV', arti: t('harga vs nilai buku', 'price to book'), emiten: 1.6, subsektor: 1.3 },
+			{ nama: 'PSR', arti: t('harga vs penjualan', 'price to sales'), emiten: 0.9, subsektor: 1.1 }
+		].map((item) => ({ ...item, selisih: ((item.emiten - item.subsektor) / item.subsektor) * 100 }))
+	);
 
 	const izin = $derived([
 		{ nama: t('IUP Blok Utara', 'North Block IUP'), bulan: 7 },
@@ -127,7 +129,7 @@
 		<nav class="hidden items-center gap-1 md:flex" aria-label={t('Utama', 'Main')}>
 			<a href="#cara-kerja" class="tautan-nav">{t('Cara kerja', 'How it works')}</a>
 			<a href="#skor" class="tautan-nav">Red Flag Score</a>
-			<a href="#intelijen" class="tautan-nav">Market Intelligence</a>
+			<a href="#intelijen" class="tautan-nav">{t('Analisis pasar', 'Market Intelligence')}</a>
 			<a href="/verify-insight" data-testid="nav-verifikasi" class="tautan-nav"
 				>{t('Verifikasi insight', 'Verify insight')}</a
 			>
@@ -485,6 +487,7 @@
 						>
 							<div>
 								<p class="text-ink text-[14px] font-medium">{item.nama}</p>
+								<p class="text-muted text-[11px] leading-tight">{item.arti}</p>
 								<p class="tw-data text-muted text-[11.5px]">
 									{desimal.format(item.emiten)} vs {desimal.format(item.subsektor)}
 								</p>
@@ -600,7 +603,7 @@
 				</h2>
 				<p class="text-secondary muncul text-[17px] leading-relaxed" style="--urut:1">
 					{t(
-						'Begitu dibuat, setiap insight ditandatangani dengan Ed25519 dan dirantai ke insight sebelumnya. Satu huruf saja diubah, tanda tangannya tidak cocok lagi. Halaman verifikasi bisa dibuka tanpa akun.',
+						'Begitu dibuat, setiap insight disegel dengan tanda tangan digital dan disambung ke insight sebelumnya. Satu huruf saja diubah, tanda tangannya tidak cocok lagi. Halaman verifikasi bisa dibuka tanpa akun.',
 						'Once created, every insight is signed with Ed25519 and chained to the previous insight. Change a single letter and the signature no longer matches. The verification page works without an account.'
 					)}
 				</p>
@@ -686,7 +689,7 @@
 			<Wordmark size="sm" />
 			<p class="text-muted text-[13px] leading-relaxed">
 				{t(
-					'Red flag detector dan market intelligence untuk saham IDX. Dibuat untuk Sectors Hackathon 2026.',
+					'Pendeteksi tanda bahaya dan analisis pasar untuk saham BEI. Dibuat untuk Sectors Hackathon 2026.',
 					'Red flag detector and market intelligence for IDX stocks. Built for the Sectors Hackathon 2026.'
 				)}
 			</p>

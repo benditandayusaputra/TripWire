@@ -2,7 +2,7 @@ import { redirect, type Cookies, type Handle } from '@sveltejs/kit';
 import { apiBaseUrl } from '$lib/api/client';
 import type { User } from '$lib/api/auth';
 import { teruskanCookie } from '$lib/server/api';
-import { gabungCookie, pecahSetCookie } from '$lib/server/sesi';
+import { gabungCookie, pasangHeaderKlien, pecahSetCookie } from '$lib/server/sesi';
 import { BAHASA, TEMA, type Bahasa, type Tema } from '$lib/bahasa.svelte';
 
 const PROTECTED_GROUPS = ['/(app)', '/(admin)'];
@@ -12,7 +12,7 @@ async function currentUser(cookie: string): Promise<User | null> {
 
 	try {
 		const response = await fetch(`${apiBaseUrl}/account/me`, {
-			headers: { cookie, Accept: 'application/json' }
+			headers: pasangHeaderKlien(new Headers({ cookie, Accept: 'application/json' }))
 		});
 		if (!response.ok) return null;
 
@@ -29,7 +29,7 @@ async function segarkan(cookie: string, cookies: Cookies) {
 	try {
 		const response = await fetch(`${apiBaseUrl}/auth/refresh`, {
 			method: 'POST',
-			headers: { cookie, Accept: 'application/json' }
+			headers: pasangHeaderKlien(new Headers({ cookie, Accept: 'application/json' }))
 		});
 		if (!response.ok) return null;
 
@@ -50,9 +50,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const routeId = event.route.id ?? '';
 	const guarded = PROTECTED_GROUPS.some((group) => routeId.startsWith(group));
+	const cookie = event.request.headers.get('cookie') ?? '';
+	const halamanMasuk = routeId === '/(public)/login' && /(^|;\s*)tw_(access|refresh)=/.test(cookie);
 
-	if (guarded) {
-		const cookie = event.request.headers.get('cookie') ?? '';
+	if (guarded || halamanMasuk) {
 		event.locals.user = await currentUser(cookie);
 
 		if (!event.locals.user) {
@@ -63,11 +64,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 			}
 		}
 
-		if (!event.locals.user) {
-			redirect(303, `/login?next=${encodeURIComponent(event.url.pathname)}`);
+		if (halamanMasuk && event.locals.user) {
+			const tujuan = new URL(event.url.searchParams.get('next') ?? '/dashboard', event.url.origin);
+			redirect(
+				303,
+				tujuan.origin === event.url.origin ? tujuan.pathname + tujuan.search : '/dashboard'
+			);
 		}
 
-		if (routeId.startsWith('/(admin)') && event.locals.user.role !== 'admin') {
+		if (guarded && !event.locals.user) {
+			redirect(303, `/login?next=${encodeURIComponent(event.url.pathname + event.url.search)}`);
+		}
+
+		if (routeId.startsWith('/(admin)') && event.locals.user?.role !== 'admin') {
 			redirect(303, '/dashboard');
 		}
 	}

@@ -98,6 +98,6 @@ export const actions: Actions = {
 			});
 		}
 
-		return { sukses: true, run: payload?.run as Run };
+		return { sukses: true };
 	}
 };

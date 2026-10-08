@@ -19,6 +19,8 @@ const (
 	kunciRunTerakhir = "scheduler:run:terakhir"
 	kunciRiwayatRun  = "scheduler:run:riwayat"
 	kunciPindaiAwal  = "scheduler:awal:"
+	kunciScan        = "scheduler:kunci"
+	masaKunciScan    = 15 * time.Minute
 	jedaPindaiAwal   = 10 * time.Minute
 	batasPindaiAwal  = 3 * time.Minute
 	panjangRiwayat   = 20
@@ -37,6 +39,8 @@ type HasilScan struct {
 	Catatan         []string  `json:"catatan"`
 }
 
+var ErrScanBerjalan = errors.New("pemindaian lain masih berjalan")
+
 type ScanService struct {
 	watchlist *repository.WatchlistRepository
 	insight   *InsightService
@@ -52,6 +56,39 @@ func NewScanService(
 }
 
 func (s *ScanService) Jalankan(ctx context.Context, pemicu string) (*HasilScan, error) {
+	if !s.kunci(ctx) {
+		return nil, ErrScanBerjalan
+	}
+	defer s.lepasKunci()
+	return s.jalankan(ctx, pemicu)
+}
+
+func (s *ScanService) MulaiLatar(ctx context.Context, pemicu string) error {
+	if !s.kunci(ctx) {
+		return ErrScanBerjalan
+	}
+
+	go func() {
+		defer s.lepasKunci()
+		ctx, cancel := context.WithTimeout(context.Background(), masaKunciScan)
+		defer cancel()
+		if _, err := s.jalankan(ctx, pemicu); err != nil {
+			log.Printf("scan %s gagal: %v", pemicu, err)
+		}
+	}()
+	return nil
+}
+
+func (s *ScanService) kunci(ctx context.Context) bool {
+	ok, err := s.redis.SetNX(ctx, kunciScan, time.Now().UTC().Format(time.RFC3339), masaKunciScan).Result()
+	return err == nil && ok
+}
+
+func (s *ScanService) lepasKunci() {
+	s.redis.Del(context.Background(), kunciScan)
+}
+
+func (s *ScanService) jalankan(ctx context.Context, pemicu string) (*HasilScan, error) {
 	mulai := time.Now().UTC()
 
 	kondisi, err := s.watchlist.KondisiAktif(ctx)

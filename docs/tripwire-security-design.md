@@ -33,7 +33,7 @@
 
 ## 6. Perlindungan Endpoint
 - Security headers: CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy
-- Cookie httpOnly, Secure, SameSite=Strict; CSRF token di tiap request yang mengubah data
+- Cookie httpOnly, Secure, SameSite=Strict dari API, diteruskan SvelteKit ke browser sebagai Lax supaya tautan dari luar tetap membawa sesi; CSRF token di tiap request yang mengubah data
 - Rate limiting via Redis (INCR + EXPIRE) di endpoint login, register, dan tambah watchlist
 - XSS: CSP di atas jadi lapisan browser-side; middleware sanitize/block dipasang buat validasi request body sebelum data disimpan atau diproses; Svelte sendiri auto-escape tiap binding `{value}`, satu satunya titik rawan kalau nanti ada pemakaian `{@html}` buat nampilin teks dari payload insight (misalnya alasan suspend), itu wajib disanitize dulu sebelum dirender
 - Parameterized query di semua akses database, gak ada raw SQL yang di-concat manual

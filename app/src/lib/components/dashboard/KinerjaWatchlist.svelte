@@ -152,7 +152,7 @@
 		<div class="pilihan" role="group" aria-label={t('Rentang waktu', 'Time range')}>
 			{#each ['1B', '3B'] as const as satu (satu)}
 				<button type="button" aria-pressed={rentang === satu} onclick={() => (rentang = satu)}
-					>{satu === '1B' ? t('1B', '1M') : t('3B', '3M')}</button
+					>{satu === '1B' ? t('1 bln', '1M') : t('3 bln', '3M')}</button
 				>
 			{/each}
 		</div>

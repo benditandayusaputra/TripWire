@@ -93,10 +93,7 @@ func (s *IntegrityService) Record(ctx context.Context, insight *Insight) (*model
 func (s *IntegrityService) Verify(ctx context.Context, id string) (*model.InsightVerification, error) {
 	event, err := s.repo.ByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return nil, ErrTidakDitemukan
-		}
-		return nil, err
+		return nil, translate(err)
 	}
 
 	var sebelumnya *model.InsightEvent

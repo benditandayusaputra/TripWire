@@ -70,7 +70,7 @@
 	const sumber = $derived(labelSumber(payload.data_sources ?? []));
 
 	const labelSkor = $derived(
-		redFlag ? 'Red Flag Score' : t('Eksposur komoditas', 'Commodity exposure')
+		redFlag ? 'Red Flag Score' : t('Ketergantungan pada harga komoditas', 'Commodity exposure')
 	);
 
 	const komponenEksposur = $derived(
@@ -227,7 +227,7 @@
 						</p>
 						<p class="text-secondary text-[12.5px]">
 							{t(
-								'Ditandatangani Ed25519 dan tersambung ke rantai hash. Isinya sama persis dengan saat dibuat.',
+								'Disegel dengan tanda tangan digital dan tersambung ke insight sebelumnya. Isinya sama persis dengan saat dibuat.',
 								'Signed with Ed25519 and linked to the hash chain. The content is exactly as it was when created.'
 							)}
 						</p>
@@ -288,7 +288,7 @@
 							/>
 							<p class="text-muted mt-3 text-[12px] leading-relaxed">
 								{t(
-									'Ikon di bawah candle menandai kapan suspensi, transaksi orang dalam, dan perubahan pemegang saham terjadi. Tanda bahaya yang jatuh berdekatan itulah yang menaikkan skor.',
+									'Ikon di bawah grafik menandai kapan suspensi, transaksi orang dalam, dan perubahan pemegang saham terjadi. Tanda bahaya yang jatuh berdekatan itulah yang menaikkan skor.',
 									'Icons under the candles mark when suspensions, insider trades, and shareholder changes happened. Red flags that land close together are what raise the score.'
 								)}
 							</p>

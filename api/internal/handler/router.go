@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/benditandayusaputra/tripwire/api/config"
@@ -38,6 +39,7 @@ type Dependencies struct {
 func Register(app *fiber.App, deps Dependencies) {
 	cfg := deps.Config
 
+	app.Use(recover.New())
 	app.Use(middleware.Language())
 	app.Use(middleware.SecurityHeaders(cfg.IsProduction()))
 	app.Use(middleware.CORS(cfg.FrontendURL))
@@ -47,7 +49,9 @@ func Register(app *fiber.App, deps Dependencies) {
 
 	health := NewHealthHandler(deps.Health)
 	app.Get("/health", health.Health)
-	app.Get("/health/tables", health.Tables)
+	if !cfg.IsProduction() {
+		app.Get("/health/tables", health.Tables)
+	}
 
 	auth := NewAuthHandler(cfg, deps.Auth, deps.Captcha)
 	authGroup := app.Group("/auth")
@@ -112,7 +116,7 @@ func Register(app *fiber.App, deps Dependencies) {
 	group := app.Group("/watchlist", requireAuth, csrf, middleware.XSSSanitize())
 	group.Get("/", watchlist.List)
 	group.Post("/",
-		middleware.RateLimit(deps.Redis, "watchlist_add", cfg.WatchlistRateLimit, cfg.RateLimitWindow, middleware.ClientIP),
+		middleware.RateLimit(deps.Redis, "watchlist_add", cfg.WatchlistRateLimit, cfg.RateLimitWindow, middleware.UserID),
 		watchlist.Add)
 	group.Patch("/:id", watchlist.Update)
 	group.Delete("/:id", watchlist.Remove)
@@ -126,15 +130,16 @@ func Register(app *fiber.App, deps Dependencies) {
 	group.Get("/:id/prices", pantauan.Harga)
 	group.Post("/:id/scan", watchlist.Pindai)
 
+	batasEmiten := middleware.BatasEmiten(deps.Redis, cfg.EmitenRateLimit, cfg.EmitenRateWindow)
 	market := NewMarketHandler(deps.Market)
 	app.Get("/market/credits", requireAuth, market.Credits)
 	app.Get("/market/top", requireAuth, market.Teratas)
 	app.Get("/market/stocks", requireAuth, market.DaftarSaham)
 	app.Get("/market/foreign-flow", requireAuth, market.ArusAsing)
 	app.Get("/market/index/:code", requireAuth, market.Indeks)
-	app.Get("/market/:ticker", requireAuth, market.CompanyReport)
-	app.Get("/market/:ticker/profile", requireAuth, market.Profil)
-	app.Get("/market/:ticker/prices", requireAuth, market.Harga)
+	app.Get("/market/:ticker", requireAuth, batasEmiten, market.CompanyReport)
+	app.Get("/market/:ticker/profile", requireAuth, batasEmiten, market.Profil)
+	app.Get("/market/:ticker/prices", requireAuth, batasEmiten, market.Harga)
 
 	verifikasi := NewIntegrityHandler(deps.Integrity)
 	app.Get("/insights/verify/:id", verifikasi.Verify)
@@ -142,8 +147,8 @@ func Register(app *fiber.App, deps Dependencies) {
 	insight := NewInsightHandler(deps.Insight)
 	insights := app.Group("/insights", requireAuth)
 	insights.Get("/", akun.Feed)
-	insights.Get("/red-flag/:ticker", insight.RedFlag)
-	insights.Get("/market-intelligence/:ticker", insight.MarketIntelligence)
+	insights.Get("/red-flag/:ticker", batasEmiten, insight.RedFlag)
+	insights.Get("/market-intelligence/:ticker", batasEmiten, insight.MarketIntelligence)
 	insights.Get("/:id", akun.InsightDetail)
 
 	stream := NewStreamHandler(deps.Stream)
