@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/benditandayusaputra/tripwire/api/config"
@@ -38,6 +39,7 @@ type Dependencies struct {
 func Register(app *fiber.App, deps Dependencies) {
 	cfg := deps.Config
 
+	app.Use(recover.New())
 	app.Use(middleware.Language())
 	app.Use(middleware.SecurityHeaders(cfg.IsProduction()))
 	app.Use(middleware.CORS(cfg.FrontendURL))

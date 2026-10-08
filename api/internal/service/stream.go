@@ -94,14 +94,10 @@ func (h *StreamHub) Kirim(userID string, event StreamEvent) bool {
 	}
 
 	h.mu.RLock()
-	daftar := make([]chan []byte, 0, len(h.klien[userID]))
-	for saluran := range h.klien[userID] {
-		daftar = append(daftar, saluran)
-	}
-	h.mu.RUnlock()
+	defer h.mu.RUnlock()
 
 	terkirim := false
-	for _, saluran := range daftar {
+	for saluran := range h.klien[userID] {
 		select {
 		case saluran <- isi:
 			terkirim = true
