@@ -49,7 +49,9 @@ func Register(app *fiber.App, deps Dependencies) {
 
 	health := NewHealthHandler(deps.Health)
 	app.Get("/health", health.Health)
-	app.Get("/health/tables", health.Tables)
+	if !cfg.IsProduction() {
+		app.Get("/health/tables", health.Tables)
+	}
 
 	auth := NewAuthHandler(cfg, deps.Auth, deps.Captcha)
 	authGroup := app.Group("/auth")
