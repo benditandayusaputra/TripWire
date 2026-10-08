@@ -54,3 +54,16 @@ menjelaskan skornya, dan mengabari begitu terjadi.
 - Membuka panel admin terlalu lama. Itu alat demo, bukan fitur pengguna.
 - Membuka halaman saham emiten acak berkali kali saat rehearsal. Setiap emiten baru memakai sekitar
   5 credit pertama kali dalam sehari.
+
+## Teaser 60 Detik
+
+Dipotong dari rekaman video penjurian, untuk YouTube atau media sosial dengan tag akun resmi Sectors.
+
+| Waktu | Layar | Teks atau narasi |
+|---|---|---|
+| 0:00 sampai 0:08 | Beranda, simulasi grafik SIMU | Red flag saham terdeteksi sebelum jadi berita |
+| 0:08 sampai 0:22 | Halaman saham tokoh cerita | Suspensi, orang dalam, dan kepemilikan dalam satu skor |
+| 0:22 sampai 0:35 | Detail insight, rumus skor | Skor naik saat sinyal muncul berdekatan, dan rumusnya terbuka |
+| 0:35 sampai 0:45 | Notifikasi push | Dikabari otomatis, tanpa cek manual tiap hari |
+| 0:45 sampai 0:55 | Verifikasi publik | Setiap insight bersegel, siapa pun bisa memeriksanya |
+| 0:55 sampai 1:00 | Logo dan URL | Data dari Sectors. Informasi, bukan rekomendasi |

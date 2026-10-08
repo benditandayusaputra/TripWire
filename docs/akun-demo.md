@@ -19,7 +19,7 @@ Password sama untuk semua akun: `TripWireDemo123`
 | `admin@tripwire.demo` | admin | aktif, 2 emiten dipantau | Panel admin, kuota Sectors, scan manual, daftar pengguna |
 | `investor@tripwire.demo` | user | aktif, 4 emiten, semua jenis kondisi | Dashboard terisi, watchlist, detail insight, verifikasi signature |
 | `duafaktor@tripwire.demo` | user | 2FA aktif | Login wajib kode, kode cadangan sekali pakai, halaman keamanan |
-| `baru@tripwire.demo` | user | email belum diverifikasi, watchlist kosong | Langkah awal `/mulai` lewat tombol Mulai dalam 3 langkah di dashboard, banner verifikasi email, keadaan kosong |
+| `baru@tripwire.demo` | user | email belum diverifikasi, watchlist kosong | Langkah awal `/mulai` lewat tombol Mulai dalam 3 langkah di dashboard, keadaan kosong |
 | `terkunci@tripwire.demo` | user | terkunci satu jam | Tampilan lockout, penolakan login meski password benar |
 
 Watchlist `investor@tripwire.demo` sengaja memakai lima jenis kondisi sekaligus:

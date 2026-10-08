@@ -3,6 +3,25 @@
 Red flag detector dan market intelligence untuk saham IDX. Submission Sectors Hackathon 2026,
 Track 03 Market Intelligence.
 
+## Coba Langsung
+
+| | |
+|---|---|
+| Situs live | https://trip-wire-site.vercel.app |
+| Akun juri | `investor@tripwire.demo`, password `TripWireDemo123` |
+| Verifikasi publik tanpa akun | https://trip-wire-site.vercel.app/verify-insight |
+
+Akun juri sudah memantau ANTM, MDKA, INCO, dan BBRI dengan data asli dari Sectors. Buka halaman saham
+lewat Ctrl/Cmd+K, misalnya `/stocks/ANTM`, untuk melihat skor, siapa di balik saham, dan jual beli
+orang dalam. Akun baru juga bisa didaftarkan dari halaman Daftar. Untuk menghemat jatah data Sectors,
+satu akun bisa membuka 30 saham berbeda per hari, saham yang sudah dibuka tetap bisa dilihat lagi.
+
+> Investor ritel IDX sulit menangkap risiko tata kelola karena histori suspensi, transaksi orang
+> dalam, dan perubahan kepemilikan tersebar di banyak tempat, maka TripWire memantau ketiganya
+> otomatis dari data Sectors, menjelaskan skornya, dan mengabari begitu sinyal itu muncul berdekatan.
+
+## Masalah yang Diselesaikan
+
 Investor ritel IDX harus mengecek sendiri histori suspend, transaksi orang dalam, dan perubahan
 kepemilikan di tempat yang terpisah pisah, padahal risiko tata kelola justru terlihat saat ketiga
 sinyal itu muncul berdekatan. TripWire memantau pola silang itu otomatis dari data Sectors untuk
