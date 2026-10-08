@@ -80,6 +80,22 @@ func (r *NotificationRepository) Simpan(ctx context.Context, userID, insightEven
 	return notifikasi, nil
 }
 
+func (r *NotificationRepository) InsightTerkuatDipantau(ctx context.Context, userID string) (*model.InsightEvent, error) {
+	event := &model.InsightEvent{}
+	query := `SELECT id, ticker, insight_type, subtype, score, payload, signature, prev_hash, current_hash, generated_at
+	          FROM insight_events
+	          WHERE ticker IN (SELECT ticker FROM watchlist_items WHERE user_id = $1)
+	          ORDER BY score DESC NULLS LAST, generated_at DESC
+	          LIMIT 1`
+	if err := r.store.DB.GetContext(ctx, event, query, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return event, nil
+}
+
 func (r *NotificationRepository) Riwayat(ctx context.Context, userID string, filter FilterNotifikasi) ([]model.Notification, error) {
 	kondisi := []string{"n.user_id = $1"}
 	args := []any{userID}

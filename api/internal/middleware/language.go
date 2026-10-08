@@ -71,6 +71,7 @@ func terjemahkan(mentah []byte, semuaKunci bool) ([]byte, bool) {
 }
 
 var kamusInggris = map[string]string{
+	"Belum ada insight dari watchlist kamu. Tambahkan saham dan tunggu pemindaian pertama selesai":       "Your watchlist has no insights yet. Add a stock and wait for the first scan to finish",
 	"Batas membuka saham baru untuk hari ini sudah tercapai, saham yang sudah dibuka tetap bisa dilihat": "You have reached today's limit for opening new stocks, stocks you already opened are still available",
 	"Pemindaian lain masih berjalan, tunggu sampai selesai":                                              "Another scan is still running, wait until it finishes",
 	"Akun dibuat, cek email untuk verifikasi":                                                            "Account created, check your email to verify it",

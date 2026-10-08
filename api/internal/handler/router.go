@@ -159,6 +159,9 @@ func Register(app *fiber.App, deps Dependencies) {
 	notifications.Get("/", notifikasi.List)
 	notifications.Get("/summary", notifikasi.Summary)
 	notifications.Post("/read-all", csrf, notifikasi.MarkAllRead)
+	notifications.Post("/demo", csrf,
+		middleware.RateLimit(deps.Redis, "notifikasi_contoh", batasUjiPush, cfg.RateLimitWindow, middleware.UserID),
+		notifikasi.KirimContoh)
 	notifications.Delete("/read", csrf, notifikasi.DeleteRead)
 	notifications.Patch("/:id/read", csrf, notifikasi.MarkRead)
 	notifications.Delete("/:id/read", csrf, notifikasi.MarkUnread)

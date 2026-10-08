@@ -34,7 +34,7 @@ menjelaskan skornya, dan mengabari begitu terjadi.
 | 0:15 sampai 0:40 | Daftar lalu `/mulai` | Pilih saham tokoh cerita dan satu saham besar, pilih cara dikabari, izinkan notifikasi. Begitu selesai, watchlist terisi dan skor muncul beberapa detik kemudian karena TripWire langsung memindai dari Sectors. |
 | 0:40 sampai 1:05 | Halaman saham tokoh cerita | Grafik harga dengan penanda suspensi dan transaksi orang dalam, Red Flag Score dengan pemicu terakhir, lalu Siapa di balik saham: pemilik terbesar, direksi, komposisi investor. |
 | 1:05 sampai 1:45 | Detail insight | Kenapa skornya segini: tiga sub skor dengan bobot, skor dasar, pengali pola silang. Tekankan bahwa skor naik saat sinyal muncul berdekatan, bukan sekadar dijumlah. Tunjukkan bukti yang ditandai di jendela 30 hari dan data mentah yang disegel. |
-| 1:45 sampai 2:05 | Notifikasi | Push dari jendela `investor@tripwire.demo`, klik langsung ke detail insight. |
+| 1:45 sampai 2:05 | Notifikasi | Di `/notifications` akun `investor@tripwire.demo`, tekan Kirim contoh notifikasi di panel Saluran pengiriman. Insight asli dengan skor tertinggi dikirim ulang, muncul langsung di halaman dan sebagai push kalau push aktif. Klik untuk membuka detail insight. |
 | 2:05 sampai 2:30 | Verifikasi publik di jendela tanpa login | Tempel ID insight. Segel valid, hash rantai utuh, dan browser pengunjung ikut menghitung ulang tanda tangan Ed25519 serta hash rantainya. |
 | 2:30 sampai 2:50 | Dashboard pasar dan Ctrl+K | Sekilas IHSG, penggerak, arus asing, peta pasar, lalu Ctrl+K untuk membuka saham lain. |
 | 2:50 sampai 3:00 | Penutup | TripWire memberi informasi, bukan rekomendasi beli atau jual. |

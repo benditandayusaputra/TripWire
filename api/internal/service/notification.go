@@ -422,6 +422,61 @@ type HasilUjiPush struct {
 	Terkirim  int `json:"delivered"`
 }
 
+var ErrBelumAdaInsight = errors.New("notifikasi: watchlist belum punya insight")
+
+type HasilContoh struct {
+	InsightID string `json:"insight_id"`
+	Ticker    string `json:"ticker"`
+	ViaSSE    bool   `json:"via_sse"`
+	ViaPush   bool   `json:"via_web_push"`
+}
+
+func (s *NotificationService) KirimContoh(ctx context.Context, userID string) (HasilContoh, error) {
+	event, err := s.notifikasi.InsightTerkuatDipantau(ctx, userID)
+	if errors.Is(err, repository.ErrNotFound) {
+		return HasilContoh{}, ErrBelumAdaInsight
+	}
+	if err != nil {
+		return HasilContoh{}, err
+	}
+
+	tersimpan, err := s.notifikasi.Simpan(ctx, userID, event.ID)
+	if err != nil {
+		return HasilContoh{}, err
+	}
+
+	var isi struct {
+		Category          string `json:"category"`
+		CommodityExposure *struct {
+			Category string `json:"category"`
+		} `json:"commodity_exposure"`
+	}
+	_ = json.Unmarshal(event.Payload, &isi)
+	if isi.Category == "" && isi.CommodityExposure != nil {
+		isi.Category = isi.CommodityExposure.Category
+	}
+
+	dibuat := event.GeneratedAt
+	ringkasan := RingkasanInsight{
+		NotificationID: tersimpan.ID,
+		InsightID:      event.ID,
+		Ticker:         event.Ticker,
+		CompanyName:    s.namaEmiten(event.Ticker),
+		InsightType:    event.InsightType,
+		Subtype:        event.Subtype,
+		Score:          event.Score,
+		Category:       isi.Category,
+		GeneratedAt:    &dibuat,
+	}
+
+	return HasilContoh{
+		InsightID: event.ID,
+		Ticker:    event.Ticker,
+		ViaSSE:    s.hub.Antar(ctx, userID, StreamEvent{Type: "insight", Data: ringkasan}),
+		ViaPush:   s.kirimPush(ctx, userID, ringkasan),
+	}, nil
+}
+
 func (s *NotificationService) KirimUji(ctx context.Context, userID string) (HasilUjiPush, error) {
 	if !s.pengirim.Aktif() {
 		return HasilUjiPush{}, ErrPushNonaktif

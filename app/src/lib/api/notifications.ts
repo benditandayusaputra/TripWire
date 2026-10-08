@@ -146,6 +146,13 @@ export function cabutPerangkat(endpoint: string) {
 	return request<null>(`/push/subscribe/${kunci}`, { method: 'DELETE' });
 }
 
+export function kirimContohNotifikasi() {
+	return request<{ insight_id: string; ticker: string; via_sse: boolean; via_web_push: boolean }>(
+		'/notifications/demo',
+		{ method: 'POST' }
+	);
+}
+
 export function kirimPushUji() {
 	return request<{ devices: number; delivered: number }>('/push/test', { method: 'POST' });
 }

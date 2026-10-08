@@ -334,3 +334,42 @@ test.describe("Fase 8: pusat notifikasi bergaya aplikasi saham", () => {
     ).toBe("0");
   });
 });
+
+test.describe("Fase 8: contoh notifikasi untuk demo", () => {
+  test("tombol contoh mengirim ulang insight asli dari watchlist sebagai notifikasi live", async ({
+    page,
+  }) => {
+    await masukLewatBrowser(page, "contoh-notif");
+
+    await page.goto("/notifications");
+    await expect(page.getByTestId("status-stream")).toHaveAttribute(
+      "data-terhubung",
+      "true",
+    );
+    await page.getByTestId("kirim-contoh").click();
+    await expect(page.getByTestId("pesan-contoh")).toContainText(
+      "Belum ada insight dari watchlist kamu",
+    );
+
+    await page.goto("/watchlist");
+    await tambahSaham(page, "ANTM");
+    const dipicu = await apiBrowser(page, "GET", "/insights/red-flag/ANTM");
+    expect(dipicu.status).toBe(200);
+
+    await page.goto("/notifications");
+    await expect(page.getByTestId("status-stream")).toHaveAttribute(
+      "data-terhubung",
+      "true",
+    );
+    const sebelum = await page
+      .getByTestId("insight-live-item")
+      .filter({ hasText: "ANTM" })
+      .count();
+
+    await page.getByTestId("kirim-contoh").click();
+    await expect(page.getByTestId("pesan-contoh")).toContainText("ANTM");
+    await expect(
+      page.getByTestId("insight-live-item").filter({ hasText: "ANTM" }),
+    ).toHaveCount(sebelum + 1, { timeout: 10_000 });
+  });
+});

@@ -135,6 +135,17 @@ func (h *NotificationHandler) TestPush(c *fiber.Ctx) error {
 	return c.JSON(hasil)
 }
 
+func (h *NotificationHandler) KirimContoh(c *fiber.Ctx) error {
+	hasil, err := h.notifikasi.KirimContoh(c.Context(), middleware.UserID(c))
+	if err != nil {
+		if errors.Is(err, service.ErrBelumAdaInsight) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Belum ada insight dari watchlist kamu. Tambahkan saham dan tunggu pemindaian pertama selesai"})
+		}
+		return serverError(c)
+	}
+	return c.JSON(hasil)
+}
+
 func (h *NotificationHandler) Subscribe(c *fiber.Ctx) error {
 	var masukan service.LanggananPush
 	if err := c.BodyParser(&masukan); err != nil {
