@@ -131,7 +131,7 @@ test.describe('Fase 3: alur autentikasi dari sisi pengguna', () => {
 		await expect(page.getByTestId('current-user')).toContainText(akun.email);
 	});
 
-	test('cookie sesi terpasang dengan flag httpOnly, Secure, dan SameSite Strict', async ({
+	test('cookie sesi terpasang dengan flag httpOnly, Secure, dan SameSite Lax di browser', async ({
 		page,
 		context
 	}) => {
@@ -157,17 +157,17 @@ test.describe('Fase 3: alur autentikasi dari sisi pengguna', () => {
 		expect(access).toBeDefined();
 		expect(access?.httpOnly).toBe(true);
 		expect(access?.secure).toBe(true);
-		expect(access?.sameSite).toBe('Strict');
+		expect(access?.sameSite).toBe('Lax');
 
 		const refresh = cookies.find((cookie) => cookie.name === 'tw_refresh');
 		expect(refresh?.httpOnly).toBe(true);
 		expect(refresh?.secure).toBe(true);
-		expect(refresh?.sameSite).toBe('Strict');
+		expect(refresh?.sameSite).toBe('Lax');
 
 		const csrf = cookies.find((cookie) => cookie.name === 'tw_csrf');
 		expect(csrf?.httpOnly).toBe(false);
 		expect(csrf?.secure).toBe(true);
-		expect(csrf?.sameSite).toBe('Strict');
+		expect(csrf?.sameSite).toBe('Lax');
 	});
 
 	test('login gagal berulang mengunci akun dan pesan lockout tampil', async ({ page }) => {
