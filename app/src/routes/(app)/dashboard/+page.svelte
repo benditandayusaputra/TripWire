@@ -288,7 +288,9 @@
 					class:aktif={presenceStore.terhubung}
 				>
 					<span class="titik-langsung" aria-hidden="true"></span>
-					{presenceStore.terhubung ? t('Langsung', 'Live') : t('Menyambungkan', 'Connecting')}
+					{presenceStore.terhubung
+						? t('Terhubung langsung', 'Live')
+						: t('Menyambungkan', 'Connecting')}
 				</span>
 			</p>
 			<h1 data-testid="dashboard-heading" class="tw-title text-ink">{data.user?.full_name}</h1>

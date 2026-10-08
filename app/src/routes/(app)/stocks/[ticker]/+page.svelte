@@ -230,7 +230,13 @@
 						{profil.ticker}
 					</h1>
 					{#each kutipan?.indices ?? [] as indeks (indeks)}
-						<span class="chip">{indeks}</span>
+						<span
+							class="chip"
+							title={t(
+								`Termasuk indeks ${indeks}, kumpulan saham pilihan BEI`,
+								`Member of the ${indeks} index`
+							)}>{indeks}</span
+						>
 					{/each}
 				</div>
 				<p data-testid="nama-emiten" class="text-secondary text-[14.5px]">
@@ -271,7 +277,10 @@
 					· {t('Kapitalisasi', 'Market cap')}
 					<span class="tw-data text-secondary">{formatRupiah(kutipan.market_cap)}</span>
 					{#if kutipan.market_cap_rank}
-						<span class="tw-data">#{kutipan.market_cap_rank}</span>
+						· {t(
+							`terbesar ke-${kutipan.market_cap_rank} di BEI`,
+							`#${kutipan.market_cap_rank} on IDX`
+						)}
 					{/if}
 				</p>
 			</div>
@@ -309,7 +318,7 @@
 			</h2>
 			<p class="text-muted text-[12.5px]">
 				{t(
-					'Pemilik terbesar, pimpinan, grup usaha, dan investor kakapnya',
+					'Pemilik terbesar, pimpinan, grup usaha, dan investor besar yang ikut memegang sahamnya',
 					'Largest owner, leadership, business group, and whale investors'
 				)}
 			</p>
@@ -366,7 +375,12 @@
 			</div>
 
 			<div class="sel-rantai" data-testid="balik-kakap">
-				<dt><Gem class="size-3.5" aria-hidden="true" />{t('Investor kakap', 'Whale investors')}</dt>
+				<dt>
+					<Gem class="size-3.5" aria-hidden="true" />{t(
+						'Investor kakap (pemodal besar)',
+						'Whale investors'
+					)}
+				</dt>
 				<dd>
 					{#if profil.whale_investors.length}
 						<span class="nama">{profil.whale_investors.join(', ')}</span>
@@ -406,7 +420,11 @@
 									</span>
 								</span>
 								{#if pimpinan(orang.position)}
-									<span class="lencana">{t('Pimpinan', 'Head')}</span>
+									<span class="lencana"
+										>{grup.kunci === 'komisaris'
+											? t('Ketua', 'Chair')
+											: t('Pimpinan', 'Head')}</span
+									>
 								{/if}
 							</li>
 						{/each}
@@ -512,7 +530,10 @@
 				<div class="kepala-bagian">
 					<h2 id="judul-institusi" class="tw-overline flex items-center gap-2">
 						<Landmark class="size-3.5" aria-hidden="true" />
-						{t('Gerak investor institusi', 'Institutional activity')}
+						{t(
+							'Gerak investor institusi (dana pensiun, reksa dana, asuransi)',
+							'Institutional activity'
+						)}
 					</h2>
 					{#if institusi.date}
 						<span class="text-muted text-[12px]">
@@ -689,7 +710,7 @@
 				<div class="kepala-bagian">
 					<h2 id="judul-jejak" class="tw-overline flex items-center gap-2">
 						<UserRound class="size-3.5" aria-hidden="true" />
-						{t('Jejak orang dalam 90 hari', 'Insider trail, 90 days')}
+						{t('Jual beli orang dalam 90 hari', 'Insider trail, 90 days')}
 					</h2>
 					{#if data.redFlag}
 						<a href="/insights/{data.redFlag.id}" class="tautan text-[12.5px]">
@@ -719,7 +740,7 @@
 							)}
 						{:else}
 							{t(
-								`Transaksi orang dalam muncul setelah ${profil.ticker} dipindai dari watchlist kamu.`,
+								`Pantau ${profil.ticker} untuk melihat direksi, komisaris, dan pemegang besar yang jual beli sahamnya.`,
 								`Insider trades appear after ${profil.ticker} is scanned from your watchlist.`
 							)}
 						{/if}
@@ -808,7 +829,7 @@
 
 	<p class="text-muted text-[12px]">
 		{t(
-			'Sumber: Sectors. Data pasar diperbarui harian, data pengelola dan komposisi investor mingguan.',
+			'Sumber: Sectors. Data pasar diperbarui harian, data pengelola dan komposisi investor mingguan. Orang dalam berarti direksi, komisaris, dan pemegang saham besar.',
 			'Source: Sectors. Market data refreshes daily, management and investor composition weekly.'
 		)}
 	</p>

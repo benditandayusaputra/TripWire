@@ -288,8 +288,8 @@
 				<thead>
 					<tr class="border-line/70 border-b">
 						<th class="tw-overline pb-2 font-medium">Email</th>
-						<th class="tw-overline pb-2 font-medium">Role</th>
-						<th class="tw-overline pb-2 font-medium">2FA</th>
+						<th class="tw-overline pb-2 font-medium">{t('Peran', 'Role')}</th>
+						<th class="tw-overline pb-2 font-medium">{t('Dua faktor', '2FA')}</th>
 						<th class="tw-overline pb-2 font-medium">Watchlist</th>
 						<th class="tw-overline pb-2 font-medium">{t('Terakhir masuk', 'Last login')}</th>
 					</tr>

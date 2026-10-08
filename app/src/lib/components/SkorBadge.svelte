@@ -26,7 +26,7 @@
 			class="rounded-glass-lg flex flex-col items-center justify-center border {info.border} {info.background} px-4 py-3"
 		>
 			<span class="font-display text-3xl leading-none font-semibold {info.text}">{angka}</span>
-			<span class="tw-overline mt-1.5">Score</span>
+			<span class="tw-overline mt-1.5">{t('Skor', 'Score')}</span>
 		</div>
 	{/if}
 {:else if tanpaSkor}

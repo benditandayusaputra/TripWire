@@ -65,13 +65,13 @@
 		},
 		{
 			kunci: 'bulan',
-			label: t('1B', '1M'),
+			label: t('1 bln', '1M'),
 			kelas: 'kanan kol-kinerja',
 			judul: t('Kinerja sebulan', 'One month return')
 		},
 		{
 			kunci: 'kuartal',
-			label: t('3B', '3M'),
+			label: t('3 bln', '3M'),
 			kelas: 'kanan kol-kinerja',
 			judul: t('Kinerja tiga bulan', 'Three month return')
 		},
@@ -115,7 +115,7 @@
 		<thead>
 			<tr>
 				{@render kepala(KOLOM[0])}
-				<th scope="col" class="kol-tren">{t('Tren 1B', '1M trend')}</th>
+				<th scope="col" class="kol-tren">{t('Tren 1 bln', '1M trend')}</th>
 				{@render kepala(KOLOM[1])}
 				{@render kepala(KOLOM[2])}
 				{@render kepala(KOLOM[3])}

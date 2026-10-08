@@ -52,8 +52,8 @@
 
 	const kinerja = $derived([
 		{ label: t('1H', '1D'), nilai: formatPersen(baris.penutupan?.ubah) },
-		{ label: t('1B', '1M'), nilai: formatPersen(baris.bulan) },
-		{ label: t('3B', '3M'), nilai: formatPersen(baris.kuartal) }
+		{ label: t('1 bln', '1M'), nilai: formatPersen(baris.bulan) },
+		{ label: t('3 bln', '3M'), nilai: formatPersen(baris.kuartal) }
 	]);
 
 	const statistik = $derived(

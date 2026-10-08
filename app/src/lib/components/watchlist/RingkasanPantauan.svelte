@@ -121,10 +121,10 @@
 			<p class="catatan">
 				{hitungMundur(jadwal.next_scan_at, sekarang)}, {jadwal.last_scan_at
 					? t(
-							`terakhir ${waktuRelatif(jadwal.last_scan_at)}`,
+							`pemindaian otomatis terakhir ${waktuRelatif(jadwal.last_scan_at)}`,
 							`last scan ${waktuRelatif(jadwal.last_scan_at)}`
 						)
-					: t('terakhir belum pernah', 'no scan yet')}
+					: t('pemindaian otomatis belum pernah jalan', 'no scan yet')}
 			</p>
 		{:else}
 			<p class="text-secondary mt-1.5 text-[13px]">

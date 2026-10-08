@@ -102,7 +102,56 @@ export const NAMA_SEKTOR = dwibahasa<Record<string, string>>(
 		Healthcare: ['Kesehatan', 'Healthcare'],
 		Technology: ['Teknologi', 'Technology'],
 		Industrials: ['Perindustrian', 'Industrials'],
-		'Transportation & Logistic': ['Transportasi', 'Transportation & Logistics']
+		'Transportation & Logistic': ['Transportasi', 'Transportation & Logistics'],
+		Banks: ['Bank', 'Banks'],
+		'Financing Service': ['Pembiayaan', 'Financing Service'],
+		'Investment Service': ['Jasa investasi', 'Investment Service'],
+		Insurance: ['Asuransi', 'Insurance'],
+		'Holding & Investment Companies': [
+			'Perusahaan induk dan investasi',
+			'Holding & Investment Companies'
+		],
+		'Oil, Gas & Coal': ['Minyak, gas, dan batu bara', 'Oil, Gas & Coal'],
+		'Alternative Energy': ['Energi alternatif', 'Alternative Energy'],
+		'Industrial Goods': ['Barang industri', 'Industrial Goods'],
+		'Industrial Services': ['Jasa industri', 'Industrial Services'],
+		'Multi-sector Holdings': ['Induk multisektor', 'Multi-sector Holdings'],
+		'Food & Staples Retailing': ['Ritel bahan pokok', 'Food & Staples Retailing'],
+		'Food & Beverage': ['Makanan dan minuman', 'Food & Beverage'],
+		Tobacco: ['Rokok', 'Tobacco'],
+		'Nondurable Household Products': ['Produk rumah tangga', 'Nondurable Household Products'],
+		'Automobiles & Components': ['Otomotif dan komponen', 'Automobiles & Components'],
+		'Household Goods': ['Perabot rumah tangga', 'Household Goods'],
+		'Consumer Durables & Apparel': ['Barang tahan lama dan pakaian', 'Consumer Durables & Apparel'],
+		'Consumer Services': ['Jasa konsumen', 'Consumer Services'],
+		'Media & Entertainment': ['Media dan hiburan', 'Media & Entertainment'],
+		Retailing: ['Ritel', 'Retailing'],
+		'Leisure Goods': ['Barang rekreasi', 'Leisure Goods'],
+		'Healthcare Equipment & Providers': [
+			'Alat dan layanan kesehatan',
+			'Healthcare Equipment & Providers'
+		],
+		'Pharmaceuticals & Health Care Research': [
+			'Farmasi dan riset kesehatan',
+			'Pharmaceuticals & Health Care Research'
+		],
+		'Software & IT Services': ['Perangkat lunak dan jasa TI', 'Software & IT Services'],
+		'Technology Hardware & Equipment': [
+			'Perangkat keras teknologi',
+			'Technology Hardware & Equipment'
+		],
+		Utilities: ['Utilitas', 'Utilities'],
+		Telecommunication: ['Telekomunikasi', 'Telecommunication'],
+		'Heavy Constructions & Civil Engineering': [
+			'Konstruksi berat',
+			'Heavy Constructions & Civil Engineering'
+		],
+		'Transportation Infrastructure': [
+			'Infrastruktur transportasi',
+			'Transportation Infrastructure'
+		],
+		Transportation: ['Transportasi', 'Transportation'],
+		'Logistics & Deliveries': ['Logistik dan pengiriman', 'Logistics & Deliveries']
 	}
 );
 

@@ -97,7 +97,7 @@
 			? [
 					{
 						kunci: 'tanda',
-						judul: t('Tanda tangan Ed25519', 'Ed25519 signature'),
+						judul: t('Tanda tangan digital', 'Ed25519 signature'),
 						isi: t(
 							'Isi insight disegel dengan kunci privat TripWire saat dibuat.',
 							"The insight content was sealed with TripWire's private key when it was created."
@@ -107,9 +107,9 @@
 					},
 					{
 						kunci: 'hash',
-						judul: t('Hash rantai', 'Chain hash'),
+						judul: t('Sambungan rantai', 'Chain hash'),
 						isi: t(
-							'Hash saat ini dihitung dari hash sebelumnya, digest, dan tanda tangan.',
+							'Sidik jari insight ini dihitung dari sidik jari insight sebelumnya dan isinya, jadi catatan lama tidak bisa diubah diam diam.',
 							'The current hash is computed from the previous hash, the digest, and the signature.'
 						),
 						server: hasil.hash_valid,

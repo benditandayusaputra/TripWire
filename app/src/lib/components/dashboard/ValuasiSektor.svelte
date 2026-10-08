@@ -18,9 +18,18 @@
 		<thead>
 			<tr class="tw-overline">
 				<th class="pb-2 font-medium">{t('Saham', 'Stock')}</th>
-				<th class="pb-2 text-right font-medium">PER</th>
-				<th class="pb-2 text-right font-medium">PBV</th>
-				<th class="pb-2 text-right font-medium">PSR</th>
+				<th
+					class="pb-2 text-right font-medium"
+					title={t('Harga dibanding laba', 'Price to earnings')}>PER</th
+				>
+				<th
+					class="pb-2 text-right font-medium"
+					title={t('Harga dibanding nilai buku', 'Price to book value')}>PBV</th
+				>
+				<th
+					class="pb-2 text-right font-medium"
+					title={t('Harga dibanding penjualan', 'Price to sales')}>PSR</th
+				>
 			</tr>
 		</thead>
 		<tbody>
