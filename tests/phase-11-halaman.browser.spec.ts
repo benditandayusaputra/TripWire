@@ -380,6 +380,12 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await konteks.close();
 	});
 
+	test('verifikasi dengan id asal ketik menampilkan pesan tidak ditemukan', async ({ page }) => {
+		await page.goto('/verify-insight?id=abc');
+		await expect(page.getByText('Insight dengan ID itu tidak ditemukan.')).toBeVisible();
+		await expect(page.getByTestId('verifikasi-hasil')).toHaveCount(0);
+	});
+
 	test('isi insight yang diubah diam diam di database ketahuan di server dan di browser', async ({
 		page
 	}) => {
