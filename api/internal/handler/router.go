@@ -114,7 +114,7 @@ func Register(app *fiber.App, deps Dependencies) {
 	group := app.Group("/watchlist", requireAuth, csrf, middleware.XSSSanitize())
 	group.Get("/", watchlist.List)
 	group.Post("/",
-		middleware.RateLimit(deps.Redis, "watchlist_add", cfg.WatchlistRateLimit, cfg.RateLimitWindow, middleware.ClientIP),
+		middleware.RateLimit(deps.Redis, "watchlist_add", cfg.WatchlistRateLimit, cfg.RateLimitWindow, middleware.UserID),
 		watchlist.Add)
 	group.Patch("/:id", watchlist.Update)
 	group.Delete("/:id", watchlist.Remove)
@@ -128,15 +128,16 @@ func Register(app *fiber.App, deps Dependencies) {
 	group.Get("/:id/prices", pantauan.Harga)
 	group.Post("/:id/scan", watchlist.Pindai)
 
+	batasEmiten := middleware.BatasEmiten(deps.Redis, cfg.EmitenRateLimit, cfg.EmitenRateWindow)
 	market := NewMarketHandler(deps.Market)
 	app.Get("/market/credits", requireAuth, market.Credits)
 	app.Get("/market/top", requireAuth, market.Teratas)
 	app.Get("/market/stocks", requireAuth, market.DaftarSaham)
 	app.Get("/market/foreign-flow", requireAuth, market.ArusAsing)
 	app.Get("/market/index/:code", requireAuth, market.Indeks)
-	app.Get("/market/:ticker", requireAuth, market.CompanyReport)
-	app.Get("/market/:ticker/profile", requireAuth, market.Profil)
-	app.Get("/market/:ticker/prices", requireAuth, market.Harga)
+	app.Get("/market/:ticker", requireAuth, batasEmiten, market.CompanyReport)
+	app.Get("/market/:ticker/profile", requireAuth, batasEmiten, market.Profil)
+	app.Get("/market/:ticker/prices", requireAuth, batasEmiten, market.Harga)
 
 	verifikasi := NewIntegrityHandler(deps.Integrity)
 	app.Get("/insights/verify/:id", verifikasi.Verify)
@@ -144,8 +145,8 @@ func Register(app *fiber.App, deps Dependencies) {
 	insight := NewInsightHandler(deps.Insight)
 	insights := app.Group("/insights", requireAuth)
 	insights.Get("/", akun.Feed)
-	insights.Get("/red-flag/:ticker", insight.RedFlag)
-	insights.Get("/market-intelligence/:ticker", insight.MarketIntelligence)
+	insights.Get("/red-flag/:ticker", batasEmiten, insight.RedFlag)
+	insights.Get("/market-intelligence/:ticker", batasEmiten, insight.MarketIntelligence)
 	insights.Get("/:id", akun.InsightDetail)
 
 	stream := NewStreamHandler(deps.Stream)

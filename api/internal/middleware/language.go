@@ -71,9 +71,10 @@ func terjemahkan(mentah []byte, semuaKunci bool) ([]byte, bool) {
 }
 
 var kamusInggris = map[string]string{
-	"Pemindaian lain masih berjalan, tunggu sampai selesai":                    "Another scan is still running, wait until it finishes",
-	"Akun dibuat, cek email untuk verifikasi":                                  "Account created, check your email to verify it",
-	"Akun terkunci sementara karena terlalu banyak percobaan masuk yang gagal": "Your account is temporarily locked after too many failed login attempts",
+	"Batas membuka saham baru untuk hari ini sudah tercapai, saham yang sudah dibuka tetap bisa dilihat": "You have reached today's limit for opening new stocks, stocks you already opened are still available",
+	"Pemindaian lain masih berjalan, tunggu sampai selesai":                                              "Another scan is still running, wait until it finishes",
+	"Akun dibuat, cek email untuk verifikasi":                                                            "Account created, check your email to verify it",
+	"Akun terkunci sementara karena terlalu banyak percobaan masuk yang gagal":                           "Your account is temporarily locked after too many failed login attempts",
 	"Akun tidak aktif":                                                       "This account is inactive",
 	"Authenticator terdaftar":                                                "Authenticator registered",
 	"Bahasa yang tersedia hanya id atau en":                                  "Available languages are id or en only",

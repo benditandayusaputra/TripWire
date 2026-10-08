@@ -90,4 +90,21 @@ test.describe('Halaman saham: harga semua emiten dan pemindaian awal', () => {
 		});
 		expect(milikOrang.status()).toBe(404);
 	});
+
+	test('satu pengguna dibatasi 30 saham berbeda per hari, saham yang sudah dibuka tetap bisa', async ({
+		request
+	}) => {
+		const { sesi } = await sesiMasuk(request, 'batas-emiten');
+		for (let i = 0; i < 30; i += 1) {
+			expect((await sesi.kirim('get', `/market/ZZ${String(i).padStart(2, '0')}/prices`)).status()).toBe(422);
+		}
+
+		const baru = await sesi.kirim('get', '/market/PTBA/prices');
+		expect(baru.status()).toBe(429);
+		expect(baru.headers()['retry-after']).toBeTruthy();
+		expect((await sesi.kirim('get', '/market/ZZ00/profile')).status()).toBe(422);
+
+		const { sesi: lain } = await sesiMasuk(request, 'batas-emiten-lain');
+		expect((await lain.kirim('get', '/market/ZZ00/prices')).status()).toBe(422);
+	});
 });

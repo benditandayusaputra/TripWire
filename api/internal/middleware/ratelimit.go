@@ -63,3 +63,36 @@ func digest(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:8])
 }
+
+func BatasEmiten(client *redis.Client, limit int, window time.Duration) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		kode := strings.ToUpper(strings.TrimSpace(c.Params("ticker")))
+		if limit <= 0 || kode == "" {
+			return c.Next()
+		}
+
+		redisKey := "ratelimit:emiten:" + UserID(c)
+		ada, err := client.SIsMember(c.Context(), redisKey, kode).Result()
+		if err != nil || ada {
+			return c.Next()
+		}
+
+		jumlah, err := client.SCard(c.Context(), redisKey).Result()
+		if err != nil {
+			return c.Next()
+		}
+		if int(jumlah) >= limit {
+			ttl, _ := client.TTL(c.Context(), redisKey).Result()
+			c.Set("Retry-After", strconv.Itoa(int(ttl.Seconds())))
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": "Batas membuka saham baru untuk hari ini sudah tercapai, saham yang sudah dibuka tetap bisa dilihat",
+			})
+		}
+
+		client.SAdd(c.Context(), redisKey, kode)
+		if jumlah == 0 {
+			client.Expire(c.Context(), redisKey, window)
+		}
+		return c.Next()
+	}
+}
