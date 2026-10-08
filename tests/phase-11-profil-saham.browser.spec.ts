@@ -101,5 +101,7 @@ test.describe('Fase 11: profil saham, pengelola, dan orang di balik saham', () =
 		const response = await page.goto('/stocks/ZZZZ');
 		expect(response?.status()).toBe(404);
 		await expect(page.getByText('Saham ini tidak terdaftar di BEI')).toBeVisible();
+		await page.getByTestId('galat-kembali').click();
+		await expect(page).toHaveURL(/\/dashboard$/);
 	});
 });
