@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { BellOff, BellRing, MonitorSmartphone, Radio, Send, X } from 'lucide-svelte';
-	import { cabutPerangkat, kirimPushUji, type PerangkatPush } from '$lib/api/notifications';
+	import { BellOff, BellRing, MonitorSmartphone, Radio, Send, Sparkles, X } from 'lucide-svelte';
+	import {
+		cabutPerangkat,
+		kirimContohNotifikasi,
+		kirimPushUji,
+		type PerangkatPush
+	} from '$lib/api/notifications';
 	import { t } from '$lib/bahasa.svelte';
 	import { formatTanggalSaja } from '$lib/insight';
 	import { namaPerangkat } from '$lib/notifikasi';
@@ -13,6 +18,29 @@
 	let menguji = $state(false);
 	let pesanUji = $state('');
 	let mencabut = $state('');
+	let mengirimContoh = $state(false);
+	let pesanContoh = $state('');
+
+	async function contoh() {
+		if (mengirimContoh) return;
+		mengirimContoh = true;
+		pesanContoh = '';
+		try {
+			const hasil = await kirimContohNotifikasi();
+			pesanContoh = t(
+				`Insight ${hasil.ticker} dikirim ulang sebagai notifikasi${hasil.via_web_push ? ', termasuk ke HP atau browser yang berlangganan' : ''}.`,
+				`The ${hasil.ticker} insight was resent as a notification${hasil.via_web_push ? ', including to subscribed devices' : ''}.`
+			);
+			if (!hasil.via_sse) await invalidateAll();
+		} catch (galat) {
+			pesanContoh =
+				galat instanceof Error
+					? galat.message
+					: t('Contoh notifikasi gagal dikirim.', "Couldn't send the sample notification.");
+		} finally {
+			mengirimContoh = false;
+		}
+	}
 
 	async function aktifkan() {
 		await pushStore.aktifkan();
@@ -79,6 +107,40 @@
 		<span class="tw-data text-[11px] {presenceStore.terhubung ? 'text-tier-low' : 'text-muted'}">
 			{presenceStore.terhubung ? t('AKTIF', 'ACTIVE') : t('MENYAMBUNG', 'CONNECTING')}
 		</span>
+	</div>
+
+	<div class="saluran items-start!" data-testid="contoh-notifikasi">
+		<Sparkles class="text-diamond-300 mt-0.5 size-4 flex-none" aria-hidden="true" />
+		<div class="min-w-0 flex-1 space-y-2.5">
+			<div>
+				<p class="text-ink text-[13.5px] font-medium">
+					{t('Lihat contoh notifikasi', 'See a sample notification')}
+				</p>
+				<p class="tw-caption">
+					{t(
+						'Kirim ulang insight asli dengan skor tertinggi dari watchlist kamu, supaya terlihat bentuk notifikasinya tanpa menunggu pemindaian berikutnya.',
+						'Resend the highest scoring real insight from your watchlist so you can see what an alert looks like without waiting for the next scan.'
+					)}
+				</p>
+			</div>
+			<button
+				type="button"
+				data-testid="kirim-contoh"
+				class="tw-ghost px-3 py-1.5 text-[13px]"
+				disabled={mengirimContoh}
+				onclick={contoh}
+			>
+				<Send class="size-3.5" aria-hidden="true" />
+				{mengirimContoh
+					? t('Mengirim', 'Sending')
+					: t('Kirim contoh notifikasi', 'Send a sample notification')}
+			</button>
+			{#if pesanContoh}
+				<p data-testid="pesan-contoh" class="text-secondary text-[12.5px]" role="status">
+					{pesanContoh}
+				</p>
+			{/if}
+		</div>
 	</div>
 
 	<div class="saluran items-start!">

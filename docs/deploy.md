@@ -10,7 +10,7 @@ frontend membaca `app/.env`.
 | Frontend `app/` | Vercel |
 | API, scheduler, Postgres 18, Redis | VM Oracle `130.162.198.219`, project Docker Compose `tripwire` di `/opt/tripwire` |
 | HTTPS API | `https://tripwire-app.duckdns.org`, lewat Caddy milik project sidestream di VM yang sama |
-| Auto deploy API | GitHub Actions `Deploy API` setiap push ke `main` yang mengubah `api/` |
+| Deploy API | Manual: bundle dari `main` dikirim ke `/opt/tripwire/deploy.sh`, atau tombol Run workflow `Deploy API` |
 
 Alur request:
 
@@ -28,7 +28,7 @@ Alur request:
 4. Setelah URL Vercel diketahui, isi `FRONTEND_URL` di server (lihat Operasional). Nilai ini dipakai
    WebAuthn dan tautan verifikasi email.
 
-## Auto Deploy API
+## Deploy API
 
 Workflow `.github/workflows/deploy-api.yml` menjalankan unit test, build binary Linux, lalu mengirim
 bundle lewat SSH ke user `tripwire` di VM. Kunci SSH itu dibatasi `restrict,command=` sehingga hanya
@@ -38,9 +38,10 @@ bisa menjalankan `/opt/tripwire/deploy.sh`, tidak bisa membuka shell.
 scheduler, lalu menunggu `/health`. Kalau salah satu langkah gagal, symlink `current` dikembalikan ke
 rilis sebelumnya dan workflow ditandai merah. Tiga rilis terakhir disimpan.
 
-Syarat sekali pasang: secret repository `DEPLOY_SSH_KEY` berisi private key deploy (Settings,
-Secrets and variables, Actions). Deploy manual tanpa push bisa dipicu dari tab Actions lewat
-tombol Run workflow.
+Workflow hanya berjalan lewat tombol Run workflow di tab Actions, tidak otomatis saat push, karena
+secret `DEPLOY_SSH_KEY` (Settings, Secrets and variables, Actions) belum terpasang. Tanpa secret itu,
+bundle dibangun dengan langkah Build bundle yang sama lalu dikirim manual:
+`ssh sidestream-vm 'sudo -u tripwire /opt/tripwire/deploy.sh' < tripwire-api.tar.gz`.
 
 ## Operasional
 
