@@ -262,10 +262,10 @@ export function peristiwaDari(insight: Insight | undefined): Peristiwa[] {
 
 	const hasil: Peristiwa[] = [];
 	for (const satu of data.insider_transactions ?? []) {
-		const jual = satu.transaction_type === 'sell';
+		const jenis = satu.transaction_type;
 		hasil.push({
 			tanggal: tanggalWib(satu.date),
-			jenis: jual ? 'jual' : 'beli',
+			jenis: jenis === 'sell' ? 'jual' : jenis === 'buy' ? 'beli' : 'kepemilikan',
 			teks: `${satu.holder_name} ${labelTransaksi(satu.transaction_type)}${
 				satu.transaction_value
 					? t(' senilai ', ' worth ') + formatRupiah(satu.transaction_value)
@@ -280,8 +280,8 @@ export function peristiwaDari(insight: Insight | undefined): Peristiwa[] {
 			tanggal: tanggalWib(satu.last_date),
 			jenis: 'kepemilikan',
 			teks: t(
-				`Porsi ${satu.holder_name} ${arah} ${poin} poin`,
-				`Stake of ${satu.holder_name} ${arah} ${poin} points`
+				`Porsi ${satu.holder_name} ${arah} ${poin} poin persen`,
+				`Stake of ${satu.holder_name} ${arah} ${poin} percentage points`
 			)
 		});
 	}

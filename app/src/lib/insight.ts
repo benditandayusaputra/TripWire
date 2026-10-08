@@ -246,7 +246,10 @@ const LABEL_KEPARAHAN: Record<string, Pasangan> = {
 const LABEL_TRANSAKSI: Record<string, Pasangan> = {
 	sell: ['melepas', 'sold'],
 	buy: ['menambah', 'bought'],
-	others: ['transaksi lain', 'other transaction']
+	others: [
+		'mengalihkan saham tanpa jual beli di bursa',
+		'transferred shares outside regular trading'
+	]
 };
 
 const LABEL_KOMODITAS: Record<string, Pasangan> = {

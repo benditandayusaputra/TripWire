@@ -64,6 +64,10 @@ test.describe('Fase 11: profil saham, pengelola, dan orang di balik saham', () =
 		await expect(page.getByTestId('kategori-investor')).toHaveCount(3);
 		await expect(page.getByTestId('kategori-investor').first()).toContainText('Perorangan');
 		await expect(page.getByTestId('jejak').first()).toBeVisible();
+		await expect(page.getByTestId('jejak-orang-dalam')).toContainText(
+			'Inalum (Persero) mengalihkan saham tanpa jual beli di bursa'
+		);
+		await expect(page.getByTestId('jejak-orang-dalam')).toContainText('poin persen');
 
 		const situs = page.getByTestId('situs-emiten');
 		await expect(situs).toHaveAttribute('href', 'https://www.aneka-tambang.test');
