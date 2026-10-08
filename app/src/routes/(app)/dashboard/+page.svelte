@@ -3,15 +3,7 @@
 	import { fly } from 'svelte/transition';
 	import { invalidateAll } from '$app/navigation';
 	import { navigating, page } from '$app/state';
-	import {
-		ArrowRight,
-		ListChecks,
-		MailWarning,
-		Newspaper,
-		Radar,
-		ShieldAlert,
-		X
-	} from 'lucide-svelte';
+	import { ArrowRight, ListChecks, Newspaper, Radar, ShieldAlert, X } from 'lucide-svelte';
 	import { t } from '$lib/bahasa.svelte';
 	import DisclaimerBar from '$lib/components/DisclaimerBar.svelte';
 	import InsightCard from '$lib/components/InsightCard.svelte';
@@ -133,7 +125,6 @@
 	const sektorWatchlist = $derived([
 		...new Set(baris.flatMap((satu) => (satu.sektor ? [satu.sektor] : [])))
 	]);
-	const emailTerverifikasi = $derived(Boolean(data.user?.email_verified_at));
 	const belumDibaca = $derived(Number(data.unread ?? 0));
 
 	let pilihanManual = $state<string | null>(null);
@@ -312,21 +303,6 @@
 	</header>
 
 	<PitaPasar ihsg={indeks} {baris} />
-
-	{#if !emailTerverifikasi}
-		<div
-			data-testid="email-belum-verifikasi"
-			class="rounded-glass border-diamond-700 bg-diamond-900/40 flex items-start gap-3 border px-4 py-3.5"
-		>
-			<MailWarning class="text-diamond-300 mt-0.5 size-4 flex-none" aria-hidden="true" />
-			<p class="text-secondary text-[13.5px]">
-				{t(
-					'Email kamu belum diverifikasi. Cek kotak masuk untuk mengaktifkan notifikasi insight.',
-					'Your email is not verified yet. Check your inbox to turn on insight alerts.'
-				)}
-			</p>
-		</div>
-	{/if}
 
 	<dl data-testid="ringkasan" class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
 		<div class="kpi">
