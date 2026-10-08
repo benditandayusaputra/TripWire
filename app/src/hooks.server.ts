@@ -50,9 +50,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const routeId = event.route.id ?? '';
 	const guarded = PROTECTED_GROUPS.some((group) => routeId.startsWith(group));
+	const cookie = event.request.headers.get('cookie') ?? '';
+	const halamanMasuk = routeId === '/(public)/login' && /(^|;\s*)tw_(access|refresh)=/.test(cookie);
 
-	if (guarded) {
-		const cookie = event.request.headers.get('cookie') ?? '';
+	if (guarded || halamanMasuk) {
 		event.locals.user = await currentUser(cookie);
 
 		if (!event.locals.user) {
@@ -63,11 +64,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 			}
 		}
 
-		if (!event.locals.user) {
-			redirect(303, `/login?next=${encodeURIComponent(event.url.pathname)}`);
+		if (halamanMasuk && event.locals.user) {
+			const tujuan = new URL(event.url.searchParams.get('next') ?? '/dashboard', event.url.origin);
+			redirect(
+				303,
+				tujuan.origin === event.url.origin ? tujuan.pathname + tujuan.search : '/dashboard'
+			);
 		}
 
-		if (routeId.startsWith('/(admin)') && event.locals.user.role !== 'admin') {
+		if (guarded && !event.locals.user) {
+			redirect(303, `/login?next=${encodeURIComponent(event.url.pathname + event.url.search)}`);
+		}
+
+		if (routeId.startsWith('/(admin)') && event.locals.user?.role !== 'admin') {
 			redirect(303, '/dashboard');
 		}
 	}

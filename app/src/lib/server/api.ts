@@ -44,7 +44,7 @@ export function teruskanCookie(response: Response, cookies: Cookies) {
 			else if (kunciBersih === 'path') opsi.path = isi.trim();
 			else if (kunciBersih === 'domain') opsi.domain = isi.trim();
 			else if (kunciBersih === 'samesite')
-				opsi.sameSite = isi.trim().toLowerCase() as 'strict' | 'lax' | 'none';
+				opsi.sameSite = isi.trim().toLowerCase() === 'none' ? 'none' : 'lax';
 			else if (kunciBersih === 'max-age') opsi.maxAge = Number(isi.trim());
 			else if (kunciBersih === 'expires') opsi.expires = new Date(isi.trim());
 		}
