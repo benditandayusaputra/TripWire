@@ -427,6 +427,8 @@ test.describe('Fase 11: navigasi seluruh halaman utama', () => {
 		await expect(page).toHaveURL(/\/account\/sessions/);
 		await expect(page.getByTestId('sesi')).toHaveCount(1);
 		await expect(page.getByTestId('sesi-ini')).toBeVisible();
+		await expect(page.getByTestId('sesi')).toContainText('Chrome di');
+		await expect(page.getByTestId('sesi')).not.toContainText('node');
 
 		await page.goto('/account');
 		await page.getByTestId('tautan-keamanan').click();

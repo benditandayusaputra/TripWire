@@ -8,6 +8,18 @@ function cookieRequestIni() {
 	}
 }
 
+export function pasangHeaderKlien(headers: Headers) {
+	try {
+		const event = getRequestEvent();
+		const agen = event.request.headers.get('user-agent');
+		if (agen && !headers.has('user-agent')) headers.set('user-agent', agen);
+		if (!headers.has('x-forwarded-for')) headers.set('x-forwarded-for', event.getClientAddress());
+	} catch {
+		return headers;
+	}
+	return headers;
+}
+
 export function pecahSetCookie(response: Response) {
 	const hasil = new Map<string, string>();
 	for (const baris of response.headers.getSetCookie()) {

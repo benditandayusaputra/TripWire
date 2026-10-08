@@ -1,6 +1,6 @@
 import type { Cookies } from '@sveltejs/kit';
 import { apiBaseUrl } from '$lib/api/client';
-import { gabungCookie } from './sesi';
+import { gabungCookie, pasangHeaderKlien } from './sesi';
 
 type HasilApi = {
 	response: Response;
@@ -17,6 +17,7 @@ export async function panggilApi(
 	if (init.body) headers.set('Content-Type', 'application/json');
 	const cookie = gabungCookie(cookieHeader);
 	if (cookie) headers.set('cookie', cookie);
+	pasangHeaderKlien(headers);
 
 	const response = await fetch(`${apiBaseUrl}${path}`, { ...init, headers });
 	const payload = response.status === 204 ? null : await response.json().catch(() => null);

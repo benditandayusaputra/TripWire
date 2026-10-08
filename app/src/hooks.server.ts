@@ -2,7 +2,7 @@ import { redirect, type Cookies, type Handle } from '@sveltejs/kit';
 import { apiBaseUrl } from '$lib/api/client';
 import type { User } from '$lib/api/auth';
 import { teruskanCookie } from '$lib/server/api';
-import { gabungCookie, pecahSetCookie } from '$lib/server/sesi';
+import { gabungCookie, pasangHeaderKlien, pecahSetCookie } from '$lib/server/sesi';
 import { BAHASA, TEMA, type Bahasa, type Tema } from '$lib/bahasa.svelte';
 
 const PROTECTED_GROUPS = ['/(app)', '/(admin)'];
@@ -12,7 +12,7 @@ async function currentUser(cookie: string): Promise<User | null> {
 
 	try {
 		const response = await fetch(`${apiBaseUrl}/account/me`, {
-			headers: { cookie, Accept: 'application/json' }
+			headers: pasangHeaderKlien(new Headers({ cookie, Accept: 'application/json' }))
 		});
 		if (!response.ok) return null;
 
@@ -29,7 +29,7 @@ async function segarkan(cookie: string, cookies: Cookies) {
 	try {
 		const response = await fetch(`${apiBaseUrl}/auth/refresh`, {
 			method: 'POST',
-			headers: { cookie, Accept: 'application/json' }
+			headers: pasangHeaderKlien(new Headers({ cookie, Accept: 'application/json' }))
 		});
 		if (!response.ok) return null;
 
