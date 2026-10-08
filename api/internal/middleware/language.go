@@ -71,6 +71,7 @@ func terjemahkan(mentah []byte, semuaKunci bool) ([]byte, bool) {
 }
 
 var kamusInggris = map[string]string{
+	"Pemindaian lain masih berjalan, tunggu sampai selesai":                    "Another scan is still running, wait until it finishes",
 	"Akun dibuat, cek email untuk verifikasi":                                  "Account created, check your email to verify it",
 	"Akun terkunci sementara karena terlalu banyak percobaan masuk yang gagal": "Your account is temporarily locked after too many failed login attempts",
 	"Akun tidak aktif":                                                       "This account is inactive",

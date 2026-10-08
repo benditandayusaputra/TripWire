@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { Activity, CircleGauge, Play, TriangleAlert, Users } from 'lucide-svelte';
 	import Mark from '$lib/components/Mark.svelte';
 	import { formatTanggal, waktuRelatif } from '$lib/insight';
@@ -8,6 +9,26 @@
 	let { data, form } = $props();
 
 	let menjalankan = $state(false);
+	let runSebelum = $state<string | null | undefined>(undefined);
+
+	$effect(() => {
+		if (runSebelum === undefined) return;
+		if ((data.terakhir?.mulai_pada ?? null) !== runSebelum) {
+			runSebelum = undefined;
+			return;
+		}
+		let sisa = 60;
+		const jeda = setInterval(() => {
+			sisa -= 1;
+			if (sisa < 0) {
+				clearInterval(jeda);
+				runSebelum = undefined;
+				return;
+			}
+			invalidateAll();
+		}, 3000);
+		return () => clearInterval(jeda);
+	});
 
 	const sisaPersen = $derived(
 		Number(data.credits.credit_budget) > 0
@@ -162,9 +183,11 @@
 				action="?/scan"
 				use:enhance={() => {
 					menjalankan = true;
-					return async ({ update }) => {
+					const sebelum = data.terakhir?.mulai_pada ?? null;
+					return async ({ result, update }) => {
 						await update();
 						menjalankan = false;
+						if (result.type === 'success') runSebelum = sebelum;
 					};
 				}}
 			>
@@ -172,13 +195,24 @@
 					type="submit"
 					data-testid="trigger-scan"
 					class="tw-ghost text-[13px]"
-					disabled={menjalankan}
+					disabled={menjalankan || runSebelum !== undefined}
 				>
 					<Play class="size-3.5" aria-hidden="true" />
-					{menjalankan ? t('Menjalankan', 'Running') : t('Jalankan scan manual', 'Run manual scan')}
+					{menjalankan || runSebelum !== undefined
+						? t('Sedang memindai', 'Scanning')
+						: t('Pindai sekarang', 'Scan now')}
 				</button>
 			</form>
 		</div>
+
+		{#if runSebelum !== undefined}
+			<p data-testid="scan-berjalan" class="tw-caption" role="status">
+				{t(
+					'Pemindaian berjalan di latar belakang. Hasilnya muncul di sini begitu selesai.',
+					'The scan is running in the background. Results appear here once it finishes.'
+				)}
+			</p>
+		{/if}
 
 		{#if data.terakhir}
 			<div data-testid="scheduler-terakhir" class="tw-glass space-y-3 p-4">

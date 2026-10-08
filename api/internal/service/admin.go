@@ -75,8 +75,8 @@ func (s *AdminService) SchedulerStatus(ctx context.Context) (map[string]any, err
 	}, nil
 }
 
-func (s *AdminService) TriggerScan(ctx context.Context) (*HasilScan, error) {
-	return s.scan.Jalankan(ctx, "manual")
+func (s *AdminService) TriggerScan(ctx context.Context) error {
+	return s.scan.MulaiLatar(ctx, "manual")
 }
 
 func (s *AdminService) Users(ctx context.Context, limit int) ([]repository.AdminUser, error) {
